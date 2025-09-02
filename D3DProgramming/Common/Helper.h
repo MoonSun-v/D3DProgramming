@@ -135,6 +135,7 @@ inline void HR_T(HRESULT hr)
 
 
 //--------------------------------------------------------------------------------------
+// DirectX 11에서 런타임에 HLSL을 직접 컴파일
 // Helper for compiling shaders with D3DCompile
 //
 // With VS 11, we could load up prebuilt .cso files instead...

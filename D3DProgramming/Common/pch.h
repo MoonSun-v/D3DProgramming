@@ -26,10 +26,10 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
-//#include <imgui.h>
-//#include <imgui_impl_win32.h>
-//#include <imgui_impl_dx11.h>
-//#include <imgui_stdlib.h>
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx11.h>
+#include <imgui_stdlib.h>
 
 namespace Math = DirectX::SimpleMath;
 using namespace DirectX;
