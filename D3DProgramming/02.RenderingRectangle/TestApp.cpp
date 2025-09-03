@@ -68,7 +68,8 @@ void TestApp::Render()
 	m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);		
 	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
 
-	// 3. 그리기 
+	// 3. 그리기 (인덱스 버퍼 기반 사각형 렌더링)
+	// ※ 인덱스 버퍼 없이 정점만 사용할 경우 -> Draw() 사용
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 	// m_pDeviceContext->Draw(m_VertexCount, 0);
 
@@ -202,29 +203,25 @@ bool TestApp::InitScene()
 	// ================================================================
 	// 1. 정점(Vertex) 데이터 준비 및 정점 버퍼 생성
 	// ================================================================
-	// 
+	//
 	// 현재는 월드/뷰/프로젝션 변환을 쓰지 않고,
 	// 직접 NDC(Normalized Device Coordinate, -1 ~ +1 좌표계)에 맞게 작성
+	//
+	// 4개의 정점을 사용해 사각형(Rectangle)을 만든다.
+	// 사각형은 두 개의 삼각형(0,1,2) + (2,1,3)으로 구성
+	//
 	// 
-	//  - 화면 중앙이 (0,0,0), 왼쪽 위는 (-1,1,0), 오른쪽 아래는 (1,-1,0)
-	//  - 삼각형 하나를 구성하기 위해 v0, v1, v2 정의
-	// 
-	//      /---------------------(1,1,1)   z값은 깊이값
-	//     /                      / |   
-	// (-1,1,0)----------------(1,1,0)        
-	//   |         v1           |   |
-	//   |        /   `         |   |       중앙이 (0,0,0)  
-	//   |       /  +   `       |   |
-	//   |     /         `      |   |
-	//	 |   v0-----------v2    |  /
-	// (-1,-1,0)-------------(1,-1,0)
+	//   v0(-0.5,+0.5) ---- v1(+0.5,+0.5)
+	//        |                 |
+	//        |                 |
+	//   v2(-0.5,-0.5) ---- v3(+0.5,-0.5)
 
 	Vertex vertices[] =
 	{
-		Vertex(Vector3(-0.5f,  0.5f, 0.5f), Vector4(1.0f, 0.0f, 0.0f, 1.0f)),  // 
-		Vertex(Vector3(0.5f,  0.5f, 0.5f), Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
-		Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
-		Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f))
+		Vertex(Vector3(-0.5f,  0.5f, 0.5f), Vector4(1.0f, 0.0f, 0.0f, 1.0f)),  // 빨강 (v0)
+		Vertex(Vector3(0.5f,  0.5f, 0.5f), Vector4(0.0f, 1.0f, 0.0f, 1.0f)),   // 초록 (v1)
+		Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f)),  // 파랑 (v2)
+		Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f))    // 파랑 (v3)
 	};
 
 
@@ -232,9 +229,7 @@ bool TestApp::InitScene()
 	D3D11_BUFFER_DESC vbDesc = {};
 	m_VertexCount = ARRAYSIZE(vertices);                  // 정점 개수
 	vbDesc.ByteWidth = sizeof(Vertex) * m_VertexCount;    // 버퍼 크기 (정점 크기 × 정점 개수)
-	// vbDesc.CPUAccessFlags = 0;                            // CPU 접근X
 	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;          // 정점 버퍼 용도
-	// vbDesc.MiscFlags = 0;
 	vbDesc.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
 
 	// 버퍼에 초기 데이터 복사할 구조체
@@ -252,7 +247,39 @@ bool TestApp::InitScene()
 
 
 	// ================================================================
-	// 2. 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
+	// 2. 인덱스 버퍼 생성
+	// ================================================================
+	//
+	// 인덱스(Index) 버퍼
+	// - 인덱스를 참조해서 정점(Vertex) 재사용 
+	// 
+	// 두 개 삼각형 합쳐서 하나의 사각형(Rectangle) 만들기 
+
+	WORD indices[] =
+	{
+		0, 1, 2,   // 첫 번째 삼각형 (v0, v1, v2)
+		2, 1, 3    // 두 번째 삼각형 (v2, v1, v3)
+	};
+	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장
+
+	// 인덱스 버퍼 속성 정의
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices); // 전체 인덱스 배열 크기
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;           // 인덱스 버퍼로 사용
+	ibDesc.Usage = D3D11_USAGE_DEFAULT;                   // GPU에서 읽기 전용(수정X)
+
+	// 인덱스 데이터 초기화 정보
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = indices;
+
+	// 인덱스 버퍼 생성
+	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, &m_pIndexBuffer));
+
+
+
+
+	// ================================================================
+	// 3. 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ================================================================
 
 	ID3DBlob* vertexShaderBuffer = nullptr; // 컴파일된 버텍스 셰이더 코드(hlsl) 저장 버퍼
@@ -269,7 +296,7 @@ bool TestApp::InitScene()
 
 
 	// ================================================================
-	// 3. 입력 레이아웃(Input Layout) 생성
+	// 4. 입력 레이아웃(Input Layout) 생성
 	// ================================================================
 
 	// 정점 셰이더가 입력으로 받을 데이터 형식 정의
@@ -289,23 +316,6 @@ bool TestApp::InitScene()
 	SAFE_RELEASE(vertexShaderBuffer); 
 
 
-	// ================================================================
-	// 4. 인덱스 버퍼 생성
-	// ================================================================
-
-	WORD indices[] =
-	{
-		0, 1, 2,
-		2, 1, 3
-	};
-	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장.
-	D3D11_BUFFER_DESC ibDesc = {};
-	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
-	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	ibDesc.Usage = D3D11_USAGE_DEFAULT;
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = indices;
-	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, &m_pIndexBuffer));
 
 
 	// ================================================================
