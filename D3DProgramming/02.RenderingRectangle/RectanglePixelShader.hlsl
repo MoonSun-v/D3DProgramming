@@ -1,6 +1,8 @@
 // [ ÇÈ¼¿ ¼ÎÀÌ´õ ] (½¦ÀÌ´õ/¼ÎÀÌ´õ)
+#include <shared.fxh>
 
-float4 main(float4 input : SV_POSITION) : SV_TARGET
+// ÇÈ¼¿ ¼ÎÀÌ´õ(½¦ÀÌ´õ/¼ÎÀÌ´õ).
+float4 main(PS_INPUT input) : SV_TARGET
 {
-    return float4(1.0f, 0.6f, 0.8f, 1.0f); // Light Pink 
+    return input.color;
 }

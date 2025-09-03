@@ -13,7 +13,13 @@ using namespace DirectX::SimpleMath;
 // [ 정점 선언 ]
 struct Vertex
 {
-	Vector3 position; // 위치 정보
+	Vector3 position;	// 위치 정보
+	Vector4 color;		// 색상 정보
+
+	Vertex(float x, float y, float z) : position(x, y, z) {}
+	Vertex(Vector3 position) : position(position) {}
+
+	Vertex(Vector3 position, Vector4 color): position(position), color(color) {}
 };
 
 
@@ -57,13 +63,14 @@ void TestApp::Render()
 	// ( Draw계열 함수 호출 전 -> 렌더링 파이프라인에 필수 스테이지 설정 해야함 )	
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 정점을 이어서 그릴 방식 (삼각형 리스트 방식)
 	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertextBufferStride, &m_VertextBufferOffset); // (Stride: 정점 크기, Offset: 시작 위치)
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout);	// 입력 레이아웃 설정 
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout);	// 입력 레이아웃 설정
+	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 	m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);		
 	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
 
-
 	// 3. 그리기 
-	m_pDeviceContext->Draw(m_VertexCount, 0);
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	// m_pDeviceContext->Draw(m_VertexCount, 0);
 
 
 	// 4. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
@@ -214,9 +221,10 @@ bool TestApp::InitScene()
 
 	Vertex vertices[] =
 	{
-		Vector3(-0.5, -0.5, 0.5), // v0: 왼쪽 아래
-		Vector3(0.0,  0.5, 0.5), // v1: 위쪽 중앙
-		Vector3(0.5, -0.5, 0.5), // v2: 오른쪽 아래	
+		Vertex(Vector3(-0.5f,  0.5f, 0.5f), Vector4(1.0f, 0.0f, 0.0f, 1.0f)),  // 
+		Vertex(Vector3(0.5f,  0.5f, 0.5f), Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
+		Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
+		Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f))
 	};
 
 
@@ -224,9 +232,9 @@ bool TestApp::InitScene()
 	D3D11_BUFFER_DESC vbDesc = {};
 	m_VertexCount = ARRAYSIZE(vertices);                  // 정점 개수
 	vbDesc.ByteWidth = sizeof(Vertex) * m_VertexCount;    // 버퍼 크기 (정점 크기 × 정점 개수)
-	vbDesc.CPUAccessFlags = 0;                            // CPU 접근X
+	// vbDesc.CPUAccessFlags = 0;                            // CPU 접근X
 	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;          // 정점 버퍼 용도
-	vbDesc.MiscFlags = 0;
+	// vbDesc.MiscFlags = 0;
 	vbDesc.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
 
 	// 버퍼에 초기 데이터 복사할 구조체
@@ -269,7 +277,8 @@ bool TestApp::InitScene()
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =  
 	{	
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 } // ' POSITION: float3 (R32G32B32_FLOAT), 슬롯 0번, 정점 당 데이터 '
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
@@ -280,10 +289,27 @@ bool TestApp::InitScene()
 	SAFE_RELEASE(vertexShaderBuffer); 
 
 
+	// ================================================================
+	// 4. 인덱스 버퍼 생성
+	// ================================================================
+
+	WORD indices[] =
+	{
+		0, 1, 2,
+		2, 1, 3
+	};
+	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장.
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibDesc.Usage = D3D11_USAGE_DEFAULT;
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = indices;
+	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, &m_pIndexBuffer));
 
 
 	// ================================================================
-	// 4. 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
+	// 5. 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ================================================================
 
 	ID3DBlob* pixelShaderBuffer = nullptr; // 컴파일된 버텍스 픽셀 코드(hlsl) 저장 버퍼
@@ -307,6 +333,7 @@ bool TestApp::InitScene()
 void TestApp::UninitScene()
 {
 	SAFE_RELEASE(m_pVertexBuffer);
+	SAFE_RELEASE(m_pIndexBuffer);
 	SAFE_RELEASE(m_pInputLayout);
 	SAFE_RELEASE(m_pVertexShader);
 	SAFE_RELEASE(m_pPixelShader);

@@ -1,6 +1,10 @@
 // [ ¡§¡° ºŒ¿Ã¥ı ]
+#include <shared.fxh>
 
-float4 main(float4 pos : POSITION) : SV_POSITION
+PS_INPUT main(float4 pos : POSITION, float4 color : COLOR)
 {
-	return pos;
+    PS_INPUT output;
+    output.pos = pos;
+    output.color = color;
+    return output;
 }
