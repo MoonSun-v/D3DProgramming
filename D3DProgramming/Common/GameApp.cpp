@@ -150,11 +150,11 @@ void GameApp::Update()
 
 
 
-//
+
 //  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
-//  용도: 주 창의 메시지를 처리합니다.
-//  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
+//  용도: 주 창의 메시지 처리
+//  WM_DESTROY  - 종료 메시지를 게시하고 반환
 //
 //
 LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
