@@ -6,7 +6,6 @@
 #include <Directxtk/WICTextureLoader.h>
 
 
-
 LPCWSTR GetComErrorString(HRESULT hr)
 {
 	_com_error err(hr);

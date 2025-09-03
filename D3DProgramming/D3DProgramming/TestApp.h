@@ -1,6 +1,5 @@
 #pragma once
 #include <d3d11.h>
-
 #include "../Common/GameApp.h"
 
 class TestApp : public GameApp
