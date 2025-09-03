@@ -10,6 +10,7 @@
 GameApp* GameApp::m_pInstance = nullptr;
 HWND GameApp::m_hWnd;
 
+
 LRESULT CALLBACK DefaultWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	return  GameApp::m_pInstance->WndProc(hWnd, message, wParam, lParam);
@@ -66,7 +67,7 @@ LONG WINAPI CustomExceptionHandler(EXCEPTION_POINTERS* pExceptionPointers)
 }
 
 GameApp::GameApp(HINSTANCE hInstance)
-	:m_hInstance(hInstance), m_szWindowClass(L"DefaultWindowCalss"), m_szTitle(L"GameApp"), m_ClientWidth(1024), m_ClientHeight(768)
+	:m_hInstance(hInstance), m_szWindowClass(L"DefaultWindowCalss"), m_szTitle(L"Moon_D3D"), m_ClientWidth(1024), m_ClientHeight(768)
 {
 	GameApp::m_pInstance = this;
 	m_wcex.hInstance = hInstance;
@@ -115,8 +116,6 @@ bool GameApp::Initialize(UINT Width, UINT Height)
 	ShowWindow(m_hWnd, SW_SHOW);
 	UpdateWindow(m_hWnd);
 
-	// m_currentTime = m_previousTime = (float)GetTickCount64() / 1000.0f;
-	// m_Input.Initialize(m_hWnd, this);
 	return true;
 }
 
@@ -147,15 +146,9 @@ bool GameApp::Run()
 
 void GameApp::Update()
 {
-	// m_Timer.Tick();
-	// m_Input.Update(m_Timer.DeltaTime());
-	// m_Camera.Update(m_Timer.DeltaTime());
 }
 
-void GameApp::OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker, const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker)
-{
-	// m_Camera.OnInputProcess(KeyState, KeyTracker, MouseState, MouseTracker);
-}
+
 
 //
 //  ÇÔ¼ö: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -173,9 +166,6 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		PostQuitMessage(0);
 		break;
 	case WM_ACTIVATEAPP:
-		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
-		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
-		break;
 	case WM_INPUT:
 	case WM_MOUSEMOVE:
 	case WM_LBUTTONDOWN:
@@ -188,13 +178,9 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 	case WM_XBUTTONDOWN:
 	case WM_XBUTTONUP:
 	case WM_MOUSEHOVER:
-		Mouse::ProcessMessage(message, wParam, lParam);
-		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYUP:
-		Keyboard::ProcessMessage(message, wParam, lParam);
-		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
