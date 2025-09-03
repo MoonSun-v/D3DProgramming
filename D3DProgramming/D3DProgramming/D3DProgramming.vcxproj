@@ -50,6 +50,7 @@
     <ProjectGuid>{866b54ad-ad8c-4efb-a3c9-317c9ea22dd0}</ProjectGuid>
     <RootNamespace>D3DProgramming</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>01.RenderingTriangle</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
