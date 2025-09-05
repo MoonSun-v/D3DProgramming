@@ -56,17 +56,24 @@ void TestApp::Render()
 {
 	// 1. 화면 칠하기
 	float color[4] = { 0.80f, 0.92f, 1.0f, 1.0f }; //  Light Sky Blue 
-	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
+	// m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
+	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 
 
 	// 2. 렌더링 파이프라인 설정
 	// ( Draw계열 함수 호출 전 -> 렌더링 파이프라인에 필수 스테이지 설정 해야함 )	
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 정점을 이어서 그릴 방식 (삼각형 리스트 방식)
-	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertextBufferStride, &m_VertextBufferOffset); // (Stride: 정점 크기, Offset: 시작 위치)
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout);	// 입력 레이아웃 설정
-	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);		
-	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
+	//m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertextBufferStride, &m_VertextBufferOffset); // (Stride: 정점 크기, Offset: 시작 위치)
+	//m_pDeviceContext->IASetInputLayout(m_pInputLayout);	// 입력 레이아웃 설정
+	//m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	//m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);		
+	//m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset);
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
 
 	// 3. 그리기 (인덱스 버퍼 기반 사각형 렌더링)
 	// ※ 인덱스 버퍼 없이 정점만 사용할 경우 -> Draw() 사용
@@ -124,19 +131,33 @@ bool TestApp::InitD3D()
 	creationFlags |= D3D11_CREATE_DEVICE_DEBUG; // 디버그 레이어 활성화 (DirectX API 호출 시 검증 메시지 출력)
 #endif
 
+	//HR_T(D3D11CreateDeviceAndSwapChain(
+	//	NULL,                           // 기본 어댑터 사용
+	//	D3D_DRIVER_TYPE_HARDWARE,       // 하드웨어 렌더링 사용
+	//	NULL,                           // 소프트웨어 드라이버 없음
+	//	creationFlags,                  // 디버그 플래그
+	//	NULL, NULL,                     // 기본 Feature Level 사용
+	//	D3D11_SDK_VERSION,              // SDK 버전
+	//	&swapDesc,                      // 스왑체인 설명 구조체
+	//	&m_pSwapChain,                  // 스왑체인 반환
+	//	&m_pDevice,                     // 디바이스 반환
+	//	NULL,                           // Feature Level 반환 (사용 안 함)
+	//	&m_pDeviceContext));            // 디바이스 컨텍스트 반환
+	
+	// 디바이스, 스왑체인, 컨텍스트 생성
 	HR_T(D3D11CreateDeviceAndSwapChain(
-		NULL,                           // 기본 어댑터 사용
-		D3D_DRIVER_TYPE_HARDWARE,       // 하드웨어 렌더링 사용
-		NULL,                           // 소프트웨어 드라이버 없음
-		creationFlags,                  // 디버그 플래그
-		NULL, NULL,                     // 기본 Feature Level 사용
-		D3D11_SDK_VERSION,              // SDK 버전
-		&swapDesc,                      // 스왑체인 설명 구조체
-		&m_pSwapChain,                  // 스왑체인 반환
-		&m_pDevice,                     // 디바이스 반환
-		NULL,                           // Feature Level 반환 (사용 안 함)
-		&m_pDeviceContext));            // 디바이스 컨텍스트 반환
-
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		creationFlags,
+		nullptr, 0,
+		D3D11_SDK_VERSION,
+		&swapDesc,
+		m_pSwapChain.GetAddressOf(),
+		m_pDevice.GetAddressOf(),
+		nullptr,
+		m_pDeviceContext.GetAddressOf()
+	));
 
 
 
@@ -145,19 +166,27 @@ bool TestApp::InitD3D()
     // =====================================
 	
     // 스왑체인의 0번 버퍼(백버퍼)를 가져옴
-	ID3D11Texture2D* pBackBufferTexture = nullptr;
-	HR_T(m_pSwapChain->GetBuffer(
-		0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
+	// 
+	//ID3D11Texture2D* pBackBufferTexture = nullptr;
 
-	// 백버퍼 텍스처를 기반으로 렌더타겟뷰 생성
-	HR_T(m_pDevice->CreateRenderTargetView(
-		pBackBufferTexture, NULL, &m_pRenderTargetView));  // 텍스처는 내부 참조 증가
+	//HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
 
-	// 텍스처 참조 해제 (렌더타겟뷰가 참조 잡고 있으므로 여기선 해제 가능) // 외부 참조 카운트를 감소시킨다.
-	SAFE_RELEASE(pBackBufferTexture);	
+	//// 백버퍼 텍스처를 기반으로 렌더타겟뷰 생성
+	//HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // 텍스처는 내부 참조 증가
 
-	// 출력 병합(OM: Output Merger) 단계에 렌더타겟 바인딩
-	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
+	//// 텍스처 참조 해제 (렌더타겟뷰가 참조 잡고 있으므로 여기선 해제 가능) // 외부 참조 카운트를 감소시킨다.
+	//SAFE_RELEASE(pBackBufferTexture);	
+
+	//// 출력 병합(OM: Output Merger) 단계에 렌더타겟 바인딩
+	//m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
+
+	ComPtr<ID3D11Texture2D> backBuffer;
+	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf())));
+
+	HR_T(m_pDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
+
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr);
+
 
 
 
@@ -184,10 +213,16 @@ bool TestApp::InitD3D()
 
 void TestApp::UninitD3D()
 {
-	SAFE_RELEASE(m_pRenderTargetView);
-	SAFE_RELEASE(m_pDeviceContext);
-	SAFE_RELEASE(m_pSwapChain);
-	SAFE_RELEASE(m_pDevice);
+	//SAFE_RELEASE(m_pRenderTargetView);
+	//SAFE_RELEASE(m_pDeviceContext);
+	//SAFE_RELEASE(m_pSwapChain);
+	//SAFE_RELEASE(m_pDevice);
+
+	// ComPtr은 자동으로 Release 호출 → 필요 시 수동 초기화 가능
+	//m_pRenderTargetView.Reset();
+	//m_pDeviceContext.Reset();
+	//m_pSwapChain.Reset();
+	//m_pDevice.Reset();
 }
 
 
@@ -223,11 +258,11 @@ bool TestApp::InitScene()
 		Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f)),  // 파랑 (v2)
 		Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f))    // 파랑 (v3)
 	};
+	m_VertexCount = ARRAYSIZE(vertices);                  // 정점 개수 저장 
 
 
 	// 정점 버퍼 속성 구조체
 	D3D11_BUFFER_DESC vbDesc = {};
-	m_VertexCount = ARRAYSIZE(vertices);                  // 정점 개수
 	vbDesc.ByteWidth = sizeof(Vertex) * m_VertexCount;    // 버퍼 크기 (정점 크기 × 정점 개수)
 	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;          // 정점 버퍼 용도
 	vbDesc.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
@@ -237,7 +272,8 @@ bool TestApp::InitScene()
 	vbData.pSysMem = vertices; // 버텍스 배열 주소
 
 	// 정점 버퍼 생성
-	HR_T(hr = m_pDevice->CreateBuffer(&vbDesc, &vbData, &m_pVertexBuffer));
+	// HR_T(hr = m_pDevice->CreateBuffer(&vbDesc, &vbData, &m_pVertexBuffer));
+	HR_T(m_pDevice->CreateBuffer(&vbDesc, &vbData, m_pVertexBuffer.GetAddressOf()));
 
 	// 버텍스 버퍼 정보
 	m_VertextBufferStride = sizeof(Vertex); // 정점 하나의 크기
@@ -273,7 +309,9 @@ bool TestApp::InitScene()
 	ibData.pSysMem = indices;
 
 	// 인덱스 버퍼 생성
-	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, &m_pIndexBuffer));
+	// HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, &m_pIndexBuffer));
+	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, m_pIndexBuffer.GetAddressOf()));
+
 
 
 
@@ -282,16 +320,21 @@ bool TestApp::InitScene()
 	// 3. 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ================================================================
 
-	ID3DBlob* vertexShaderBuffer = nullptr; // 컴파일된 버텍스 셰이더 코드(hlsl) 저장 버퍼
+	//ID3DBlob* vertexShaderBuffer = nullptr; // 컴파일된 버텍스 셰이더 코드(hlsl) 저장 버퍼
 
-	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"RectangleVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
+	//// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
+	//HR_T(CompileShaderFromFile(L"RectangleVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
 
-	// 버텍스 셰이더 객체 생성
-	HR_T(m_pDevice->CreateVertexShader(
-		vertexShaderBuffer->GetBufferPointer(), // 필요한 데이터를 복사하며 객체 생성 
-		vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
+	//// 버텍스 셰이더 객체 생성
+	//HR_T(m_pDevice->CreateVertexShader(
+	//	vertexShaderBuffer->GetBufferPointer(), // 필요한 데이터를 복사하며 객체 생성 
+	//	vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
 
+	ComPtr<ID3DBlob> vsBlob;
+
+	HR_T(CompileShaderFromFile(L"RectangleVertexShader.hlsl", "main", "vs_4_0", vsBlob.GetAddressOf()));
+
+	HR_T(m_pDevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_pVertexShader.GetAddressOf()));
 
 
 
@@ -309,32 +352,37 @@ bool TestApp::InitScene()
 	};
 
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
-	HR_T(hr = m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
-		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
+	//HR_T(hr = m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
+	//	vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
 
 	// 복사했으니 버퍼는 해제 가능
-	SAFE_RELEASE(vertexShaderBuffer); 
+	//SAFE_RELEASE(vertexShaderBuffer); 
 
-
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 
 	// ================================================================
 	// 5. 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ================================================================
 
-	ID3DBlob* pixelShaderBuffer = nullptr; // 컴파일된 버텍스 픽셀 코드(hlsl) 저장 버퍼
+	//ID3DBlob* pixelShaderBuffer = nullptr; // 컴파일된 버텍스 픽셀 코드(hlsl) 저장 버퍼
 
-	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"RectanglePixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	//// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
+	//HR_T(CompileShaderFromFile(L"RectanglePixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 
-	// 픽셀 셰이더 객체 생성
-	HR_T(m_pDevice->CreatePixelShader(	  // 필요한 데이터를 복사하며 객체 생성 
-		pixelShaderBuffer->GetBufferPointer(),
-		pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
+	//// 픽셀 셰이더 객체 생성
+	//HR_T(m_pDevice->CreatePixelShader(	  // 필요한 데이터를 복사하며 객체 생성 
+	//	pixelShaderBuffer->GetBufferPointer(),
+	//	pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
 
-	// 복사했으니 버퍼는 해제 가능
-	SAFE_RELEASE(pixelShaderBuffer);
+	//// 복사했으니 버퍼는 해제 가능
+	//SAFE_RELEASE(pixelShaderBuffer);
 
+	ComPtr<ID3DBlob> psBlob;
+
+	HR_T(CompileShaderFromFile(L"RectanglePixelShader.hlsl", "main", "ps_4_0", psBlob.GetAddressOf()));
+
+	HR_T(m_pDevice->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_pPixelShader.GetAddressOf()));
 
 
 	return true;
@@ -342,9 +390,16 @@ bool TestApp::InitScene()
 
 void TestApp::UninitScene()
 {
-	SAFE_RELEASE(m_pVertexBuffer);
-	SAFE_RELEASE(m_pIndexBuffer);
-	SAFE_RELEASE(m_pInputLayout);
-	SAFE_RELEASE(m_pVertexShader);
-	SAFE_RELEASE(m_pPixelShader);
+	//SAFE_RELEASE(m_pVertexBuffer);
+	//SAFE_RELEASE(m_pIndexBuffer);
+	//SAFE_RELEASE(m_pInputLayout);
+	//SAFE_RELEASE(m_pVertexShader);
+	//SAFE_RELEASE(m_pPixelShader);
+
+	// 필요 시 Reset 가능
+	m_pVertexBuffer.Reset();
+	m_pIndexBuffer.Reset();
+	m_pInputLayout.Reset();
+	m_pVertexShader.Reset();
+	m_pPixelShader.Reset();
 }
