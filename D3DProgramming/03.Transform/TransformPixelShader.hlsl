@@ -1,7 +1,7 @@
-// [ ÇÈ¼¿ ¼ÎÀÌ´õ ] (½¦ÀÌ´õ/¼ÎÀÌ´õ)
+// [ ÇÈ¼¿ ¼ÎÀÌ´õ ] 
 #include <shared.fxh>
 
-float4 main(PS_INPUT input) : SV_TARGET
+float4 main(PS_INPUT input) : SV_Target
 {
-    return input.color;
+    return input.Color;
 }

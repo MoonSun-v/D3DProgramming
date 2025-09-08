@@ -146,6 +146,7 @@ bool GameApp::Run()
 
 void GameApp::Update()
 {
+	m_Timer.Tick();
 }
 
 

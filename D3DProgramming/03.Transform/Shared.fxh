@@ -1,7 +1,13 @@
-// [ ¡§¡° ºŒ¿Ã¥ı ]
+cbuffer ConstantBuffer : register(b0)
+{
+    matrix World;
+    matrix View;
+    matrix Projection;
+}
 
+//--------------------------------------------------------------------------------------
 struct PS_INPUT
 {
-    float4 pos : SV_POSITION;
-    float4 color : COLOR;
+    float4 Pos : SV_POSITION;
+    float4 Color : COLOR0;
 };

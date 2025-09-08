@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include "TimeSystem.h"
 
 #define MAX_LOADSTRING 100
 
@@ -23,6 +24,7 @@ public:
 	float m_previousTime;
 	float m_currentTime;
 	int  m_nCmdShow;
+	TimeSystem m_Timer;
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
 
