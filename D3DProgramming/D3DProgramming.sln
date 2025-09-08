@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "01.RenderingTriangle", "01.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02.RenderingRectangle", "02.RenderingRectangle\02.RenderingRectangle.vcxproj", "{87BC71C7-AECB-4866-B88F-76947A97B273}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03.Transform", "03.Transform\03.Transform.vcxproj", "{5E62DB8D-7418-422C-B7D9-33797FDD90EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{87BC71C7-AECB-4866-B88F-76947A97B273}.Release|x64.Build.0 = Release|x64
 		{87BC71C7-AECB-4866-B88F-76947A97B273}.Release|x86.ActiveCfg = Release|Win32
 		{87BC71C7-AECB-4866-B88F-76947A97B273}.Release|x86.Build.0 = Release|Win32
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Debug|x64.ActiveCfg = Debug|x64
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Debug|x64.Build.0 = Debug|x64
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Debug|x86.ActiveCfg = Debug|Win32
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Debug|x86.Build.0 = Debug|Win32
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Release|x64.ActiveCfg = Release|x64
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Release|x64.Build.0 = Release|x64
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Release|x86.ActiveCfg = Release|Win32
+		{5E62DB8D-7418-422C-B7D9-33797FDD90EE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
