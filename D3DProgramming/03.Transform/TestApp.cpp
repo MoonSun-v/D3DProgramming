@@ -58,7 +58,7 @@ void TestApp::Update()
 
 
 
-// ★ [ 렌더링 ] 과정 : (초기화 → 파이프라인 설정 → 그리기 → 스왑체인 교체) 
+// ★ [ 렌더링 ] 
 void TestApp::Render()
 {
 	// 0. 그릴 대상 설정

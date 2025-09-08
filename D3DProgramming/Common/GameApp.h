@@ -33,7 +33,7 @@ public:
 	virtual bool Initialize(UINT Width, UINT Height);
 	virtual bool Run();
 	virtual void Update();		// 상속 받은 클래스에서 구현
-	virtual void Render() = 0;	// 상속 받은 클래스에서 구현
+	virtual void Render();		// 상속 받은 클래스에서 구현
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
 

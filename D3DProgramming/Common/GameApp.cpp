@@ -149,6 +149,10 @@ void GameApp::Update()
 	m_Timer.Tick();
 }
 
+void GameApp::Render()
+{
+
+}
 
 
 
