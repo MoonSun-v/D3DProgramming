@@ -93,15 +93,15 @@ using namespace DirectX::SimpleMath;
 // ========== [ 안전 해제 매크로 ] ==========
 
 // COM 객체 안전 해제
-//template <typename T>
-//void SAFE_RELEASE(T* p)
-//{
-//    if (p)
-//    {
-//        p->Release();
-//        p = nullptr;
-//    }
-//}
+template <typename T>
+void SAFE_RELEASE(T* p)
+{
+    if (p)
+    {
+        p->Release();
+        p = nullptr;
+    }
+}
 
 // 일반 new 객체 안전 해제
 template <typename T>

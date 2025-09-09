@@ -5,7 +5,7 @@
 class TestApp : public GameApp
 {
 public:
-	TestApp(HINSTANCE hInstance);
+	TestApp();
 	~TestApp();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 ( 뎊스 스텐실 뷰도 있지만 아직 사용하지 않는다.)
@@ -23,7 +23,7 @@ public:
 	UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋.
 	UINT m_VertexCount = 0;							// 버텍스 개수.
 
-	virtual bool Initialize(UINT Width, UINT Height);	
+	virtual bool Initialize();	
 	virtual void Update();
 	virtual void Render();
 
