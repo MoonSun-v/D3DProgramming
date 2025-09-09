@@ -122,6 +122,9 @@ void SAFE_DELETE(T* p)
 
 // HRESULT → 문자열 변환
 LPCWSTR GetComErrorString(HRESULT hr);
+std::string GetComErrorStringA(HRESULT hr);
+
+void CheckDXGIDebug();
 
 
 // COM 예외 처리 클래스

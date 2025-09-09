@@ -31,6 +31,7 @@ public:
 public:
 	// 윈도우 정보 등록,생성,보이기 한다.
 	virtual bool Initialize(UINT Width, UINT Height);
+	virtual void Uninitialize() {};
 	virtual bool Run();
 	virtual void Update();		// 상속 받은 클래스에서 구현
 	virtual void Render();		// 상속 받은 클래스에서 구현
