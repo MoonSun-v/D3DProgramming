@@ -71,6 +71,7 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
+	void Render_ImGui();
 
 	bool InitD3D();
 	void UninitD3D();		

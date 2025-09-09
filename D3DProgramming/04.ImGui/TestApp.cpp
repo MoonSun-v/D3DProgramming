@@ -104,7 +104,7 @@ void TestApp::Render()
 	// 0. 그릴 대상 설정
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 
-	// 1. 화면 칠하기
+	// 1. 화면 지우기 
 	const float clear_color_with_alpha[4] = { m_ClearColor.x , m_ClearColor.y , m_ClearColor.z, m_ClearColor.w };
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), clear_color_with_alpha);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
@@ -149,78 +149,88 @@ void TestApp::Render()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
-	// 4. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
-	// m_pSwapChain->Present(0, 0);
+	// 4. UI 그리기 
+	Render_ImGui();
+
+
+	// 5. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
+	m_pSwapChain->Present(0, 0);
+}
 
 
 
+// ★ [ ImGui ] - UI 프레임 준비 및 렌더링
+void TestApp::Render_ImGui()
+{
 
-	// ================================================================
-	//  [ ImGui ] 
-	// ================================================================
-
+	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-	// Start the Dear ImGui frame
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // 키보드로 UI 가능 
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // 게임패드로 UI 가능 
 
 
+	// 1. [ 새로운 ImGui 프레임 시작 ]
+	ImGui_ImplDX11_NewFrame();		// DirectX11 렌더러용 프레임 준비
+	ImGui_ImplWin32_NewFrame();		// Win32 플랫폼용 프레임 준비
+	ImGui::NewFrame();				// ImGui 내부 프레임 초기화
 
-	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+
+
+	// 2. [ ImGui Demo Window 표시 (옵션) ]
 	if (m_show_demo_window) ImGui::ShowDemoWindow(&m_show_demo_window);
+	// ImGui가 제공하는 예제 윈도우 표시
+	// &m_show_demo_window -> 체크박스를 통해 창을 닫을 수 있음
 
-	// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-	{
 
-		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-		ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
-		ImGui::Checkbox("Another Window", &m_show_another_window);
+	// 3. [ 사용자 정의 윈도우 생성 ]
+	ImGui::Begin("Hello, world!");								// "Hello, world!" 이름의 새로운 창 생성
 
-		ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+	ImGui::Text("This is some useful text.");					// 단순 텍스트 출력
+	ImGui::Checkbox("Demo Window", &m_show_demo_window);		// 체크박스 생성: Demo Window ON/OFF
+	ImGui::Checkbox("Another Window", &m_show_another_window);
 
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			m_counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", m_counter);
+	ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);				// 슬라이더 생성: m_f 값을 0.0 ~ 1.0 범위에서 조절
 
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+	if (ImGui::Button("Button")) m_counter++;					// 버튼 생성: 클릭 시 m_counter 증가
 
-		std::string str;
-		ImGui::Text("\nDisplay Memory");
-		GetDisplayMemoryInfo(str);
-		ImGui::Text("%s", str.c_str());
-		ImGui::Text("\nProcess Memory");
-		GetVirtualMemoryInfo(str);
-		ImGui::Text("%s", str.c_str());
+	ImGui::SameLine();
+	ImGui::Text("counter = %d", m_counter);						// 버튼 옆에 같은 라인으로 텍스트 표시
 
-		ImGui::ColorEdit3("clear color", (float*)&m_ClearColor); // Edit 3 floats representing a color	
-		ImGui::End();
-	}
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate); // 프레임 속도 표시
 
-	// 3. Show another simple window.
+	// GPU 메모리 정보 표시
+	std::string str;
+	ImGui::Text("\nDisplay Memory");
+	GetDisplayMemoryInfo(str);
+	ImGui::Text("%s", str.c_str());
+
+	// 프로세스 메모리 정보 표시
+	ImGui::Text("\nProcess Memory");
+	GetVirtualMemoryInfo(str);
+	ImGui::Text("%s", str.c_str());
+
+	// 색상 편집 위젯 (RGB 슬라이더)
+	ImGui::ColorEdit3("clear color", (float*)&m_ClearColor);  // float 배열 주소를 전달하여 3개의 float 값(RGB)을 편집 가능
+	
+	// 창 닫기
+	ImGui::End();
+
+
+
+	// 4. [ 다른 간단한 창 표시 ]
 	if (m_show_another_window)
 	{
-		ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		ImGui::Text("Hello from another window!");
-		if (ImGui::Button("Close Me"))
-			m_show_another_window = false;
+		ImGui::Begin("Another Window", &m_show_another_window);			// "Another Window" 생성, &m_show_another_window로 창 닫기 가능
+		ImGui::Text("Hello from another window!");						// 텍스트 출력
+		if (ImGui::Button("Close Me")) m_show_another_window = false;	// 버튼 클릭 시 창 닫기
 		ImGui::End();
 	}
-	ImGui::Render();
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 
-
-
-
-	// 4. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
-	m_pSwapChain->Present(0, 0);
+	// 5. [ ImGui 프레임 최종 렌더링 ]
+	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // DX11로 실제 화면에 출력
 }
 
 
@@ -232,9 +242,12 @@ bool TestApp::InitD3D()
 	HRESULT hr = 0; // 결과값 : DirectX 함수는 HRESULT 반환
 
 
-	// Create DXGI factory
+	// =====================================
+	// 0. DXGI Factory 생성 및 첫 번째 Adapter 가져오기 (ImGui)
+	// =====================================
 	HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)m_pDXGIFactory.GetAddressOf()));
 	HR_T(m_pDXGIFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_pDXGIAdapter.GetAddressOf())));
+
 
 
 	// =====================================
