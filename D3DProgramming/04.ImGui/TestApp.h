@@ -57,6 +57,12 @@ public:
 	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
 
+	// [ UI에 표시할 각 큐브의 위치 ]
+	Vector3 m_World1Pos = Vector3(0.0f, 0.0f, 0.0f);
+	Vector3 m_World2Offset = Vector3(-4.0f, 0.0f, 0.0f);	// 상대 위치
+	Vector3 m_World3Offset = Vector3(-2.0f, 0.0f, 0.0f);	// 상대 위치 
+
+
 	// [ 배경색 ]
 	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f);  //  Light Sky Blue 
 
@@ -67,11 +73,19 @@ public:
 	int m_counter;
 
 
+	// [ Camera ]
+	float m_CameraPos[3] = { 0.0f, 0.0f, -30.0f };
+	float m_CameraFOV = 60.0f;     // degree
+	float m_CameraNear = 0.1f;
+	float m_CameraFar = 1000.0f;
+
+
 	bool Initialize() override;
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
-	void Render_ImGui();
+	void Render_ImGui1();	// GPU, 프로세스의 메모리 정보를 표시하는 UI 
+	void Render_ImGui2();	// Cube, 카메라의 위치 조정 UI
 
 	bool InitD3D();
 	void UninitD3D();		

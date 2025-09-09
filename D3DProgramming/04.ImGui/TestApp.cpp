@@ -65,35 +65,61 @@ void TestApp::Update()
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
 
-	// [ 1번째 Cube ] : 단순히 Y축 회전 
-	m_World1 = XMMatrixRotationY(totalTime);
-
-
-	// [ 2번째 Cube ] : 궤도 회전 + 제자리 회전 + 스케일 축소 + 이동
+	// 부모-자식 관계 => 최종 World 행렬 계산 시 부모 행렬을 곱해주기
 	// mOrbit : 다른 축을 기준으로 회전 
+
+	// [ 1번째 Cube ] : 단순 Y축 회전 
+	XMMATRIX translate1 = XMMatrixTranslation(m_World1Pos.x, m_World1Pos.y, m_World1Pos.z);
+	XMMATRIX rotate1 = XMMatrixRotationY(totalTime);
+
+	m_World1 = XMMatrixMultiply(rotate1, translate1);
+
+
+	// [ 2번째 Cube ] 
 	XMMATRIX spin2 = XMMatrixRotationZ(-totalTime);					// 제자리 Z축 회전
 	XMMATRIX orbit2 = XMMatrixRotationY(-totalTime * 1.5f);			// 중심을 기준으로 Y축 궤도 회전
-	XMMATRIX translate2 = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);	// 왼쪽으로 이동
-	XMMATRIX scale2 = XMMatrixScaling(0.3f, 0.3f, 0.3f);			// 크기 축소
+	XMMATRIX translate2 = XMMatrixTranslation(m_World2Offset.x, m_World2Offset.y, m_World2Offset.z);
+	XMMATRIX scale2 = XMMatrixScaling(0.3f, 0.3f, 0.3f);			
 
-	// scale -> spin -> translate -> orbit 
+	// 단계별 곱 scale -> spin -> translate -> orbit 
 	XMMATRIX temp2_1 = XMMatrixMultiply(scale2, spin2);
-	XMMATRIX temp2_2 = XMMatrixMultiply(XMMatrixMultiply(scale2, spin2), translate2);
-	m_World2 = XMMatrixMultiply(temp2_2, orbit2);					// 최종 월드 행렬
+	XMMATRIX temp2_2 = XMMatrixMultiply(temp2_1, translate2);
+	XMMATRIX temp2_3 = XMMatrixMultiply(temp2_2, orbit2);
+	m_World2 = XMMatrixMultiply(temp2_3, m_World1);   // 부모 m_World1
 
 
-	// [ 3번째 Cube ] : 2번 큐브의 자식
-	XMMATRIX spin3 = XMMatrixRotationZ(totalTime);					// 제자리 Z축 회전
-	XMMATRIX orbit3 = XMMatrixRotationY(totalTime * 3.0f);			// 2번 큐브 중심을 기준으로 궤도 회전
-	XMMATRIX translate3 = XMMatrixTranslation(-2.0f, 0.0f, 0.0f);	// 왼쪽으로 이동
-	XMMATRIX scale3 = XMMatrixScaling(0.5f, 0.5f, 0.5f);			// 크기 축소
+	// [ 3번째 Cube ] 
+	XMMATRIX spin3 = XMMatrixRotationZ(totalTime);					
+	XMMATRIX orbit3 = XMMatrixRotationY(totalTime * 3.0f);			
+	XMMATRIX translate3 = XMMatrixTranslation(m_World3Offset.x, m_World3Offset.y, m_World3Offset.z);
+	XMMATRIX scale3 = XMMatrixScaling(0.5f, 0.5f, 0.5f);			
 
-	// scale -> spin -> translate -> orbit -> orbit 
+	// 단계별 곱 scale -> spin -> translate -> orbit
 	XMMATRIX temp3_1 = XMMatrixMultiply(scale3, spin3);
 	XMMATRIX temp3_2 = XMMatrixMultiply(temp3_1, translate3);
-	XMMATRIX local3 = XMMatrixMultiply(temp3_2, orbit3);
+	XMMATRIX temp3_3 = XMMatrixMultiply(temp3_2, orbit3);
+	m_World3 = XMMatrixMultiply(temp3_3, m_World2); // 부모 m_World2
 
-	m_World3 = XMMatrixMultiply(local3, m_World2);	// 2번 큐브의 자식으로 연결
+
+
+
+	// [ 카메라 ] 
+	
+	// 카메라 위치 동기화
+	m_Camera.m_Position = { m_CameraPos[0], m_CameraPos[1], m_CameraPos[2] };
+
+	// 카메라의 View 행렬 갱신
+	m_Camera.Update(m_Timer.DeltaTime());
+	m_Camera.GetViewMatrix(m_View);
+
+	// 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
+	float aspect = float(m_ClientWidth) / float(m_ClientHeight);
+	m_Projection = XMMatrixPerspectiveFovLH(
+		XMConvertToRadians(m_CameraFOV), // degree → radian 변환
+		aspect,
+		m_CameraNear,
+		m_CameraFar
+	);
 }
 
 
@@ -150,7 +176,7 @@ void TestApp::Render()
 
 
 	// 4. UI 그리기 
-	Render_ImGui();
+	Render_ImGui2();
 
 
 	// 5. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
@@ -159,10 +185,75 @@ void TestApp::Render()
 
 
 
-// ★ [ ImGui ] - UI 프레임 준비 및 렌더링
-void TestApp::Render_ImGui()
+// ★ [ Cube의 위치를 조정하는 ImGui ] - UI 프레임 준비 및 렌더링
+void TestApp::Render_ImGui2()
 {
+	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // 키보드로 UI 가능 
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // 게임패드로 UI 가능 
 
+
+	// [ 새로운 ImGui 프레임 시작 ]
+	ImGui_ImplDX11_NewFrame();		// DirectX11 렌더러용 프레임 준비
+	ImGui_ImplWin32_NewFrame();		// Win32 플랫폼용 프레임 준비
+	ImGui::NewFrame();				// ImGui 내부 프레임 초기화
+
+
+	// 초기 창 크기 지정
+	// ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_FirstUseEver); 
+	ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_Always);
+
+	// [ Cube Control UI ]
+	ImGui::Begin("Cube & Camera Control");
+
+	// 1번 Cube (월드 위치)
+	ImGui::Text("[ Cube Control ]");
+	
+	ImGui::Text("1. Root Cube (World Pos)");
+	ImGui::SliderFloat3("Cube1 Pos", (float*)&m_World1Pos, -10.0f, 10.0f);
+
+	// 2번 Cube (1번 기준 상대 위치)
+	ImGui::Text("2. Second Cube (Relative to Cube1)");
+	ImGui::SliderFloat3("Cube2 Offset", (float*)&m_World2Offset, -10.0f, 10.0f);
+
+	// 3번 Cube (2번 기준 상대 위치)
+	ImGui::Text("3. Third Cube (Relative to Cube2)");
+	ImGui::SliderFloat3("Cube3 Offset", (float*)&m_World3Offset, -10.0f, 10.0f);
+
+	ImGui::Text(""); ImGui::Text("");
+
+	// [ Camera Control UI ]
+	ImGui::Text("[ Camera Control ]");
+	 
+	// 카메라 월드 위치 (x,y,z)
+	ImGui::Text("1. Camera Pos");
+	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
+
+	// 카메라 FOV (degree)
+	ImGui::Text("2. FOV (deg)");
+	ImGui::SliderFloat("FOV (deg)", &m_CameraFOV, 10.0f, 120.0f);
+
+	// 카메라 Near, Far
+	ImGui::Text("3. Near");
+	ImGui::SliderFloat("Near", &m_CameraNear, 0.01f, 10.0f);
+
+	ImGui::Text("4. Far");
+	ImGui::SliderFloat("Far", &m_CameraFar, 10.0f, 5000.0f);
+
+
+	// [ 끝 ] 
+	ImGui::End();
+
+	// [ ImGui 프레임 최종 렌더링 ]
+	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // DX11로 실제 화면에 출력
+}
+
+
+// [ GPU, 프로세스의 메모리 정보를 표시하는 ImGui ] - UI 프레임 준비 및 렌더링
+void TestApp::Render_ImGui1()
+{
 	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // 키보드로 UI 가능 
@@ -173,8 +264,6 @@ void TestApp::Render_ImGui()
 	ImGui_ImplDX11_NewFrame();		// DirectX11 렌더러용 프레임 준비
 	ImGui_ImplWin32_NewFrame();		// Win32 플랫폼용 프레임 준비
 	ImGui::NewFrame();				// ImGui 내부 프레임 초기화
-
-
 
 	// 2. [ ImGui Demo Window 표시 (옵션) ]
 	if (m_show_demo_window) ImGui::ShowDemoWindow(&m_show_demo_window);
@@ -217,7 +306,6 @@ void TestApp::Render_ImGui()
 	ImGui::End();
 
 
-
 	// 4. [ 다른 간단한 창 표시 ]
 	if (m_show_another_window)
 	{
@@ -232,7 +320,6 @@ void TestApp::Render_ImGui()
 	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // DX11로 실제 화면에 출력
 }
-
 
 
 // ★ [ Direct3D11 초기화 ] 
