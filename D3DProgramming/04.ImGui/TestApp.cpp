@@ -6,10 +6,7 @@
 #include <d3dcompiler.h>
 
 #include <windows.h>
-#include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 
-#pragma comment (lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
 #pragma comment(lib, "Psapi.lib")
@@ -34,7 +31,7 @@ struct ConstantBuffer
 	Matrix mProjection;  // 투영 변환 행렬
 };
 
-TestApp::TestApp(HINSTANCE hInstance) : GameApp(hInstance)
+TestApp::TestApp() : GameApp()
 {
 
 }
@@ -45,18 +42,19 @@ TestApp::~TestApp()
 	UninitD3D();
 }
 
-bool TestApp::Initialize(UINT Width, UINT Height)
+bool TestApp::Initialize()
 {
-	__super::Initialize(Width, Height);
+	__super::Initialize();
 
 	if (!InitD3D())		return false;
 	if (!InitScene())	return false;
-
+	if (!InitImGUI())	return false;
 	return true;
 }
 
 void TestApp::Uninitialize()
 {
+	UninitImGUI();
 	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 }
 
@@ -173,8 +171,7 @@ void TestApp::Render()
 
 
 	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-	if (m_show_demo_window)
-		ImGui::ShowDemoWindow(&m_show_demo_window);
+	if (m_show_demo_window) ImGui::ShowDemoWindow(&m_show_demo_window);
 
 	// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
 	{
@@ -233,6 +230,11 @@ bool TestApp::InitD3D()
 {
 	
 	HRESULT hr = 0; // 결과값 : DirectX 함수는 HRESULT 반환
+
+
+	// Create DXGI factory
+	HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)m_pDXGIFactory.GetAddressOf()));
+	HR_T(m_pDXGIFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_pDXGIAdapter.GetAddressOf())));
 
 
 	// =====================================
@@ -599,4 +601,16 @@ void TestApp::GetVirtualMemoryInfo(std::string& out)
 	out = "PrivateUsage: " + std::to_string((pmc.PrivateUsage) / 1024 / 1024) + " MB\n";
 	out += "WorkingSetSize: " + std::to_string((pmc.WorkingSetSize) / 1024 / 1024) + " MB\n";
 	out += "PagefileUsage: " + std::to_string((pmc.PagefileUsage) / 1024 / 1024) + " MB";
+}
+
+
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT CALLBACK TestApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+		return true;
+
+	return __super::WndProc(hWnd, message, wParam, lParam);
 }

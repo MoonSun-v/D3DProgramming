@@ -2,14 +2,15 @@
 #include <windows.h>
 #include "TimeSystem.h"
 #include "InputSystem.h"
+#include "Camera.h"
 
 #define MAX_LOADSTRING 100
 
 
-class GameApp 
+class GameApp : public InputProcesser
 {
 public:
-	GameApp(HINSTANCE hInstance);
+	GameApp();
 	virtual ~GameApp();
 
 	static HWND m_hWnd;						// 자주 필요하니 포인터 간접접근을 피하기 위해 정적멤버로 
@@ -27,17 +28,23 @@ public:
 	int  m_nCmdShow;
 	TimeSystem m_Timer;
 	InputSystem m_Input;
+	Camera m_Camera;
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
 
 public:
-	// 윈도우 정보 등록,생성,보이기 한다.
-	virtual bool Initialize(UINT Width, UINT Height);
+	// 윈도우 정보 등록,생성,보이기
+	virtual bool Initialize();
 	virtual void Uninitialize() {};
-	virtual bool Run();
+	virtual bool Run(HINSTANCE hInstance);
 	virtual void Update();		// 상속 받은 클래스에서 구현
 	virtual void Render();		// 상속 받은 클래스에서 구현
 
+	virtual void OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker,
+		const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker);
+
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	void SetClientSize(UINT width, UINT height) { m_ClientWidth = width; m_ClientHeight = height; }
 };
 

@@ -13,7 +13,7 @@ using namespace DirectX;
 class TestApp : public GameApp
 {
 public:
-	TestApp(HINSTANCE hInstance);
+	TestApp();
 	~TestApp();
 
 	// [ 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 ] 
@@ -45,7 +45,7 @@ public:
 	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
 
-	bool Initialize(UINT Width, UINT Height) override;
+	bool Initialize() override;
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;

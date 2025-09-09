@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <fstream>
 #include <stdexcept>
 #include <system_error>
@@ -128,33 +127,43 @@ void CheckDXGIDebug();
 
 
 // COM 예외 처리 클래스
-class com_exception : public std::exception
-{
-public:
-    com_exception(HRESULT hr) : result(hr) {}
+// Helper class for COM exceptions
+class com_exception : public std::exception {
+    HRESULT m_hr;
+    const char* m_file;
+    int m_line;
+    const char* m_func;
+    std::string m_msg;
 
-    // 예외 메시지 반환
-    const char* what() const noexcept override
+public:
+    com_exception(HRESULT hr, const char* file, int line, const char* func)
+        : m_hr(hr), m_file(file), m_line(line), m_func(func)
     {
-        static char s_str[64] = {};
-        sprintf_s(s_str, "Failure with HRESULT of %08X",
-            static_cast<unsigned int>(result));
-        return s_str;
+        char buf[512];
+        sprintf_s(buf, "COM call failed. hr=0x%08X\n%s\nFile: %s\nLine: %d\nFunc: %s",
+            hr, GetComErrorStringA(hr).c_str(), file, line, func);
+        m_msg = buf;
     }
 
-private:
-    HRESULT result;
+    HRESULT hr()   const noexcept { return m_hr; }
+    const char* file() const noexcept { return m_file; }
+    int line()    const noexcept { return m_line; }
+    const char* func() const noexcept { return m_func; }
+
+    const char* what() const noexcept override {
+        return m_msg.c_str();
+    }
 };
 
 
 // HRESULT 에러 검사 후 예외 발생
-inline void HR_T(HRESULT hr)
+inline void HR_T_Impl(HRESULT hr, const char* file, int line, const char* func)
 {
-    if (FAILED(hr))
-    {
-        throw com_exception(hr);
+    if (FAILED(hr)) {
+        throw com_exception(hr, file, line, func);
     }
 }
+#define HR_T(hr) HR_T_Impl((hr), __FILE__, __LINE__, __func__)
 
 
 

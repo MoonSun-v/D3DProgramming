@@ -30,7 +30,7 @@ struct ConstantBuffer
 	Matrix mProjection;  // 투영 변환 행렬
 };
 
-TestApp::TestApp(HINSTANCE hInstance) : GameApp(hInstance)
+TestApp::TestApp() : GameApp()
 {
 
 }
@@ -41,9 +41,9 @@ TestApp::~TestApp()
 	UninitD3D();
 }
 
-bool TestApp::Initialize(UINT Width, UINT Height)
+bool TestApp::Initialize()
 {
-	__super::Initialize(Width, Height);
+	__super::Initialize();
 
 	if (!InitD3D())		return false;
 	if (!InitScene())	return false;

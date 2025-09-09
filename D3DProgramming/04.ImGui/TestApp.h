@@ -7,10 +7,13 @@
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
-
+#include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX ¡§¿«
 #include <string>
 
 #include "../Common/GameApp.h"
+
+#pragma comment (lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX::SimpleMath;
@@ -19,7 +22,7 @@ using namespace DirectX;
 class TestApp : public GameApp
 {
 public:
-	TestApp(HINSTANCE hInstance);
+	TestApp();
 	~TestApp();
 
 	ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI∆—≈‰∏Æ
@@ -64,7 +67,7 @@ public:
 	int m_counter;
 
 
-	bool Initialize(UINT Width, UINT Height) override;
+	bool Initialize() override;
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
@@ -80,4 +83,7 @@ public:
 
 	void GetDisplayMemoryInfo(std::string& out);
 	void GetVirtualMemoryInfo(std::string& out);
+
+
+	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };
