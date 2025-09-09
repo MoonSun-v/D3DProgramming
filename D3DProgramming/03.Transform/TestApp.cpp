@@ -71,8 +71,11 @@ void TestApp::Update()
 	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);	// 왼쪽으로 이동
 	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);			// 크기 축소
 
-	// 최종 월드 행렬 = 스케일 → 제자리회전 → 이동 → 궤도회전
-	m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전 
+	// 최종 월드 행렬 = 스케일 → 제자리회전 → 이동 → 궤도회전 
+	// m_World2 = mScale * mSpin * mTranslate * mOrbit;
+	XMMATRIX mTemp1 = XMMatrixMultiply(mScale, mSpin);        // Scale -> Spin
+	XMMATRIX mTemp2 = XMMatrixMultiply(mTemp1, mTranslate);   // -> Translate
+	XMMATRIX m_World2 = XMMatrixMultiply(mTemp2, mOrbit);     // -> Orbit
 }
 
 
