@@ -142,12 +142,14 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="Helper.h" />
+    <ClInclude Include="InputSystem.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="TimeSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="Helper.cpp" />
+    <ClCompile Include="InputSystem.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="TimeSystem.cpp" />
   </ItemGroup>

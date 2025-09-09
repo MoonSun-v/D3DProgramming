@@ -147,13 +147,13 @@ bool GameApp::Run()
 void GameApp::Update()
 {
 	m_Timer.Tick();
+	m_Input.Update(m_Timer.DeltaTime());
 }
 
 void GameApp::Render()
 {
 
 }
-
 
 
 //  ÇÔ¼ö: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -171,6 +171,9 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		PostQuitMessage(0);
 		break;
 	case WM_ACTIVATEAPP:
+		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
+		break;
 	case WM_INPUT:
 	case WM_MOUSEMOVE:
 	case WM_LBUTTONDOWN:
@@ -183,9 +186,13 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 	case WM_XBUTTONDOWN:
 	case WM_XBUTTONUP:
 	case WM_MOUSEHOVER:
+		Mouse::ProcessMessage(message, wParam, lParam);
+		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYUP:
+		Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

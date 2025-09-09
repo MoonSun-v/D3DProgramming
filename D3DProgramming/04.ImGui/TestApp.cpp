@@ -1,14 +1,18 @@
 #include "TestApp.h"
 #include "../Common/Helper.h"
 
+#include <string> 
 #include <dxgi1_3.h>
 #include <d3dcompiler.h>
+
+#include <windows.h>
+#include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
-
+#pragma comment(lib, "Psapi.lib")
 
 
 // [ 정점 선언 ]
@@ -103,8 +107,8 @@ void TestApp::Render()
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 
 	// 1. 화면 칠하기
-	float color[4] = { 0.80f, 0.92f, 1.0f, 1.0f }; //  Light Sky Blue 
-	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
+	const float clear_color_with_alpha[4] = { m_ClearColor.x , m_ClearColor.y , m_ClearColor.z, m_ClearColor.w };
+	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), clear_color_with_alpha);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
 
@@ -117,7 +121,6 @@ void TestApp::Render()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
 
 
 	// 3. 그리기 (인덱스 버퍼 기반)
@@ -146,6 +149,76 @@ void TestApp::Render()
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb3, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
+
+	// 4. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
+	// m_pSwapChain->Present(0, 0);
+
+
+
+
+	// ================================================================
+	//  [ ImGui ] 
+	// ================================================================
+
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Start the Dear ImGui frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+
+
+	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+	if (m_show_demo_window)
+		ImGui::ShowDemoWindow(&m_show_demo_window);
+
+	// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+	{
+
+		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+		ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
+		ImGui::Checkbox("Another Window", &m_show_another_window);
+
+		ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+
+		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+			m_counter++;
+		ImGui::SameLine();
+		ImGui::Text("counter = %d", m_counter);
+
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+		std::string str;
+		ImGui::Text("\nDisplay Memory");
+		GetDisplayMemoryInfo(str);
+		ImGui::Text("%s", str.c_str());
+		ImGui::Text("\nProcess Memory");
+		GetVirtualMemoryInfo(str);
+		ImGui::Text("%s", str.c_str());
+
+		ImGui::ColorEdit3("clear color", (float*)&m_ClearColor); // Edit 3 floats representing a color	
+		ImGui::End();
+	}
+
+	// 3. Show another simple window.
+	if (m_show_another_window)
+	{
+		ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+		ImGui::Text("Hello from another window!");
+		if (ImGui::Button("Close Me"))
+			m_show_another_window = false;
+		ImGui::End();
+	}
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+
 
 
 
@@ -460,4 +533,70 @@ bool TestApp::InitScene()
 
 void TestApp::UninitScene()
 {
+}
+
+
+// [ ImGui ]
+bool TestApp::InitImGUI()
+{
+	// 1. ImGui 버전 확인 
+	IMGUI_CHECKVERSION();   
+
+	// 2. ImGui 컨텍스트 생성
+	ImGui::CreateContext(); 
+
+	// 3. ImGui 스타일 설정
+	ImGui::StyleColorsDark(); // ImGui::StyleColorsLight();
+
+	// 4. 플랫폼 및 렌더러 백엔드 초기화
+	ImGui_ImplWin32_Init(m_hWnd);												// Win32 플랫폼용 초기화 (윈도우 핸들 필요)
+	ImGui_ImplDX11_Init(this->m_pDevice.Get(), this->m_pDeviceContext.Get());	// DirectX11 렌더러용 초기화
+
+
+	return true;
+}
+
+void TestApp::UninitImGUI()
+{
+	ImGui_ImplDX11_Shutdown();	// DX11용 ImGui 렌더러 정리
+	ImGui_ImplWin32_Shutdown(); // Win32 플랫폼용 ImGui 정리
+	ImGui::DestroyContext();	// ImGui 컨텍스트 삭제
+}
+
+
+// ============================================================
+// [ GPU 메모리 정보 조회 ]
+// ============================================================
+void TestApp::GetDisplayMemoryInfo(std::string& out)
+{
+	DXGI_ADAPTER_DESC desc;
+	m_pDXGIAdapter->GetDesc(&desc);
+
+	DXGI_QUERY_VIDEO_MEMORY_INFO local, nonLocal;
+	m_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &local);
+	m_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &nonLocal);
+
+	out = std::to_string((desc.DedicatedVideoMemory + desc.SharedSystemMemory) / 1024 / 1024) + " MB\n";
+	out += "Dedicated Video Memory : " + std::to_string(desc.DedicatedVideoMemory / 1024 / 1024) + " MB\n";
+	out += "Shared System Memory : " + std::to_string(desc.SharedSystemMemory / 1024 / 1024) + " MB\n";
+
+	out += "Local Video Memory: ";
+	out += std::to_string(local.Budget / 1024 / 1024) + "MB" + " / " + std::to_string(local.CurrentUsage / 1024 / 1024) + " MB\n";
+	out += "NonLocal Video Memory: ";
+	out += std::to_string(nonLocal.Budget / 1024 / 1024) + "MB" + " / " + std::to_string(nonLocal.CurrentUsage / 1024 / 1024) + " MB";
+}
+
+
+// ============================================================
+// [ 프로세스(가상) 메모리 정보 조회 ]
+// ============================================================
+void TestApp::GetVirtualMemoryInfo(std::string& out)
+{
+	HANDLE hProcess = GetCurrentProcess();
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	pmc.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX);
+	GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+	out = "PrivateUsage: " + std::to_string((pmc.PrivateUsage) / 1024 / 1024) + " MB\n";
+	out += "WorkingSetSize: " + std::to_string((pmc.WorkingSetSize) / 1024 / 1024) + " MB\n";
+	out += "PagefileUsage: " + std::to_string((pmc.PagefileUsage) / 1024 / 1024) + " MB";
 }

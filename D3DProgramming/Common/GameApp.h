@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include "TimeSystem.h"
+#include "InputSystem.h"
 
 #define MAX_LOADSTRING 100
 
@@ -25,6 +26,7 @@ public:
 	float m_currentTime;
 	int  m_nCmdShow;
 	TimeSystem m_Timer;
+	InputSystem m_Input;
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
 
@@ -35,6 +37,7 @@ public:
 	virtual bool Run();
 	virtual void Update();		// 상속 받은 클래스에서 구현
 	virtual void Render();		// 상속 받은 클래스에서 구현
+
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
 

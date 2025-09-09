@@ -1,7 +1,14 @@
 #pragma once
+#include <dxgi1_4.h>
 #include <d3d11.h>
 #include <directxtk/SimpleMath.h>
 #include <wrl/client.h>
+
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx11.h>
+
+#include <string>
 
 #include "../Common/GameApp.h"
 
@@ -9,12 +16,14 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
-
 class TestApp : public GameApp
 {
 public:
 	TestApp(HINSTANCE hInstance);
 	~TestApp();
+
+	ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI팩토리
+	ComPtr<IDXGIAdapter3> m_pDXGIAdapter;		// 비디오카드 정보에 접근 가능한 인터페이스
 
 	// [ 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 ] 
 	ComPtr<ID3D11Device> m_pDevice;
@@ -45,6 +54,16 @@ public:
 	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
 
+	// [ 배경색 ]
+	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f);  //  Light Sky Blue 
+
+	// [ ImGui ]
+	bool m_show_another_window = false;
+	bool m_show_demo_window = true;
+	float m_f;
+	int m_counter;
+
+
 	bool Initialize(UINT Width, UINT Height) override;
 	void Uninitialize() override;
 	void Update() override;
@@ -55,4 +74,10 @@ public:
 
 	bool InitScene();		// 쉐이더,버텍스,인덱스
 	void UninitScene();
+
+	bool InitImGUI();
+	void UninitImGUI();
+
+	void GetDisplayMemoryInfo(std::string& out);
+	void GetVirtualMemoryInfo(std::string& out);
 };
