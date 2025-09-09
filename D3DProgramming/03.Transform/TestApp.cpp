@@ -62,20 +62,37 @@ void TestApp::Update()
 
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
-	// [ 1번째 Cube ] : 단순히 Y축 회전만 함
+
+	// [ 1번째 Cube ] : 단순히 Y축 회전 
 	m_World1 = XMMatrixRotationY(totalTime);
 
-	// [ 2번째 Cube ]  : 궤도 회전 + 제자리 회전 + 스케일 축소 + 이동
-	XMMATRIX mSpin = XMMatrixRotationZ(-totalTime);					// 제자리 Z축 회전
-	XMMATRIX mOrbit = XMMatrixRotationY(-totalTime * 2.0f);			// 중심을 기준으로 Y축 궤도 회전
-	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);	// 왼쪽으로 이동
-	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);			// 크기 축소
 
-	// 최종 월드 행렬 = 스케일 → 제자리회전 → 이동 → 궤도회전 
-	// m_World2 = mScale * mSpin * mTranslate * mOrbit;
-	XMMATRIX mTemp1 = XMMatrixMultiply(mScale, mSpin);        // Scale -> Spin
-	XMMATRIX mTemp2 = XMMatrixMultiply(mTemp1, mTranslate);   // -> Translate
-	XMMATRIX m_World2 = XMMatrixMultiply(mTemp2, mOrbit);     // -> Orbit
+	// [ 2번째 Cube ] : 궤도 회전 + 제자리 회전 + 스케일 축소 + 이동
+	// mOrbit : 다른 축을 기준으로 회전 
+	XMMATRIX spin2 = XMMatrixRotationZ(-totalTime);					// 제자리 Z축 회전
+	XMMATRIX orbit2 = XMMatrixRotationY(-totalTime * 1.5f);			// 중심을 기준으로 Y축 궤도 회전
+	XMMATRIX translate2 = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);	// 왼쪽으로 이동
+	XMMATRIX scale2 = XMMatrixScaling(0.3f, 0.3f, 0.3f);			// 크기 축소
+
+	// scale -> spin -> translate -> orbit 
+	XMMATRIX temp2_1 = XMMatrixMultiply(scale2, spin2);
+	XMMATRIX temp2_2 = XMMatrixMultiply(XMMatrixMultiply(scale2, spin2), translate2);
+	m_World2 = XMMatrixMultiply(temp2_2, orbit2);					// 최종 월드 행렬
+
+
+	// [ 3번째 Cube ] : 2번 큐브의 자식
+	XMMATRIX spin3 = XMMatrixRotationZ(totalTime);					// 제자리 Z축 회전
+	XMMATRIX orbit3 = XMMatrixRotationY(totalTime * 3.0f);			// 2번 큐브 중심을 기준으로 궤도 회전
+	XMMATRIX translate3 = XMMatrixTranslation(-2.0f, 0.0f, 0.0f);	// 왼쪽으로 이동
+	XMMATRIX scale3 = XMMatrixScaling(0.5f, 0.5f, 0.5f);			// 크기 축소
+
+	// scale -> spin -> translate -> orbit -> orbit 
+	XMMATRIX temp3_1 = XMMatrixMultiply(scale3, spin3);
+	XMMATRIX temp3_2 = XMMatrixMultiply(temp3_1, translate3);
+
+	XMMATRIX local3 = XMMatrixMultiply(temp3_2, orbit3);
+
+	m_World3 = XMMatrixMultiply(local3, m_World2);	// 2번 큐브의 자식으로 연결
 }
 
 
@@ -123,6 +140,14 @@ void TestApp::Render()
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
+	ConstantBuffer cb3;
+	cb3.mWorld = XMMatrixTranspose(m_World3);
+	cb3.mView = XMMatrixTranspose(m_View);
+	cb3.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb3, 0, 0);
+
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
 
 
 	// 4. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
@@ -156,15 +181,15 @@ bool TestApp::InitD3D()
 	D3D_FEATURE_LEVEL actualFeatureLevel; // 최종 피처 레벨을 저장할 변수
 
 	HR_T(D3D11CreateDevice(
-		nullptr,					// 기본 어댑터 사용
-		D3D_DRIVER_TYPE_HARDWARE,	// 하드웨어 렌더링 사용
-		0,							// 소프트웨어 드라이버 없음
-		creationFlags,				// 디버그 플래그
-		featureLevels,				// Feature Level 설정 
+		nullptr,						// 기본 어댑터 사용
+		D3D_DRIVER_TYPE_HARDWARE,		// 하드웨어 렌더링 사용
+		0,								// 소프트웨어 드라이버 없음
+		creationFlags,					// 디버그 플래그
+		featureLevels,					// Feature Level 설정 
 		ARRAYSIZE(featureLevels),
-		D3D11_SDK_VERSION,			// SDK 버전
-		m_pDevice.GetAddressOf(),	// 디바이스 반환
-		&actualFeatureLevel,		// Feature Level 반환
+		D3D11_SDK_VERSION,				// SDK 버전
+		m_pDevice.GetAddressOf(),		// 디바이스 반환
+		&actualFeatureLevel,			// Feature Level 반환
 		m_pDeviceContext.GetAddressOf() // 디바이스 컨택스트 반환 
 	));
 

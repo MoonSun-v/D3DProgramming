@@ -37,9 +37,10 @@ public:
 	UINT m_VertexCount = 0;						// 버텍스 개수
 	int m_nIndices = 0;							// 인덱스 개수
 
-	// [ 쉐이더에 전달할 데이터 ]
+	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World1;				// 월드좌표계 공간으로 변환을 위한 행렬.
-	Matrix                m_World2;				// 월드좌표계 공간으로 변환을 위한 행렬.
+	Matrix                m_World2;			
+	Matrix                m_World3;
 	Matrix                m_View;				// 카메라좌표계 공간으로 변환을 위한 행렬.
 	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
