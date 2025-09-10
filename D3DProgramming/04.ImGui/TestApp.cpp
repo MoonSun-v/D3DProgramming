@@ -65,13 +65,13 @@ void TestApp::Update()
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
 
+	
 	// 부모-자식 관계 => 최종 World 행렬 계산 시 부모 행렬을 곱해주기
 	// mOrbit : 다른 축을 기준으로 회전 
 
 	// [ 1번째 Cube ] : 단순 Y축 회전 
 	XMMATRIX translate1 = XMMatrixTranslation(m_World1Pos.x, m_World1Pos.y, m_World1Pos.z);
 	XMMATRIX rotate1 = XMMatrixRotationY(totalTime);
-
 	m_World1 = XMMatrixMultiply(rotate1, translate1);
 
 
@@ -147,8 +147,8 @@ void TestApp::Render()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 
-	// 3. 그리기 (인덱스 버퍼 기반)
-	// ※ 인덱스 버퍼 없이 정점만 사용할 경우 -> Draw() 사용
+
+	// 3. 상수 버퍼 업데이트 & 그리기 (인덱스 버퍼 기반) 
 
 	ConstantBuffer cb1;
 	cb1.mWorld = XMMatrixTranspose(m_World1);
@@ -176,7 +176,7 @@ void TestApp::Render()
 
 
 	// 4. UI 그리기 
-	Render_ImGui2();
+	Render_ImGui();
 
 
 	// 5. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
@@ -186,7 +186,7 @@ void TestApp::Render()
 
 
 // ★ [ Cube의 위치를 조정하는 ImGui ] - UI 프레임 준비 및 렌더링
-void TestApp::Render_ImGui2()
+void TestApp::Render_ImGui()
 {
 	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -246,77 +246,6 @@ void TestApp::Render_ImGui2()
 	ImGui::End();
 
 	// [ ImGui 프레임 최종 렌더링 ]
-	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // DX11로 실제 화면에 출력
-}
-
-
-// [ GPU, 프로세스의 메모리 정보를 표시하는 ImGui ] - UI 프레임 준비 및 렌더링
-void TestApp::Render_ImGui1()
-{
-	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // 키보드로 UI 가능 
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // 게임패드로 UI 가능 
-
-
-	// 1. [ 새로운 ImGui 프레임 시작 ]
-	ImGui_ImplDX11_NewFrame();		// DirectX11 렌더러용 프레임 준비
-	ImGui_ImplWin32_NewFrame();		// Win32 플랫폼용 프레임 준비
-	ImGui::NewFrame();				// ImGui 내부 프레임 초기화
-
-	// 2. [ ImGui Demo Window 표시 (옵션) ]
-	if (m_show_demo_window) ImGui::ShowDemoWindow(&m_show_demo_window);
-	// ImGui가 제공하는 예제 윈도우 표시
-	// &m_show_demo_window -> 체크박스를 통해 창을 닫을 수 있음
-
-
-
-	// 3. [ 사용자 정의 윈도우 생성 ]
-	ImGui::Begin("Hello, world!");								// "Hello, world!" 이름의 새로운 창 생성
-
-	ImGui::Text("This is some useful text.");					// 단순 텍스트 출력
-	ImGui::Checkbox("Demo Window", &m_show_demo_window);		// 체크박스 생성: Demo Window ON/OFF
-	ImGui::Checkbox("Another Window", &m_show_another_window);
-
-	ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);				// 슬라이더 생성: m_f 값을 0.0 ~ 1.0 범위에서 조절
-
-	if (ImGui::Button("Button")) m_counter++;					// 버튼 생성: 클릭 시 m_counter 증가
-
-	ImGui::SameLine();
-	ImGui::Text("counter = %d", m_counter);						// 버튼 옆에 같은 라인으로 텍스트 표시
-
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate); // 프레임 속도 표시
-
-	// GPU 메모리 정보 표시
-	std::string str;
-	ImGui::Text("\nDisplay Memory");
-	GetDisplayMemoryInfo(str);
-	ImGui::Text("%s", str.c_str());
-
-	// 프로세스 메모리 정보 표시
-	ImGui::Text("\nProcess Memory");
-	GetVirtualMemoryInfo(str);
-	ImGui::Text("%s", str.c_str());
-
-	// 색상 편집 위젯 (RGB 슬라이더)
-	ImGui::ColorEdit3("clear color", (float*)&m_ClearColor);  // float 배열 주소를 전달하여 3개의 float 값(RGB)을 편집 가능
-	
-	// 창 닫기
-	ImGui::End();
-
-
-	// 4. [ 다른 간단한 창 표시 ]
-	if (m_show_another_window)
-	{
-		ImGui::Begin("Another Window", &m_show_another_window);			// "Another Window" 생성, &m_show_another_window로 창 닫기 가능
-		ImGui::Text("Hello from another window!");						// 텍스트 출력
-		if (ImGui::Button("Close Me")) m_show_another_window = false;	// 버튼 클릭 시 창 닫기
-		ImGui::End();
-	}
-
-
-	// 5. [ ImGui 프레임 최종 렌더링 ]
 	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // DX11로 실제 화면에 출력
 }
@@ -612,21 +541,28 @@ bool TestApp::InitScene()
 
 
 
-	// [ 셰이더에 전달할 데이터 설정 ]
+
+	// [ World / View / Projection 행렬 초기화 ]
 	
-	// World Matrix 
+	// World Matrix : 단위 행렬로 초기화 
 	m_World1 = XMMatrixIdentity();
 	m_World2 = XMMatrixIdentity();
+	m_World3 = XMMatrixIdentity();
 
-	// View Matrix 
-	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
-	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	// View Matrix : 카메라 설정
+	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);	// 카메라 위치
+	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);		// 카메라가 바라보는 위치
+	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);		// 카메라의 위쪽 방향 
 
-	m_View = XMMatrixLookAtLH(Eye, At, Up);
+	m_View = XMMatrixLookAtLH(Eye, At, Up);					// 왼손 좌표계(LH) 기준 
 
 	// Projection Matrix
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+	m_Projection = XMMatrixPerspectiveFovLH(
+		XM_PIDIV2,                             // FOV(Field of View, 세로 기준)
+		m_ClientWidth / (FLOAT)m_ClientHeight, // 화면 종횡비
+		0.01f,                                 // Near
+		100.0f                                 // Far 
+	);
 
 
 
@@ -664,45 +600,6 @@ void TestApp::UninitImGUI()
 	ImGui_ImplWin32_Shutdown(); // Win32 플랫폼용 ImGui 정리
 	ImGui::DestroyContext();	// ImGui 컨텍스트 삭제
 }
-
-
-// ============================================================
-// [ GPU 메모리 정보 조회 ]
-// ============================================================
-void TestApp::GetDisplayMemoryInfo(std::string& out)
-{
-	DXGI_ADAPTER_DESC desc;
-	m_pDXGIAdapter->GetDesc(&desc);
-
-	DXGI_QUERY_VIDEO_MEMORY_INFO local, nonLocal;
-	m_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &local);
-	m_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &nonLocal);
-
-	out = std::to_string((desc.DedicatedVideoMemory + desc.SharedSystemMemory) / 1024 / 1024) + " MB\n";
-	out += "Dedicated Video Memory : " + std::to_string(desc.DedicatedVideoMemory / 1024 / 1024) + " MB\n";
-	out += "Shared System Memory : " + std::to_string(desc.SharedSystemMemory / 1024 / 1024) + " MB\n";
-
-	out += "Local Video Memory: ";
-	out += std::to_string(local.Budget / 1024 / 1024) + "MB" + " / " + std::to_string(local.CurrentUsage / 1024 / 1024) + " MB\n";
-	out += "NonLocal Video Memory: ";
-	out += std::to_string(nonLocal.Budget / 1024 / 1024) + "MB" + " / " + std::to_string(nonLocal.CurrentUsage / 1024 / 1024) + " MB";
-}
-
-
-// ============================================================
-// [ 프로세스(가상) 메모리 정보 조회 ]
-// ============================================================
-void TestApp::GetVirtualMemoryInfo(std::string& out)
-{
-	HANDLE hProcess = GetCurrentProcess();
-	PROCESS_MEMORY_COUNTERS_EX pmc;
-	pmc.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX);
-	GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
-	out = "PrivateUsage: " + std::to_string((pmc.PrivateUsage) / 1024 / 1024) + " MB\n";
-	out += "WorkingSetSize: " + std::to_string((pmc.WorkingSetSize) / 1024 / 1024) + " MB\n";
-	out += "PagefileUsage: " + std::to_string((pmc.PagefileUsage) / 1024 / 1024) + " MB";
-}
-
 
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

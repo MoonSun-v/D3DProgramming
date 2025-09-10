@@ -84,8 +84,7 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
-	void Render_ImGui1();	// GPU, 프로세스의 메모리 정보를 표시하는 UI 
-	void Render_ImGui2();	// Cube, 카메라의 위치 조정 UI
+	void Render_ImGui();	// Cube, 카메라의 위치 조정 UI
 
 	bool InitD3D();
 	void UninitD3D();		
@@ -95,10 +94,6 @@ public:
 
 	bool InitImGUI();
 	void UninitImGUI();
-
-	void GetDisplayMemoryInfo(std::string& out);
-	void GetVirtualMemoryInfo(std::string& out);
-
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };
