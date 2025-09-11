@@ -23,12 +23,12 @@ struct Vertex
 	Vertex(Vector3 position, Vector4 color): position(position), color(color) {}
 };
 
-// [ 상수 버퍼 CB ]
+// [ 상수 버퍼 CB ] 
 struct ConstantBuffer
 {
-	Matrix mWorld;       // 월드 변환 행렬
-	Matrix mView;        // 뷰 변환 행렬
-	Matrix mProjection;  // 투영 변환 행렬
+	Matrix mWorld;       // 월드 변환 행렬 : 64bytes
+	Matrix mView;        // 뷰 변환 행렬   : 64bytes
+	Matrix mProjection;  // 투영 변환 행렬 : 64bytes
 };
 
 TestApp::TestApp() : GameApp()
@@ -65,40 +65,33 @@ void TestApp::Update()
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
 
-	
+	// [ Cube들의 계층구조 -> SimpleMath::Matrix 사용 ]
+	// 
 	// 부모-자식 관계 => 최종 World 행렬 계산 시 부모 행렬을 곱해주기
 	// mOrbit : 다른 축을 기준으로 회전 
 
-	// [ 1번째 Cube ] : 단순 Y축 회전 
-	XMMATRIX translate1 = XMMatrixTranslation(m_World1Pos.x, m_World1Pos.y, m_World1Pos.z);
-	XMMATRIX rotate1 = XMMatrixRotationY(totalTime);
-	m_World1 = XMMatrixMultiply(rotate1, translate1);
+	// [ 1번째 Cube ] : 단순 Y축 회전
+	Matrix translate1 = Matrix::CreateTranslation(m_World1Pos);
+	Matrix rotate1 = Matrix::CreateRotationY(totalTime);
+	m_World1 = rotate1 * translate1; // SimpleMath::Matrix에서 * 연산자로 곱셈
 
+	// [ 2번째 Cube ]
+	Matrix scale2 = Matrix::CreateScale(0.3f);
+	Matrix spin2 = Matrix::CreateRotationZ(-totalTime);       // 제자리 Z축 회전
+	Matrix translate2 = Matrix::CreateTranslation(m_World2Offset);
+	Matrix orbit2 = Matrix::CreateRotationY(-totalTime * 1.5f); // 중심 기준 Y축 궤도
 
-	// [ 2번째 Cube ] 
-	XMMATRIX spin2 = XMMatrixRotationZ(-totalTime);					// 제자리 Z축 회전
-	XMMATRIX orbit2 = XMMatrixRotationY(-totalTime * 1.5f);			// 중심을 기준으로 Y축 궤도 회전
-	XMMATRIX translate2 = XMMatrixTranslation(m_World2Offset.x, m_World2Offset.y, m_World2Offset.z);
-	XMMATRIX scale2 = XMMatrixScaling(0.3f, 0.3f, 0.3f);			
+	// 단계별 곱(scale -> spin -> translate -> orbit) + 부모 적용
+	m_World2 = (scale2 * spin2 * translate2 * orbit2) * m_World1;
 
-	// 단계별 곱 scale -> spin -> translate -> orbit 
-	XMMATRIX temp2_1 = XMMatrixMultiply(scale2, spin2);
-	XMMATRIX temp2_2 = XMMatrixMultiply(temp2_1, translate2);
-	XMMATRIX temp2_3 = XMMatrixMultiply(temp2_2, orbit2);
-	m_World2 = XMMatrixMultiply(temp2_3, m_World1);   // 부모 m_World1
+	// [ 3번째 Cube ]
+	Matrix scale3 = Matrix::CreateScale(0.5f);
+	Matrix spin3 = Matrix::CreateRotationZ(totalTime);
+	Matrix translate3 = Matrix::CreateTranslation(m_World3Offset);
+	Matrix orbit3 = Matrix::CreateRotationY(totalTime * 3.0f);
 
-
-	// [ 3번째 Cube ] 
-	XMMATRIX spin3 = XMMatrixRotationZ(totalTime);					
-	XMMATRIX orbit3 = XMMatrixRotationY(totalTime * 3.0f);			
-	XMMATRIX translate3 = XMMatrixTranslation(m_World3Offset.x, m_World3Offset.y, m_World3Offset.z);
-	XMMATRIX scale3 = XMMatrixScaling(0.5f, 0.5f, 0.5f);			
-
-	// 단계별 곱 scale -> spin -> translate -> orbit
-	XMMATRIX temp3_1 = XMMatrixMultiply(scale3, spin3);
-	XMMATRIX temp3_2 = XMMatrixMultiply(temp3_1, translate3);
-	XMMATRIX temp3_3 = XMMatrixMultiply(temp3_2, orbit3);
-	m_World3 = XMMatrixMultiply(temp3_3, m_World2); // 부모 m_World2
+	// 단계별 곱(scale -> spin -> translate -> orbit) + 부모 적용
+	m_World3 = (scale3 * spin3 * translate3 * orbit3) * m_World2;
 
 
 
