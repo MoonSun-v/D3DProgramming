@@ -73,7 +73,7 @@ void TestApp::Update()
 	// [ 1번째 Cube ] : 단순 Y축 회전
 	Matrix translate1 = Matrix::CreateTranslation(m_World1Pos);
 	Matrix rotate1 = Matrix::CreateRotationY(totalTime);
-	m_World1 = rotate1 * translate1; // SimpleMath::Matrix에서 * 연산자로 곱셈
+	m_World1 = rotate1 * translate1; // SimpleMath::Matrix에서 * 연산자
 
 	// [ 2번째 Cube ]
 	Matrix scale2 = Matrix::CreateScale(0.3f);
@@ -81,7 +81,6 @@ void TestApp::Update()
 	Matrix translate2 = Matrix::CreateTranslation(m_World2Offset);
 	Matrix orbit2 = Matrix::CreateRotationY(-totalTime * 1.5f); // 중심 기준 Y축 궤도
 
-	// 단계별 곱(scale -> spin -> translate -> orbit) + 부모 적용
 	m_World2 = (scale2 * spin2 * translate2 * orbit2) * m_World1;
 
 	// [ 3번째 Cube ]
@@ -90,7 +89,6 @@ void TestApp::Update()
 	Matrix translate3 = Matrix::CreateTranslation(m_World3Offset);
 	Matrix orbit3 = Matrix::CreateRotationY(totalTime * 3.0f);
 
-	// 단계별 곱(scale -> spin -> translate -> orbit) + 부모 적용
 	m_World3 = (scale3 * spin3 * translate3 * orbit3) * m_World2;
 
 
@@ -142,29 +140,25 @@ void TestApp::Render()
 
 
 	// 3. 상수 버퍼 업데이트 & 그리기 (인덱스 버퍼 기반) 
+	// 
+	// 1개 상수 버퍼로 각 Cube 그리기 : 공통되는 mView, mProjection은 1번만 업데이트
+	ConstantBuffer cb;
+	cb.mView = XMMatrixTranspose(m_View);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
 
-	ConstantBuffer cb1;
-	cb1.mWorld = XMMatrixTranspose(m_World1);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
-
+	// 1번째 Cube
+	cb.mWorld = XMMatrixTranspose(m_World1);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	ConstantBuffer cb2;
-	cb2.mWorld = XMMatrixTranspose(m_World2);
-	cb2.mView = XMMatrixTranspose(m_View);
-	cb2.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb2, 0, 0);
-
+	// 2번째 Cube
+	cb.mWorld = XMMatrixTranspose(m_World2);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	ConstantBuffer cb3;
-	cb3.mWorld = XMMatrixTranspose(m_World3);
-	cb3.mView = XMMatrixTranspose(m_View);
-	cb3.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb3, 0, 0);
-
+	// 3번째 Cube
+	cb.mWorld = XMMatrixTranspose(m_World3);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
