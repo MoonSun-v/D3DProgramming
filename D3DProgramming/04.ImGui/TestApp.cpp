@@ -65,29 +65,82 @@ void TestApp::Update()
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
 
-	// [ Cube들의 계층구조 -> SimpleMath::Matrix 사용 ]
+	// [ Cube들의 계층구조 ]
 	// 
-	// 부모-자식 관계 => 최종 World 행렬 계산 시 부모 행렬을 곱해주기
-	// mOrbit : 다른 축을 기준으로 회전 
+	// 각 축별 Scale, Rotation, Translation 행렬 따로 계산
+	// -> Local Matrix(복합변환) Scale -> Rotation -> Translation -> orbit
+	// -> 마지막에 부모 World Matrix와 곱해서 최종 World Matrix
 
-	// [ 1번째 Cube ] : 단순 Y축 회전
-	Matrix translate1 = XMMatrixTranslation(m_World1Pos.x, m_World1Pos.y, m_World1Pos.z);
-	Matrix rotate1 = XMMatrixRotationY(totalTime);
-	m_World1 = rotate1 * translate1; // DirectXMath::XMMatrix에서 * 연산자
 
-	// [ 2번째 Cube ]
-	Matrix scale2 = XMMatrixScaling(0.3f, 0.3f, 0.3f);
-	Matrix spin2 = XMMatrixRotationZ(-totalTime);
-	Matrix translate2 = XMMatrixTranslation(m_World2Offset.x, m_World2Offset.y, m_World2Offset.z);
-	Matrix orbit2 = XMMatrixRotationY(-totalTime * 1.5f);
-	m_World2 = (scale2 * spin2 * translate2 * orbit2) * m_World1;
+	// [ 1번째 Cube ] 
+	Matrix scale1X = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	Matrix scale1Y = XMMatrixIdentity();
+	Matrix scale1Z = XMMatrixIdentity();
 
-	// [ 3번째 Cube ]
-	Matrix scale3 = XMMatrixScaling(0.5f, 0.5f, 0.5f);
-	Matrix spin3 = XMMatrixRotationZ(totalTime);
-	Matrix translate3 = XMMatrixTranslation(m_World3Offset.x, m_World3Offset.y, m_World3Offset.z);
-	Matrix orbit3 = XMMatrixRotationY(totalTime * 3.0f);
-	m_World3 = (scale3 * spin3 * translate3 * orbit3) * m_World2;
+	Matrix rotSelf1X = XMMatrixRotationX(0.0f);
+	Matrix rotSelf1Y = XMMatrixRotationY(totalTime); // 자전
+	Matrix rotSelf1Z = XMMatrixRotationZ(0.0f);
+
+	Matrix trans1X = XMMatrixTranslation(m_World1Pos.x, 0.0f, 0.0f);
+	Matrix trans1Y = XMMatrixTranslation(0.0f, m_World1Pos.y, 0.0f);
+	Matrix trans1Z = XMMatrixTranslation(0.0f, 0.0f, m_World1Pos.z);
+
+	// Local Matrix 
+	Matrix local1 = scale1X * scale1Y * scale1Z
+		* rotSelf1X * rotSelf1Y * rotSelf1Z
+		* trans1X * trans1Y * trans1Z;
+
+	m_World1 = local1; // 부모 없음
+
+
+
+	// [ 2번째 Cube ] 
+	Matrix scale2X = XMMatrixScaling(0.3f, 1.0f, 1.0f);
+	Matrix scale2Y = XMMatrixScaling(1.0f, 0.3f, 1.0f);
+	Matrix scale2Z = XMMatrixScaling(1.0f, 1.0f, 0.3f);
+
+	Matrix rotSelf2X = XMMatrixRotationX(0.0f);
+	Matrix rotSelf2Y = XMMatrixRotationY(totalTime * 1.5f); // 자전
+	Matrix rotSelf2Z = XMMatrixRotationZ(0.0f);
+
+	Matrix orbit2 = XMMatrixRotationY(totalTime);			// 공전
+
+	Matrix trans2X = XMMatrixTranslation(m_World2Offset.x, 0.0f, 0.0f);
+	Matrix trans2Y = XMMatrixTranslation(0.0f, m_World2Offset.y, 0.0f);
+	Matrix trans2Z = XMMatrixTranslation(0.0f, 0.0f, m_World2Offset.z);
+
+	// Local Matrix 
+	Matrix local2 = scale2X * scale2Y * scale2Z
+		* rotSelf2X * rotSelf2Y * rotSelf2Z
+		* trans2X * trans2Y * trans2Z
+		* orbit2;
+
+	m_World2 = local2 * m_World1; // 부모 m_World1
+
+
+	// [ 3번째 Cube ] : 달
+	Matrix scale3X = XMMatrixScaling(0.5f, 1.0f, 1.0f);
+	Matrix scale3Y = XMMatrixScaling(1.0f, 0.5f, 1.0f);
+	Matrix scale3Z = XMMatrixScaling(1.0f, 1.0f, 0.5f);
+
+	Matrix rotSelf3X = XMMatrixRotationX(0.0f);
+	Matrix rotSelf3Y = XMMatrixRotationY(totalTime * 1.5f); // 자전
+	Matrix rotSelf3Z = XMMatrixRotationZ(0.0f);
+
+	Matrix orbit3 = XMMatrixRotationY(totalTime * 3.0f);	// 공전 
+
+	Matrix trans3X = XMMatrixTranslation(m_World3Offset.x, 0.0f, 0.0f);
+	Matrix trans3Y = XMMatrixTranslation(0.0f, m_World3Offset.y, 0.0f);
+	Matrix trans3Z = XMMatrixTranslation(0.0f, 0.0f, m_World3Offset.z);
+
+	// Local Matrix 
+	Matrix local3 = scale3X * scale3Y * scale3Z
+		* rotSelf3X * rotSelf3Y * rotSelf3Z
+		* trans3X * trans3Y * trans3Z
+		* orbit3;
+
+	m_World3 = local3 * m_World2; // 부모 m_World2
+
 
 
 
