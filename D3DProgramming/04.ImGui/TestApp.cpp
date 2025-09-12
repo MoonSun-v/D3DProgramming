@@ -71,26 +71,23 @@ void TestApp::Update()
 	// mOrbit : 다른 축을 기준으로 회전 
 
 	// [ 1번째 Cube ] : 단순 Y축 회전
-	Matrix translate1 = Matrix::CreateTranslation(m_World1Pos);
-	Matrix rotate1 = Matrix::CreateRotationY(totalTime);
-	m_World1 = rotate1 * translate1; // SimpleMath::Matrix에서 * 연산자
+	Matrix translate1 = XMMatrixTranslation(m_World1Pos.x, m_World1Pos.y, m_World1Pos.z);
+	Matrix rotate1 = XMMatrixRotationY(totalTime);
+	m_World1 = rotate1 * translate1; // DirectXMath::XMMatrix에서 * 연산자
 
 	// [ 2번째 Cube ]
-	Matrix scale2 = Matrix::CreateScale(0.3f);
-	Matrix spin2 = Matrix::CreateRotationZ(-totalTime);       // 제자리 Z축 회전
-	Matrix translate2 = Matrix::CreateTranslation(m_World2Offset);
-	Matrix orbit2 = Matrix::CreateRotationY(-totalTime * 1.5f); // 중심 기준 Y축 궤도
-
+	Matrix scale2 = XMMatrixScaling(0.3f, 0.3f, 0.3f);
+	Matrix spin2 = XMMatrixRotationZ(-totalTime);
+	Matrix translate2 = XMMatrixTranslation(m_World2Offset.x, m_World2Offset.y, m_World2Offset.z);
+	Matrix orbit2 = XMMatrixRotationY(-totalTime * 1.5f);
 	m_World2 = (scale2 * spin2 * translate2 * orbit2) * m_World1;
 
 	// [ 3번째 Cube ]
-	Matrix scale3 = Matrix::CreateScale(0.5f);
-	Matrix spin3 = Matrix::CreateRotationZ(totalTime);
-	Matrix translate3 = Matrix::CreateTranslation(m_World3Offset);
-	Matrix orbit3 = Matrix::CreateRotationY(totalTime * 3.0f);
-
+	Matrix scale3 = XMMatrixScaling(0.5f, 0.5f, 0.5f);
+	Matrix spin3 = XMMatrixRotationZ(totalTime);
+	Matrix translate3 = XMMatrixTranslation(m_World3Offset.x, m_World3Offset.y, m_World3Offset.z);
+	Matrix orbit3 = XMMatrixRotationY(totalTime * 3.0f);
 	m_World3 = (scale3 * spin3 * translate3 * orbit3) * m_World2;
-
 
 
 
