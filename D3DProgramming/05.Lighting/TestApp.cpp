@@ -118,31 +118,6 @@ void TestApp::Update()
 	m_World2 = local2 * m_World1; // 부모 m_World1
 
 
-	// [ 3번째 Cube ] 
-	Matrix scale3X = XMMatrixScaling(0.5f, 1.0f, 1.0f);
-	Matrix scale3Y = XMMatrixScaling(1.0f, 0.5f, 1.0f);
-	Matrix scale3Z = XMMatrixScaling(1.0f, 1.0f, 0.5f);
-
-	Matrix rotSelf3X = XMMatrixRotationX(0.0f);
-	Matrix rotSelf3Y = XMMatrixRotationY(totalTime * 1.5f); 
-	Matrix rotSelf3Z = XMMatrixRotationZ(0.0f);
-
-	Matrix orbit3 = XMMatrixRotationY(totalTime * 3.0f);	
-
-	Matrix trans3X = XMMatrixTranslation(m_World3Offset.x, 0.0f, 0.0f);
-	Matrix trans3Y = XMMatrixTranslation(0.0f, m_World3Offset.y, 0.0f);
-	Matrix trans3Z = XMMatrixTranslation(0.0f, 0.0f, m_World3Offset.z);
-
-	// Local Matrix 
-	Matrix local3 = scale3X * scale3Y * scale3Z
-		* rotSelf3X * rotSelf3Y * rotSelf3Z
-		* trans3X * trans3Y * trans3Z
-		* orbit3;
-
-	m_World3 = local3 * m_World2; // 부모 m_World2
-
-
-
 
 	// [ 카메라 ] 
 	

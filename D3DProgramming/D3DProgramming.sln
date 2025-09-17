@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03.Transform", "03.Transfor
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04.ImGui", "04.ImGui\04.ImGui.vcxproj", "{B64D8577-347E-4A81-9E79-A009D527D84A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05.Lighting", "05.Lighting\05.Lighting.vcxproj", "{60045B12-4E30-42FF-B117-94087DCDA02E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{B64D8577-347E-4A81-9E79-A009D527D84A}.Release|x64.Build.0 = Release|x64
 		{B64D8577-347E-4A81-9E79-A009D527D84A}.Release|x86.ActiveCfg = Release|Win32
 		{B64D8577-347E-4A81-9E79-A009D527D84A}.Release|x86.Build.0 = Release|Win32
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Debug|x64.ActiveCfg = Debug|x64
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Debug|x64.Build.0 = Debug|x64
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Debug|x86.ActiveCfg = Debug|Win32
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Debug|x86.Build.0 = Debug|Win32
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Release|x64.ActiveCfg = Release|x64
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Release|x64.Build.0 = Release|x64
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Release|x86.ActiveCfg = Release|Win32
+		{60045B12-4E30-42FF-B117-94087DCDA02E}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
