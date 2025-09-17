@@ -4,7 +4,7 @@
 #include <string> 
 #include <dxgi1_3.h>
 #include <d3dcompiler.h>
-
+#include <Directxtk/DDSTextureLoader.h>
 #include <windows.h>
 
 #pragma comment(lib, "dxguid.lib")
@@ -16,7 +16,8 @@
 struct Vertex
 {
 	Vector3 Pos;		// 위치 정보
-	Vector3 Normal;		// 정점 법선 (광원 계산용)
+	Vector3 Norm;		// 정점 법선 (광원 계산용)
+	Vector2 Tex;		// 텍스처 좌표
 };
 
 // [ 상수 버퍼 CB ] 
@@ -28,7 +29,7 @@ struct ConstantBuffer
 
 	Vector4 vLightDir;		// 광원 방향
 	Vector4 vLightColor;	// 광원 색상
-	Vector4 vOutputColor;	// 출력 색상 (객체 색상 등)
+	Vector4 vOutputColor;	// 출력 색상 
 };
 
 TestApp::TestApp() : GameApp()
@@ -68,6 +69,14 @@ void TestApp::Update()
 	XMMATRIX mRotYaw = XMMatrixRotationY(m_CubeYaw);
 	XMMATRIX mRotPitch = XMMatrixRotationX(m_CubePitch);
 	m_World = mRotPitch * mRotYaw;
+
+	// [ Cube 월드 행렬 ] 
+	// m_World = XMMatrixRotationY(totalTime);
+
+	// Modify the color
+	// m_vMeshColor.x = (sinf(totalTime * 1.0f) + 1.0f) * 0.5f;
+	// m_vMeshColor.y = (cosf(totalTime * 3.0f) + 1.0f) * 0.5f;
+	// m_vMeshColor.z = (sinf(totalTime * 5.0f) + 1.0f) * 0.5f;
 
 
 	// [ 광원 처리 ]
@@ -113,6 +122,8 @@ void TestApp::Render()
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV.GetAddressOf());
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 
 	// 3. 상수 버퍼 업데이트 & 그리기 
@@ -388,46 +399,38 @@ bool TestApp::InitScene()
 	// ================================================================
 	// 1. 정점(Vertex) 데이터 준비 및 정점 버퍼 생성
 	// ================================================================
-	
-	// 큐브 모델의 각 면에 대한 정점 데이터 (위치 + 노멀벡터)
-	// Local Space(모델 좌표계) 기준
+
 	Vertex vertices[] =
 	{
-		// 윗면 (Normal Y+)
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f) , Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
 
-		// 아랫면 (Normal Y-)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f) },	
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
-		// 왼쪽면 (Normal X-)
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) ,Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
 
-		// 오른쪽면 (Normal X+)
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
 
-		// 뒷면 (Normal Z-)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f) }, 
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
 
-		// 앞면 (Normal Z+)
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
 	};
 	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
@@ -507,6 +510,8 @@ bool TestApp::InitScene()
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // POSITION : float3 (12바이트)
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },  // NORMAL   : float3 (12바이트, 오프셋 12)
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
+
 	};
 
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
@@ -543,6 +548,24 @@ bool TestApp::InitScene()
 
 
 	// ================================================================
+	// 7. 텍스쳐 및 샘플러 생성
+	// ================================================================
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
+
+	// Create the sample state
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
+
+
+
+	// ================================================================
 	// 7. 행렬(World, View, Projection) 설정
 	// ================================================================
 	
@@ -556,7 +579,7 @@ bool TestApp::InitScene()
 
 	// 투영행렬(Projection)
 	m_Projection = XMMatrixPerspectiveFovLH(
-		XM_PIDIV2,                             // FOV( 90도: 세로 시야각 ) 
+		XM_PIDIV4,                             // FOV
 		m_ClientWidth / (FLOAT)m_ClientHeight, // 화면 종횡비
 		0.01f,                                 // Near
 		100.0f                                 // Far 

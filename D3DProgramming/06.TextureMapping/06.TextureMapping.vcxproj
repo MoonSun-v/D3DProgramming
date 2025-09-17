@@ -156,6 +156,11 @@
   <ItemGroup>
     <None Include="..\Shaders\06.Shared.hlsli" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.vcxproj">
+      <Project>{778df53f-a208-4a5d-a528-6d3e00fad309}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

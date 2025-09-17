@@ -44,6 +44,8 @@ public:
 	ComPtr<ID3D11Buffer> m_pVertexBuffer;			// 버텍스 버퍼
 	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	// 텍스처 리소스 뷰
+	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플러 상태
 
 	// [ 렌더링 파이프라인 관련 정보 ]
 	UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
@@ -55,7 +57,7 @@ public:
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
 	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
 	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)
-
+	// Vector4	m_vMeshColor = { 0.7f, 0.7f, 0.7f, 1.0f };
 
 	// [ 큐브 오브젝트 ]
 	Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
