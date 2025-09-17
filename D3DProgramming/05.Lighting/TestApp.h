@@ -66,29 +66,9 @@ public:
 
 
 	// [ 라이트 정보 ]
-	XMFLOAT4 m_LightColors[2] =					// 라이트 색상
-	{
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f)
-	};
-	XMFLOAT4 m_InitialLightDirs[2] =			// 초기 라이트 방향
-	{
-		XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f), // 대각선 방향
-		XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f),
-	};
-	XMFLOAT4 m_LightDirsEvaluated[2] = {};		// 계산된 라이트 방향
-
-	//// [ 라이트 ] 
-	//XMFLOAT4 m_LightColors[1] =				// 색상 
-	//{
-	//	XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	//};
-	//XMFLOAT4 m_InitialLightDirs[2] =		// 초기 방향 
-	//{
-	//	XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f)
-	//};
-	//XMFLOAT4 m_LightDirsEvaluated[2] = {};	// 계산된 라이트 방향	
-
+	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);				// 라이트 색상
+	XMFLOAT4 m_InitialLightDir = XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f);	// 초기 라이트 방향 (대각선)
+	XMFLOAT4 m_LightDirEvaluated = XMFLOAT4(0, 0, 0, 0);					// 계산된 라이트 방향
 
 	// [ ImGui ]
 	bool m_show_another_window = false;

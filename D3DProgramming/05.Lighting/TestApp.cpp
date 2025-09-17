@@ -22,16 +22,12 @@ struct Vertex
 // [ 상수 버퍼 CB ] 
 struct ConstantBuffer
 {
-	Matrix mWorld;       // 월드 변환 행렬 : 64bytes
-	Matrix mView;        // 뷰 변환 행렬   : 64bytes
-	Matrix mProjection;  // 투영 변환 행렬 : 64bytes
+	Matrix mWorld;			// 월드 변환 행렬 : 64bytes
+	Matrix mView;			// 뷰 변환 행렬   : 64bytes
+	Matrix mProjection;		// 투영 변환 행렬 : 64bytes
 
-	//Vector4 vLightDir[1];
-	//Vector4 vLightColor[1];
-	//Vector4 vOutputColor;
-
-	Vector4 vLightDir[2];	// 광원 방향
-	Vector4 vLightColor[2];	// 광원 색상
+	Vector4 vLightDir;		// 광원 방향
+	Vector4 vLightColor;	// 광원 색상
 	Vector4 vOutputColor;	// 출력 색상 (객체 색상 등)
 };
 
@@ -72,13 +68,13 @@ void TestApp::Update()
 	m_World = XMMatrixRotationY(totalTime); 
 
 	// [ 광원 처리 ]
-	m_LightDirsEvaluated[0] = m_InitialLightDirs[0]; // 첫 번째 광원은 고정
+	m_LightDirEvaluated = m_InitialLightDir; // 첫 번째 광원은 고정
 
 	// 두 번째 라이트는 시간에 따라 회전
-	XMMATRIX mRotate = XMMatrixRotationY(-2.0f * totalTime);
-	XMVECTOR vLightDir = XMLoadFloat4(&m_InitialLightDirs[1]);
-	vLightDir = XMVector3Transform(vLightDir, mRotate);
-	XMStoreFloat4(&m_LightDirsEvaluated[1], vLightDir);
+	//XMMATRIX mRotate = XMMatrixRotationY(-2.0f * totalTime);
+	//XMVECTOR vLightDir = XMLoadFloat4(&m_InitialLightDir);
+	//vLightDir = XMVector3Transform(vLightDir, mRotate);
+	//XMStoreFloat4(&m_LightDirEvaluated, vLightDir);
 
 
 	// [ 카메라 갱신 ] 
@@ -126,10 +122,8 @@ void TestApp::Render()
 	cb.mWorld = XMMatrixTranspose(m_World);
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.vLightDir[0] = m_LightDirsEvaluated[0];
-	cb.vLightDir[1] = m_LightDirsEvaluated[1];
-	cb.vLightColor[0] = m_LightColors[0];
-	cb.vLightColor[1] = m_LightColors[1];
+	cb.vLightDir = m_LightDirEvaluated; // 단일 라이트 
+	cb.vLightColor = m_LightColor;		
 	cb.vOutputColor = XMFLOAT4(0, 0, 0, 0);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
@@ -139,13 +133,13 @@ void TestApp::Render()
 	// 4. 라이트 표시 (광원 위치를 작은 큐브로 렌더링)
 	for (int m = 0; m < 2; m++)
 	{
-		XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirsEvaluated[m]));
+		XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
 		XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
 		mLight = mLightScale * mLight;
 
 		// 상수 버퍼 갱신 (광원 위치 + 색상 반영)
 		cb.mWorld = XMMatrixTranspose(mLight);
-		cb.vOutputColor = m_LightColors[m];
+		cb.vOutputColor = m_LightColor;
 		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 		// 라이트 전용 픽셀 셰이더 적용 후 큐브 렌더링
@@ -201,23 +195,23 @@ void TestApp::Render_ImGui()
 
 	//ImGui::Text(""); ImGui::Text("");
 
-	//// [ Camera Control UI ]
-	//ImGui::Text("[ Camera Control ]");
-	// 
-	//// 카메라 월드 위치 (x,y,z)
-	//ImGui::Text("1. Camera Pos");
-	//ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
+	// [ Camera Control UI ]
+	ImGui::Text("[ Camera Control ]");
+	 
+	// 카메라 월드 위치 (x,y,z)
+	ImGui::Text("1. Camera Pos");
+	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
 
-	//// 카메라 FOV (degree)
-	//ImGui::Text("2. FOV (deg)");
-	//ImGui::SliderFloat("FOV (deg)", &m_CameraFOV, 10.0f, 120.0f);
+	// 카메라 FOV (degree)
+	ImGui::Text("2. FOV (deg)");
+	ImGui::SliderFloat("FOV (deg)", &m_CameraFOV, 10.0f, 120.0f);
 
-	//// 카메라 Near, Far
-	//ImGui::Text("3. Near");
-	//ImGui::SliderFloat("Near", &m_CameraNear, 0.01f, 10.0f);
+	// 카메라 Near, Far
+	ImGui::Text("3. Near");
+	ImGui::SliderFloat("Near", &m_CameraNear, 0.01f, 10.0f);
 
-	//ImGui::Text("4. Far");
-	//ImGui::SliderFloat("Far", &m_CameraFar, 10.0f, 5000.0f);
+	ImGui::Text("4. Far");
+	ImGui::SliderFloat("Far", &m_CameraFar, 10.0f, 5000.0f);
 
 
 	// [ 끝 ] 

@@ -13,8 +13,8 @@ cbuffer ConstantBuffer : register(b0)
     matrix View;            // 뷰 변환 행렬 (월드 좌표 → 카메라 좌표)
     matrix Projection;      // 투영 변환 행렬 (카메라 좌표 → 클립 좌표)
 
-    float4 vLightDir[2];    // 광원 방향 벡터 (2개)
-    float4 vLightColor[2];  // 광원 색상 (2개)
+    float4 vLightDir;       // 광원 방향 벡터 
+    float4 vLightColor;     // 광원 색상 
     float4 vOutputColor;    // 단색 렌더링용 출력 색상
 }
 
