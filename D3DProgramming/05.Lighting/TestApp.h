@@ -25,6 +25,7 @@ public:
 	TestApp();
 	~TestApp();
 
+	// [ DXGI 객체 ]
 	ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI팩토리
 	ComPtr<IDXGIAdapter3> m_pDXGIAdapter;		// 비디오카드 정보에 접근 가능한 인터페이스
 
@@ -36,36 +37,57 @@ public:
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;	// 깊이값 처리를 위한 뎊스스텐실 뷰
 
 	// [ 렌더링 파이프라인 객체 ]
-	ComPtr<ID3D11VertexShader> m_pVertexShader; // 정점 셰이더
-	ComPtr<ID3D11PixelShader> m_pPixelShader;	// 픽셀 셰이더
-	ComPtr<ID3D11InputLayout> m_pInputLayout;	// 입력 레이아웃
-	ComPtr<ID3D11Buffer> m_pVertexBuffer;		// 버텍스 버퍼
-	ComPtr<ID3D11Buffer> m_pIndexBuffer;		// 인덱스 버퍼
-	ComPtr<ID3D11Buffer> m_pConstantBuffer;		// 상수 버퍼 
+	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
+	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
+	ComPtr<ID3D11PixelShader> m_pPixelShaderSolid;	// 픽셀 셰이더 라이트 표시용
+	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
+	ComPtr<ID3D11Buffer> m_pVertexBuffer;			// 버텍스 버퍼
+	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
+	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
 
-	// [ 렌더링 파이프라인관련 정보 ]
-	UINT m_VertextBufferStride = 0;				// 버텍스 하나의 크기
-	UINT m_VertextBufferOffset = 0;				// 버텍스 버퍼의 오프셋
-	UINT m_VertexCount = 0;						// 버텍스 개수
-	int m_nIndices = 0;							// 인덱스 개수
+	// [ 렌더링 파이프라인 관련 정보 ]
+	UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
+	UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
+	UINT m_VertexCount = 0;							// 버텍스 개수
+	int m_nIndices = 0;								// 인덱스 개수
 
 	// [ 셰이더에 전달할 데이터 ]
-	Matrix                m_World1;				// 월드좌표계 공간으로 변환을 위한 행렬.
-	Matrix                m_World2;			
-	Matrix                m_World3;
-	Matrix                m_View;				// 카메라좌표계 공간으로 변환을 위한 행렬.
-	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
+	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
+	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
+	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)
 
 
-	// [ 각 큐브의 기본 위치 ]
-	Vector3 m_World1Pos    = Vector3(0.0f, 0.0f, 0.0f);
-	Vector3 m_World2Offset = Vector3(-4.0f, 0.0f, 0.0f);	// 상대 위치
-	Vector3 m_World3Offset = Vector3(-2.0f, 0.0f, 0.0f);	// 상대 위치 
+	// [ 오브젝트 위치  ]
+	Vector3 m_WorldPos    = Vector3(0.0f, 0.0f, 0.0f);
 
 
 	// [ 배경색 ]
 	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f);  //  Light Sky Blue 
 
+
+	// [ 라이트 정보 ]
+	XMFLOAT4 m_LightColors[2] =					// 라이트 색상
+	{
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f)
+	};
+	XMFLOAT4 m_InitialLightDirs[2] =			// 초기 라이트 방향
+	{
+		XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f), // 대각선 방향
+		XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f),
+	};
+	XMFLOAT4 m_LightDirsEvaluated[2] = {};		// 계산된 라이트 방향
+
+	//// [ 라이트 ] 
+	//XMFLOAT4 m_LightColors[1] =				// 색상 
+	//{
+	//	XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+	//};
+	//XMFLOAT4 m_InitialLightDirs[2] =		// 초기 방향 
+	//{
+	//	XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f)
+	//};
+	//XMFLOAT4 m_LightDirsEvaluated[2] = {};	// 계산된 라이트 방향	
 
 
 	// [ ImGui ]
@@ -77,7 +99,7 @@ public:
 
 	// [ Camera ]
 	float m_CameraPos[3] = { 0.0f, 0.0f, -30.0f };
-	float m_CameraFOV = 60.0f;     // degree
+	float m_CameraFOV = 60.0f;     // degree 단위 
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;
 

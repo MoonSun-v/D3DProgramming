@@ -15,12 +15,8 @@
 // [ 정점 선언 ]
 struct Vertex
 {
-	Vector3 position;	// 위치 정보
-	Vector4 color;		// 색상 정보
-
-	Vertex(float x, float y, float z) : position(x, y, z) {}
-	Vertex(Vector3 position) : position(position) {}
-	Vertex(Vector3 position, Vector4 color): position(position), color(color) {}
+	Vector3 Pos;		// 위치 정보
+	Vector3 Normal;		// 정점 법선 (광원 계산용)
 };
 
 // [ 상수 버퍼 CB ] 
@@ -29,6 +25,14 @@ struct ConstantBuffer
 	Matrix mWorld;       // 월드 변환 행렬 : 64bytes
 	Matrix mView;        // 뷰 변환 행렬   : 64bytes
 	Matrix mProjection;  // 투영 변환 행렬 : 64bytes
+
+	//Vector4 vLightDir[1];
+	//Vector4 vLightColor[1];
+	//Vector4 vOutputColor;
+
+	Vector4 vLightDir[2];	// 광원 방향
+	Vector4 vLightColor[2];	// 광원 색상
+	Vector4 vOutputColor;	// 출력 색상 (객체 색상 등)
 };
 
 TestApp::TestApp() : GameApp()
@@ -64,71 +68,25 @@ void TestApp::Update()
 
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
+	// [ Cube 월드 행렬 ] -> Y축 기준으로 회전
+	m_World = XMMatrixRotationY(totalTime); 
 
-	// [ Cube들의 계층구조 ]
-	// 
-	// 각 축별 Scale, Rotation, Translation 행렬 따로 계산
-	// -> Local Matrix(복합변환) Scale -> Rotation -> Translation -> orbit
-	// -> 마지막에 부모 World Matrix와 곱해서 최종 World Matrix
+	// [ 광원 처리 ]
+	m_LightDirsEvaluated[0] = m_InitialLightDirs[0]; // 첫 번째 광원은 고정
 
-
-	// [ 1번째 Cube ] 
-	Matrix scale1X = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	Matrix scale1Y = XMMatrixIdentity();
-	Matrix scale1Z = XMMatrixIdentity();
-
-	Matrix rotSelf1X = XMMatrixRotationX(0.0f);
-	Matrix rotSelf1Y = XMMatrixRotationY(totalTime); // 자전
-	Matrix rotSelf1Z = XMMatrixRotationZ(0.0f);
-
-	Matrix trans1X = XMMatrixTranslation(m_World1Pos.x, 0.0f, 0.0f);
-	Matrix trans1Y = XMMatrixTranslation(0.0f, m_World1Pos.y, 0.0f);
-	Matrix trans1Z = XMMatrixTranslation(0.0f, 0.0f, m_World1Pos.z);
-
-	// Local Matrix 
-	Matrix local1 = scale1X * scale1Y * scale1Z
-		* rotSelf1X * rotSelf1Y * rotSelf1Z
-		* trans1X * trans1Y * trans1Z;
-
-	m_World1 = local1; // 부모 없음
+	// 두 번째 라이트는 시간에 따라 회전
+	XMMATRIX mRotate = XMMatrixRotationY(-2.0f * totalTime);
+	XMVECTOR vLightDir = XMLoadFloat4(&m_InitialLightDirs[1]);
+	vLightDir = XMVector3Transform(vLightDir, mRotate);
+	XMStoreFloat4(&m_LightDirsEvaluated[1], vLightDir);
 
 
+	// [ 카메라 갱신 ] 
+	m_Camera.m_Position = { m_CameraPos[0], m_CameraPos[1], m_CameraPos[2] }; // 카메라 위치 동기화
+	m_Camera.Update(m_Timer.DeltaTime());	// 카메라 상태 업데이트 
+	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
-	// [ 2번째 Cube ] 
-	Matrix scale2X = XMMatrixScaling(0.3f, 1.0f, 1.0f);
-	Matrix scale2Y = XMMatrixScaling(1.0f, 0.3f, 1.0f);
-	Matrix scale2Z = XMMatrixScaling(1.0f, 1.0f, 0.3f);
-
-	Matrix rotSelf2X = XMMatrixRotationX(0.0f);
-	Matrix rotSelf2Y = XMMatrixRotationY(totalTime * 1.5f); // 자전
-	Matrix rotSelf2Z = XMMatrixRotationZ(0.0f);
-
-	Matrix orbit2 = XMMatrixRotationY(totalTime);			// 공전
-
-	Matrix trans2X = XMMatrixTranslation(m_World2Offset.x, 0.0f, 0.0f);
-	Matrix trans2Y = XMMatrixTranslation(0.0f, m_World2Offset.y, 0.0f);
-	Matrix trans2Z = XMMatrixTranslation(0.0f, 0.0f, m_World2Offset.z);
-
-	// Local Matrix 
-	Matrix local2 = scale2X * scale2Y * scale2Z
-		* rotSelf2X * rotSelf2Y * rotSelf2Z
-		* trans2X * trans2Y * trans2Z
-		* orbit2;
-
-	m_World2 = local2 * m_World1; // 부모 m_World1
-
-
-
-	// [ 카메라 ] 
-	
-	// 카메라 위치 동기화
-	m_Camera.m_Position = { m_CameraPos[0], m_CameraPos[1], m_CameraPos[2] };
-
-	// 카메라의 View 행렬 갱신
-	m_Camera.Update(m_Timer.DeltaTime());
-	m_Camera.GetViewMatrix(m_View);
-
-	// 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
+	// [ 투영 행렬 갱신 ] ㅣ 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
 	float aspect = float(m_ClientWidth) / float(m_ClientHeight);
 	m_Projection = XMMatrixPerspectiveFovLH(
 		XMConvertToRadians(m_CameraFOV), // degree → radian 변환
@@ -143,17 +101,16 @@ void TestApp::Update()
 // ★ [ 렌더링 ] 
 void TestApp::Render()
 {
-	// 0. 그릴 대상 설정
+	// 0. 그릴 대상 설정 (렌더 타겟 & 뎁스스텐실 설정)
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 
-	// 1. 화면 지우기 
+	// 1. 화면 초기화 (컬러 + 깊이 버퍼)
 	const float clear_color_with_alpha[4] = { m_ClearColor.x , m_ClearColor.y , m_ClearColor.z, m_ClearColor.w };
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), clear_color_with_alpha);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
 
-	// 2. 렌더링 파이프라인 설정
-	// ( Draw계열 함수 호출 전 -> 렌더링 파이프라인에 필수 스테이지 설정 해야함 )	
+	// 2. 렌더링 파이프라인 스테이지 설정 ( Draw 호출 전에 해야함 )	
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 정점을 이어서 그릴 방식 (삼각형 리스트 방식)
 	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset); // (Stride: 정점 크기, Offset: 시작 위치)
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
@@ -161,31 +118,40 @@ void TestApp::Render()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 
-
-	// 3. 상수 버퍼 업데이트 & 그리기 (인덱스 버퍼 기반) 
-	// 
-	// 1개 상수 버퍼로 각 Cube 그리기 : 공통되는 mView, mProjection은 1번만 업데이트
+	// 3. 상수 버퍼 업데이트 & 그리기 
 	ConstantBuffer cb;
+	cb.mWorld = XMMatrixTranspose(m_World);
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
-
-	// 1번째 Cube
-	cb.mWorld = XMMatrixTranspose(m_World1);
+	cb.vLightDir[0] = m_LightDirsEvaluated[0];
+	cb.vLightDir[1] = m_LightDirsEvaluated[1];
+	cb.vLightColor[0] = m_LightColors[0];
+	cb.vLightColor[1] = m_LightColors[1];
+	cb.vOutputColor = XMFLOAT4(0, 0, 0, 0);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	// 2번째 Cube
-	cb.mWorld = XMMatrixTranspose(m_World2);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	// 3번째 Cube
-	cb.mWorld = XMMatrixTranspose(m_World3);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	// 4. 라이트 표시 (광원 위치를 작은 큐브로 렌더링)
+	for (int m = 0; m < 2; m++)
+	{
+		XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirsEvaluated[m]));
+		XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
+		mLight = mLightScale * mLight;
 
+		// 상수 버퍼 갱신 (광원 위치 + 색상 반영)
+		cb.mWorld = XMMatrixTranspose(mLight);
+		cb.vOutputColor = m_LightColors[m];
+		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+		// 라이트 전용 픽셀 셰이더 적용 후 큐브 렌더링
+		m_pDeviceContext->PSSetShader(m_pPixelShaderSolid.Get(), nullptr, 0);
+		m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	}
 
 	// 4. UI 그리기 
 	Render_ImGui();
@@ -197,7 +163,7 @@ void TestApp::Render()
 
 
 
-// ★ [ Cube의 위치를 조정하는 ImGui ] - UI 프레임 준비 및 렌더링
+// ★ [ ImGui ] - UI 프레임 준비 및 렌더링
 void TestApp::Render_ImGui()
 {
 	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
@@ -219,39 +185,39 @@ void TestApp::Render_ImGui()
 	// [ Cube Control UI ]
 	ImGui::Begin("Cube & Camera Control");
 
-	// 1번 Cube (월드 위치)
-	ImGui::Text("[ Cube Control ]");
-	
-	ImGui::Text("1. Root Cube (World Pos)");
-	ImGui::SliderFloat3("Cube1 Pos", (float*)&m_World1Pos, -10.0f, 10.0f);
+	//// 1번 Cube (월드 위치)
+	//ImGui::Text("[ Cube Control ]");
+	//
+	//ImGui::Text("1. Root Cube (World Pos)");
+	//ImGui::SliderFloat3("Cube1 Pos", (float*)&m_World1Pos, -10.0f, 10.0f);
 
-	// 2번 Cube (1번 기준 상대 위치)
-	ImGui::Text("2. Second Cube (Relative to Cube1)");
-	ImGui::SliderFloat3("Cube2 Offset", (float*)&m_World2Offset, -10.0f, 10.0f);
+	//// 2번 Cube (1번 기준 상대 위치)
+	//ImGui::Text("2. Second Cube (Relative to Cube1)");
+	//ImGui::SliderFloat3("Cube2 Offset", (float*)&m_World2Offset, -10.0f, 10.0f);
 
-	// 3번 Cube (2번 기준 상대 위치)
-	ImGui::Text("3. Third Cube (Relative to Cube2)");
-	ImGui::SliderFloat3("Cube3 Offset", (float*)&m_World3Offset, -10.0f, 10.0f);
+	//// 3번 Cube (2번 기준 상대 위치)
+	//ImGui::Text("3. Third Cube (Relative to Cube2)");
+	//ImGui::SliderFloat3("Cube3 Offset", (float*)&m_World3Offset, -10.0f, 10.0f);
 
-	ImGui::Text(""); ImGui::Text("");
+	//ImGui::Text(""); ImGui::Text("");
 
-	// [ Camera Control UI ]
-	ImGui::Text("[ Camera Control ]");
-	 
-	// 카메라 월드 위치 (x,y,z)
-	ImGui::Text("1. Camera Pos");
-	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
+	//// [ Camera Control UI ]
+	//ImGui::Text("[ Camera Control ]");
+	// 
+	//// 카메라 월드 위치 (x,y,z)
+	//ImGui::Text("1. Camera Pos");
+	//ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
 
-	// 카메라 FOV (degree)
-	ImGui::Text("2. FOV (deg)");
-	ImGui::SliderFloat("FOV (deg)", &m_CameraFOV, 10.0f, 120.0f);
+	//// 카메라 FOV (degree)
+	//ImGui::Text("2. FOV (deg)");
+	//ImGui::SliderFloat("FOV (deg)", &m_CameraFOV, 10.0f, 120.0f);
 
-	// 카메라 Near, Far
-	ImGui::Text("3. Near");
-	ImGui::SliderFloat("Near", &m_CameraNear, 0.01f, 10.0f);
+	//// 카메라 Near, Far
+	//ImGui::Text("3. Near");
+	//ImGui::SliderFloat("Near", &m_CameraNear, 0.01f, 10.0f);
 
-	ImGui::Text("4. Far");
-	ImGui::SliderFloat("Far", &m_CameraFar, 10.0f, 5000.0f);
+	//ImGui::Text("4. Far");
+	//ImGui::SliderFloat("Far", &m_CameraFar, 10.0f, 5000.0f);
 
 
 	// [ 끝 ] 
@@ -356,7 +322,7 @@ bool TestApp::InitD3D()
 	ComPtr<ID3D11Texture2D> pBackBufferTexture; 
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)(pBackBufferTexture.GetAddressOf())));		// 스왑체인의 0번 버퍼(백버퍼) 가져옴
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf())); // 백버퍼 텍스처를 기반으로 렌더타겟뷰 생성
-
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL); // ?
 
 
 
@@ -402,6 +368,7 @@ bool TestApp::InitD3D()
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // ?
 
 	return true;
 }
@@ -423,31 +390,60 @@ bool TestApp::InitScene()
 	// ================================================================
 	// 1. 정점(Vertex) 데이터 준비 및 정점 버퍼 생성
 	// ================================================================
-
+	
+	// 큐브 모델의 각 면에 대한 정점 데이터 (위치 + 노멀벡터)
+	// Local Space(모델 좌표계) 기준
 	Vertex vertices[] =
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector4(0.0f, 0.0f, 0.0f, 1.0f) },
+		// 윗면 (Normal Y+)
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+
+		// 아랫면 (Normal Y-)
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f) },	
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+
+		// 왼쪽면 (Normal X-)
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
+
+		// 오른쪽면 (Normal X+)
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+
+		// 뒷면 (Normal Z-)
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f) }, 
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+
+		// 앞면 (Normal Z+)
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
 	};
-	m_VertexCount = ARRAYSIZE(vertices);                  // 정점 개수 저장 
+	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
 
-	// 정점 버퍼 속성 구조체
+	// 정점 버퍼 속성 정의 
 	D3D11_BUFFER_DESC bd = {};
 	bd.ByteWidth = sizeof(Vertex) * m_VertexCount;    // 버퍼 크기 (정점 크기 × 정점 개수)
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;          // 정점 버퍼 용도
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;          // 용도: 정점 버퍼
 	bd.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
 	bd.CPUAccessFlags = 0;
 
-	// 버퍼에 초기 데이터 복사할 구조체
+	// 초기 데이터 전달용 구조체
 	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = vertices; // 배열 데이터 할당 
+	vbData.pSysMem = vertices; // 정점 배열 데이터 할당 
 
 	// 정점 버퍼 생성
 	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, m_pVertexBuffer.GetAddressOf()));
@@ -458,22 +454,19 @@ bool TestApp::InitScene()
 
 
 
-
 	// ================================================================
 	// 2. 인덱스 버퍼 생성
 	// ================================================================
-	//
-	// 인덱스(Index) 버퍼
-	// - 인덱스를 참조해서 정점(Vertex) 재사용 
 
 	WORD indices[] =
 	{
+		// 윗면, 아랫면, 왼쪽, 오른쪽, 뒤, 앞
 		3,1,0, 2,1,3,
-		0,5,4, 1,5,0,
-		3,4,7, 0,4,3,
-		1,6,5, 2,6,1,
-		2,7,6, 3,7,2,
 		6,4,5, 7,4,6,
+		11,9,8, 10,9,11,
+		14,12,13, 15,12,14,
+		19,17,16, 18,17,19,
+		22,20,21, 23,20,22
 	};
 	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장
 
@@ -484,14 +477,12 @@ bool TestApp::InitScene()
 	bd.Usage = D3D11_USAGE_DEFAULT;                   // GPU에서 읽기 전용(수정X)
 	bd.CPUAccessFlags = 0;
 
-	// 인덱스 데이터 초기화 정보
+	// 초기 데이터 전달
 	D3D11_SUBRESOURCE_DATA ibData = {};
 	ibData.pSysMem = indices;
 
 	// 인덱스 버퍼 생성
 	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, m_pIndexBuffer.GetAddressOf()));
-
-
 
 
 
@@ -502,10 +493,8 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> vertexShaderBuffer; // 컴파일된 버텍스 셰이더 코드(hlsl) 저장 버퍼
 	
 	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/03.TransformVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
-
-	// 버텍스 셰이더 객체 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), nullptr, m_pVertexShader.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/05.BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
 
@@ -518,8 +507,8 @@ bool TestApp::InitScene()
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // POSITION : float3 (12바이트)
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },  // NORMAL   : float3 (12바이트, 오프셋 12)
 	};
 
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
@@ -534,48 +523,46 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> pixelShaderBuffer; // 컴파일된 버텍스 픽셀 코드(hlsl) 저장 버퍼
 
 	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/03.TransformPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/05.BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
-	// 픽셀 셰이더 객체 생성
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), nullptr, m_pPixelShader.GetAddressOf()));
+	// 빛(라이트) 위치를 시각화할 별도 픽셀 셰이더
+	HR_T(CompileShaderFromFile(L"../Shaders/05.SolidPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShaderSolid.GetAddressOf()));
 
 
 
 	// ================================================================
-	// 6.  Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
+	// 6.  상수 버퍼(Constant Buffer) 생성
 	// ================================================================
 
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBuffer);
+	bd.ByteWidth = sizeof(ConstantBuffer); // World, View, Projection + Light
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
+	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
 
 
-
-	// [ World / View / Projection 행렬 초기화 ]
+	// ================================================================
+	// 7. 행렬(World, View, Projection) 설정
+	// ================================================================
 	
-	// World Matrix : 단위 행렬로 초기화 
-	m_World1 = XMMatrixIdentity();
-	m_World2 = XMMatrixIdentity();
-	m_World3 = XMMatrixIdentity();
+	m_World = XMMatrixIdentity(); // 단위 행렬 
 
-	// View Matrix : 카메라 설정
-	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);	// 카메라 위치
+	// 카메라(View)
+	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);	// 카메라 위치
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);		// 카메라가 바라보는 위치
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);		// 카메라의 위쪽 방향 
-
 	m_View = XMMatrixLookAtLH(Eye, At, Up);					// 왼손 좌표계(LH) 기준 
 
-	// Projection Matrix
+	// 투영행렬(Projection)
 	m_Projection = XMMatrixPerspectiveFovLH(
-		XM_PIDIV2,                             // FOV(Field of View, 세로 기준)
+		XM_PIDIV2,                             // FOV( 90도: 세로 시야각 ) 
 		m_ClientWidth / (FLOAT)m_ClientHeight, // 화면 종횡비
 		0.01f,                                 // Near
 		100.0f                                 // Far 
 	);
-
 
 
 	return true;

@@ -28,10 +28,11 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\Shaders\03.TransformPixelShader.hlsl" />
-    <FxCompile Include="..\Shaders\03.TransformVertexShader.hlsl" />
+    <FxCompile Include="..\Shaders\05.BasicPixelShader.hlsl" />
+    <FxCompile Include="..\Shaders\05.BasicVertexShader.hlsl" />
+    <FxCompile Include="..\Shaders\05.SolidPixelShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shared.fxh" />
+    <None Include="..\Shaders\05.Shared.hlsli" />
   </ItemGroup>
 </Project>
