@@ -57,13 +57,13 @@ public:
 	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)
 
 
-	// [ 오브젝트 위치  ]
-	Vector3 m_WorldPos    = Vector3(0.0f, 0.0f, 0.0f);
-
+	// [ 큐브 오브젝트 ]
+	Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
+	float	m_CubeYaw	= 0.0f;		// Y축 회전
+	float	m_CubePitch	= 0.0f;		// X축 회전
 
 	// [ 배경색 ]
 	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f);  //  Light Sky Blue 
-
 
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);				// 라이트 색상
@@ -76,13 +76,15 @@ public:
 	float m_f;
 	int m_counter;
 
-
 	// [ Camera ]
-	float m_CameraPos[3] = { 0.0f, 0.0f, -30.0f };
+	float m_CameraPos[3] = { 0.0f, 0.0f, -20.0f };
 	float m_CameraFOV = 60.0f;     // degree 단위 
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;
 
+
+
+public:
 
 	bool Initialize() override;
 	void Uninitialize() override;

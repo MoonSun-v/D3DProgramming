@@ -64,17 +64,14 @@ void TestApp::Update()
 
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
-	// [ Cube 월드 행렬 ] -> Y축 기준으로 회전
-	m_World = XMMatrixRotationY(totalTime); 
+	// [ Cube 월드 행렬 ] -  Y축 기준으로 회전 (Yaw, Pitch 적용)
+	XMMATRIX mRotYaw = XMMatrixRotationY(m_CubeYaw);
+	XMMATRIX mRotPitch = XMMatrixRotationX(m_CubePitch);
+	m_World = mRotPitch * mRotYaw;
+
 
 	// [ 광원 처리 ]
-	m_LightDirEvaluated = m_InitialLightDir; // 첫 번째 광원은 고정
-
-	// 두 번째 라이트는 시간에 따라 회전
-	//XMMATRIX mRotate = XMMatrixRotationY(-2.0f * totalTime);
-	//XMVECTOR vLightDir = XMLoadFloat4(&m_InitialLightDir);
-	//vLightDir = XMVector3Transform(vLightDir, mRotate);
-	//XMStoreFloat4(&m_LightDirEvaluated, vLightDir);
+	m_LightDirEvaluated = m_InitialLightDir; 
 
 
 	// [ 카메라 갱신 ] 
@@ -82,7 +79,8 @@ void TestApp::Update()
 	m_Camera.Update(m_Timer.DeltaTime());	// 카메라 상태 업데이트 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
-	// [ 투영 행렬 갱신 ] ㅣ 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
+
+	// [ 투영 행렬 갱신 ] : 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
 	float aspect = float(m_ClientWidth) / float(m_ClientHeight);
 	m_Projection = XMMatrixPerspectiveFovLH(
 		XMConvertToRadians(m_CameraFOV), // degree → radian 변환
@@ -131,21 +129,18 @@ void TestApp::Render()
 
 
 	// 4. 라이트 표시 (광원 위치를 작은 큐브로 렌더링)
-	for (int m = 0; m < 2; m++)
-	{
-		XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
-		XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
-		mLight = mLightScale * mLight;
+	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
+	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
+	mLight = mLightScale * mLight;
 
-		// 상수 버퍼 갱신 (광원 위치 + 색상 반영)
-		cb.mWorld = XMMatrixTranspose(mLight);
-		cb.vOutputColor = m_LightColor;
-		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	// 상수 버퍼 갱신 (광원 위치 + 색상 반영)
+	cb.mWorld = XMMatrixTranspose(mLight);
+	cb.vOutputColor = m_LightColor;
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-		// 라이트 전용 픽셀 셰이더 적용 후 큐브 렌더링
-		m_pDeviceContext->PSSetShader(m_pPixelShaderSolid.Get(), nullptr, 0);
-		m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-	}
+	// 라이트 전용 픽셀 셰이더 적용 후 큐브 렌더링
+	m_pDeviceContext->PSSetShader(m_pPixelShaderSolid.Get(), nullptr, 0);
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// 4. UI 그리기 
 	Render_ImGui();
@@ -174,29 +169,38 @@ void TestApp::Render_ImGui()
 
 	// 초기 창 크기 지정
 	// ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_FirstUseEver); 
-	ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Always);
 
-	// [ Cube Control UI ]
-	ImGui::Begin("Cube & Camera Control");
+	// [ Cube & Light Control UI ]
+	ImGui::Begin("Cube & Light Control");
 
-	//// 1번 Cube (월드 위치)
-	//ImGui::Text("[ Cube Control ]");
-	//
-	//ImGui::Text("1. Root Cube (World Pos)");
-	//ImGui::SliderFloat3("Cube1 Pos", (float*)&m_World1Pos, -10.0f, 10.0f);
+	ImGui::Text("");
 
-	//// 2번 Cube (1번 기준 상대 위치)
-	//ImGui::Text("2. Second Cube (Relative to Cube1)");
-	//ImGui::SliderFloat3("Cube2 Offset", (float*)&m_World2Offset, -10.0f, 10.0f);
+	// [ Cube UI ]
+	ImGui::Text("[ Cube ]");
 
-	//// 3번 Cube (2번 기준 상대 위치)
-	//ImGui::Text("3. Third Cube (Relative to Cube2)");
-	//ImGui::SliderFloat3("Cube3 Offset", (float*)&m_World3Offset, -10.0f, 10.0f);
+	// Cube 회전
+	ImGui::Text("Cube Rotation");
+	ImGui::SliderAngle("Yaw (Y axis)", &m_CubeYaw, -180.0f, 180.0f);
+	ImGui::SliderAngle("Pitch (X axis)", &m_CubePitch, -180.0f, 180.0f);
 
-	//ImGui::Text(""); ImGui::Text("");
+	ImGui::Text("");
 
-	// [ Camera Control UI ]
-	ImGui::Text("[ Camera Control ]");
+	// [ Light UI ]
+	ImGui::Text("[ Light ]");
+
+	// Light 색상
+	ImGui::Text("Light Color");
+	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
+
+	// Light 방향
+	ImGui::Text("Light Direction");
+	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -1.0f, 1.0f);
+
+	ImGui::Text("");
+
+	// [ Camera UI ]
+	ImGui::Text("[ Camera ]");
 	 
 	// 카메라 월드 위치 (x,y,z)
 	ImGui::Text("1. Camera Pos");
