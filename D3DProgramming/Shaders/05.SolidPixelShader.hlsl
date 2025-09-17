@@ -2,9 +2,9 @@
 
 
 //--------------------------------------------------------------------------------------
-// PSSolid - render a solid color
+// PSSolid - render a solid color (단색 렌더링)
 //--------------------------------------------------------------------------------------
 float4 main(PS_INPUT input) : SV_Target
 {
-    return vOutputColor;
+    return vOutputColor; // 상수 버퍼에서 지정된 단색 값 반환
 }

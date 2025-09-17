@@ -1,36 +1,41 @@
 //--------------------------------------------------------------------------------------
-// File: Tutorial06.fx
-//
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License (MIT).
 //--------------------------------------------------------------------------------------
 
 
 //--------------------------------------------------------------------------------------
-// Constant Buffer Variables
+// Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
 //--------------------------------------------------------------------------------------
 cbuffer ConstantBuffer : register(b0)
 {
-    matrix World;
-    matrix View;
-    matrix Projection;
-    float4 vLightDir[2];
-    float4 vLightColor[2];
-    float4 vOutputColor;
+    matrix World;           // 월드 변환 행렬 (모델 좌표 → 월드 좌표)
+    matrix View;            // 뷰 변환 행렬 (월드 좌표 → 카메라 좌표)
+    matrix Projection;      // 투영 변환 행렬 (카메라 좌표 → 클립 좌표)
+
+    float4 vLightDir[2];    // 광원 방향 벡터 (2개)
+    float4 vLightColor[2];  // 광원 색상 (2개)
+    float4 vOutputColor;    // 단색 렌더링용 출력 색상
 }
 
 
 //--------------------------------------------------------------------------------------
+// 정점 입력 구조체
+// - GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑
+//--------------------------------------------------------------------------------------
 struct VS_INPUT
 {
-    float4 Pos : POSITION;
-    float3 Norm : NORMAL;
+    float4 Pos : POSITION;  // 정점 위치
+    float3 Norm : NORMAL;   // 정점 법선 벡터
 };
 
+//--------------------------------------------------------------------------------------
+// 픽셀 셰이더 입력 구조체 (정점 셰이더 출력 -> 픽셀 셰이더 입력)
+//--------------------------------------------------------------------------------------
 struct PS_INPUT
 {
-    float4 Pos : SV_POSITION;
-    float3 Norm : TEXCOORD0;
+    float4 Pos : SV_POSITION;   // 변환된 정점 좌표 (화면 클립 공간)
+    float3 Norm : TEXCOORD0;    // 보간된 정점 법선 벡터
 };
 
 
