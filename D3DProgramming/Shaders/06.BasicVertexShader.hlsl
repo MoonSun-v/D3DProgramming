@@ -1,4 +1,4 @@
-#include "05.Shared.hlsli"
+#include "06.Shared.hlsli"
 
 //--------------------------------------------------------------------------------------
 // Vertex Shader
@@ -22,7 +22,7 @@ PS_INPUT main(VS_INPUT input)
     // 여기에서는  : World 행렬의 3x3 회전/스케일 성분만 적용 후 normalize
     //              이동 성분 제외 + 스케일 왜곡 보정
     // World Matrix에서 이동성분을 제외하고 적용하며,  scale 있을수 있으므로 normalize 사용한다.
-    output.Norm = normalize(mul(input.Norm, (float3x3) World)); 
+    output.Norm = normalize(mul(input.Norm, (float3x3) World));
    
     // input.Norm           : Local(모델) 공간의 법선
     // (float3x3)World      : World 행렬의    상위3 x3만    추출(회전 + 스케일)
