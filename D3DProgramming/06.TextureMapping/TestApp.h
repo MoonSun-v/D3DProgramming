@@ -36,15 +36,22 @@ public:
 	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView;
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;	// 깊이값 처리를 위한 뎊스스텐실 뷰
 
+	ComPtr<ID3D11DepthStencilState> m_pDSStateSky;
+	ComPtr < ID3D11RasterizerState> pRasterizerState;
+
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
+	ComPtr<ID3D11VertexShader> m_pVertexShader_Sky;
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
 	ComPtr<ID3D11PixelShader> m_pPixelShaderSolid;	// 픽셀 셰이더 라이트 표시용
+	ComPtr<ID3D11PixelShader> m_pPixelShader_Sky;
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
+	ComPtr<ID3D11InputLayout> m_pInputLayout_Sky;
 	ComPtr<ID3D11Buffer> m_pVertexBuffer;			// 버텍스 버퍼
 	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	// 텍스처 리소스 뷰
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	// 텍스처 리소스 뷰 (큐브)
+	ComPtr<ID3D11ShaderResourceView> m_pCubeMap; // 스카이 박스 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플러 상태
 
 	// [ 렌더링 파이프라인 관련 정보 ]

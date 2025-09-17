@@ -1,6 +1,7 @@
 
 Texture2D txDiffuse : register(t0);
 SamplerState samLinear : register(s0);
+TextureCube g_SkyTexture : register(t1);
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
@@ -35,4 +36,19 @@ struct PS_INPUT
     float4 Pos : SV_POSITION; // 변환된 정점 좌표 (화면 클립 공간)
     float3 Norm : NORMAL; // 보간된 정점 법선 벡터
     float2 Tex : TEXCOORD0;
+};
+
+
+
+// 스카이 박스
+
+struct VS_INPUT_SKY
+{
+    float4 Pos : POSITION; // 정점 위치
+};
+
+struct PS_INPUT_SKY
+{
+    float4 Pos : SV_POSITION; // 변환된 정점 좌표 (화면 클립 공간)
+    float3 WorldDir : TEXCOORD0; // CubeMap 샘플링용
 };

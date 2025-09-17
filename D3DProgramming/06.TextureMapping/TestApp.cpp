@@ -70,15 +70,6 @@ void TestApp::Update()
 	XMMATRIX mRotPitch = XMMatrixRotationX(m_CubePitch);
 	m_World = mRotPitch * mRotYaw;
 
-	// [ Cube 월드 행렬 ] 
-	// m_World = XMMatrixRotationY(totalTime);
-
-	// Modify the color
-	// m_vMeshColor.x = (sinf(totalTime * 1.0f) + 1.0f) * 0.5f;
-	// m_vMeshColor.y = (cosf(totalTime * 3.0f) + 1.0f) * 0.5f;
-	// m_vMeshColor.z = (sinf(totalTime * 5.0f) + 1.0f) * 0.5f;
-
-
 	// [ 광원 처리 ]
 	m_LightDirEvaluated = m_InitialLightDir; 
 
@@ -114,30 +105,78 @@ void TestApp::Render()
 
 
 	// 2. 렌더링 파이프라인 스테이지 설정 ( Draw 호출 전에 해야함 )	
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 정점을 이어서 그릴 방식 (삼각형 리스트 방식)
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset); // (Stride: 정점 크기, Offset: 시작 위치)
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+
+	// ==========================================================
+	// 1. 스카이박스 (라이트 X, 단순 큐브맵 샘플링)
+	// ==========================================================
+	// 공용 InputLayout, 버텍스/인덱스 버퍼 그대로 사용
+
+	// 스카이박스 렌더링 전
+	m_pDeviceContext->OMSetDepthStencilState(m_pDSStateSky.Get(), 0);
+	m_pDeviceContext->RSSetState(pRasterizerState.Get());
+
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout_Sky.Get());
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(),
+		&m_VertextBufferStride, &m_VertextBufferOffset);
 	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
-	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	// 셰이더: 스카이박스 전용
+	m_pDeviceContext->VSSetShader(m_pVertexShader_Sky.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShader(m_pPixelShader_Sky.Get(), nullptr, 0);
+
+	// CB 업데이트 (카메라 위치 제거)
+	ConstantBuffer cb;
+	XMMATRIX viewNoTranslation = m_View;
+	viewNoTranslation.r[3] = XMVectorSet(0, 0, 0, 1);  // 카메라 위치 무시
+	cb.mWorld = XMMatrixTranspose(XMMatrixIdentity());
+	cb.mView = XMMatrixTranspose(viewNoTranslation);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	// 바인딩
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pCubeMap.GetAddressOf());  // 스카이박스 큐브맵
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
+	// draw
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	// 3. 상수 버퍼 업데이트 & 그리기 
-	ConstantBuffer cb;
+	// 스카이박스 그린 후, 일반 오브젝트 렌더링
+	m_pDeviceContext->OMSetDepthStencilState(nullptr, 0); // 기본 상태로 복원
+	m_pDeviceContext->RSSetState(nullptr);
+
+	// ==========================================================
+	// 2. 일반 큐브 (라이트 + 텍스처)
+	// ==========================================================
+	// 공용 InputLayout, 버텍스/인덱스 버퍼 그대로 사용
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(),
+		&m_VertextBufferStride, &m_VertextBufferOffset);
+	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+	// 셰이더: 큐브 전용
+	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	// CB 업데이트
 	cb.mWorld = XMMatrixTranspose(m_World);
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.vLightDir = m_LightDirEvaluated; // 단일 라이트 
-	cb.vLightColor = m_LightColor;		
-	cb.vOutputColor = XMFLOAT4(0, 0, 0, 0);
+	cb.vLightDir = m_LightDirEvaluated;
+	cb.vLightColor = m_LightColor;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	// 바인딩
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV.GetAddressOf());   // 큐브 텍스처
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
+	// draw
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// 4. 라이트 표시 (광원 위치를 작은 큐브로 렌더링)
 	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
@@ -330,8 +369,8 @@ bool TestApp::InitD3D()
 	
 	ComPtr<ID3D11Texture2D> pBackBufferTexture; 
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)(pBackBufferTexture.GetAddressOf())));		// 스왑체인의 0번 버퍼(백버퍼) 가져옴
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf())); // 백버퍼 텍스처를 기반으로 렌더타겟뷰 생성
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL); // ?
+	HR_T(m_pDevice.Get()->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf())); // 백버퍼 텍스처를 기반으로 렌더타겟뷰 생성
+// 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL); // ?
 
 
 
@@ -368,16 +407,40 @@ bool TestApp::InitD3D()
 	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
 	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
-	HR_T(m_pDevice->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
+	HR_T(m_pDevice.Get()->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
 
 	// 깊이 스텐실 뷰 
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
 	descDSV.Format = descDepth.Format;
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	descDSV.Texture2D.MipSlice = 0;
-	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
+	HR_T(m_pDevice.Get()->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // ?
+	// 기본 렌더 타겟과 깊이 스텐실 뷰 연결
+	// m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // ?
+
+
+	// ================================================================
+	// 스카이박스용 DepthStencilState 생성
+	// ================================================================
+	D3D11_DEPTH_STENCIL_DESC dsDescSky = {};
+	dsDescSky.DepthEnable = TRUE;
+	dsDescSky.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	dsDescSky.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+	HR_T(m_pDevice.Get()->CreateDepthStencilState(&dsDescSky, m_pDSStateSky.GetAddressOf()));
+
+
+	// RasterizerState 생성 (양면 렌더링)
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;         // 일반 면 채우기
+	rsDesc.CullMode = D3D11_CULL_FRONT;        // 앞면을 제거, 안쪽 면이 보이도록
+	rsDesc.FrontCounterClockwise = false;      // 기본 CCW 기준
+	rsDesc.DepthClipEnable = true;
+
+	ID3D11RasterizerState* pRasterizerState = nullptr;
+	m_pDevice.Get()->CreateRasterizerState(&rsDesc, &pRasterizerState);
+
 
 	return true;
 }
@@ -497,6 +560,9 @@ bool TestApp::InitScene()
 	HR_T(CompileShaderFromFile(L"../Shaders/06.BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
+	ComPtr<ID3DBlob> vertexShaderBuffer_Sky;
+	HR_T(CompileShaderFromFile(L"../Shaders/06.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), NULL, m_pVertexShader_Sky.GetAddressOf()));
 
 
 	// ================================================================
@@ -513,9 +579,15 @@ bool TestApp::InitScene()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
 
 	};
-
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
+
+
+	D3D11_INPUT_ELEMENT_DESC layout_sky[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // POSITION : float3 (12바이트)
+	};
+	HR_T(m_pDevice->CreateInputLayout(layout_sky, ARRAYSIZE(layout_sky), vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), m_pInputLayout_Sky.GetAddressOf()));
 
 
 
@@ -533,6 +605,10 @@ bool TestApp::InitScene()
 	HR_T(CompileShaderFromFile(L"../Shaders/06.SolidPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShaderSolid.GetAddressOf()));
 
+	ComPtr<ID3DBlob> pixelShaderBuffer_Sky;
+	HR_T(CompileShaderFromFile(L"../Shaders/06.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer_Sky->GetBufferPointer(), pixelShaderBuffer_Sky->GetBufferSize(), NULL, m_pPixelShader_Sky.GetAddressOf()));
+
 
 
 	// ================================================================
@@ -545,12 +621,13 @@ bool TestApp::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
-
+	
 
 	// ================================================================
 	// 7. 텍스쳐 및 샘플러 생성
 	// ================================================================
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/cubemap.dds", nullptr, m_pCubeMap.GetAddressOf()));
 
 	// Create the sample state
 	D3D11_SAMPLER_DESC sampDesc = {};

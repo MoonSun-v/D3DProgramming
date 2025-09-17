@@ -31,6 +31,8 @@
     <FxCompile Include="..\Shaders\06.BasicPixelShader.hlsl" />
     <FxCompile Include="..\Shaders\06.BasicVertexShader.hlsl" />
     <FxCompile Include="..\Shaders\06.SolidPixelShader.hlsl" />
+    <FxCompile Include="..\Shaders\06.SkyBoxPixelShader.hlsl" />
+    <FxCompile Include="..\Shaders\06.SkyBoxVertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shaders\06.Shared.hlsli" />
