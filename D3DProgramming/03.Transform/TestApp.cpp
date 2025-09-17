@@ -386,7 +386,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> vertexShaderBuffer; // 컴파일된 버텍스 셰이더 코드(hlsl) 저장 버퍼
 	
 	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"TransformVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/03.TransformVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 
 	// 버텍스 셰이더 객체 생성
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), nullptr, m_pVertexShader.GetAddressOf()));
@@ -418,7 +418,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> pixelShaderBuffer; // 컴파일된 버텍스 픽셀 코드(hlsl) 저장 버퍼
 
 	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"TransformPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/03.TransformPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 
 	// 픽셀 셰이더 객체 생성
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), nullptr, m_pPixelShader.GetAddressOf()));
