@@ -38,9 +38,9 @@ public:
 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플러 상태
 
-	                                                // 일반 버전도 만들어둘까?? 
-	ComPtr<ID3D11DepthStencilState> m_pDSStateSky;  // 뎁스스텐실 상태   : 스카이 박스
-	ComPtr <ID3D11RasterizerState> m_pRasterizerState;// 래스터라이저 상태 : 스카이 박스 
+	                                                    // 일반 버전도 만들어둘까?? 
+	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;      // 뎁스스텐실 상태   : 스카이 박스
+	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;// 래스터라이저 상태 : 스카이 박스 
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
@@ -79,8 +79,7 @@ public:
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
 	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
-	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)
-	// Vector4	m_vMeshColor = { 0.7f, 0.7f, 0.7f, 1.0f };
+	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)		
 
 	// [ 큐브 오브젝트 ]
 	Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
@@ -121,6 +120,7 @@ public:
 	void UninitD3D();		
 
 	bool InitScene();		// 쉐이더,버텍스,인덱스
+	void InitScene_SkyBox();
 	void UninitScene();
 
 	bool InitImGUI();
