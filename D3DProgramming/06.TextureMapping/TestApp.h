@@ -34,13 +34,12 @@ public:
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext;
 	ComPtr<IDXGISwapChain1> m_pSwapChain;
 	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView;
-	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;	// 깊이값 처리를 위한 뎊스스텐실 뷰
+	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;		// 깊이값 처리를 위한 뎊스스텐실 뷰
 
-	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플러 상태
+	ComPtr<ID3D11SamplerState> m_pSamplerLinear;			// 샘플러 상태
 
-	                                                    // 일반 버전도 만들어둘까?? 
-	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;      // 뎁스스텐실 상태   : 스카이 박스
-	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;// 래스터라이저 상태 : 스카이 박스 
+	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
+	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
@@ -76,23 +75,28 @@ public:
 	UINT m_VertextBufferOffset_Sky = 0;					
 	int m_nIndices_Sky = 0;
 
+
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
 	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
 	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)		
+
 
 	// [ 큐브 오브젝트 ]
 	Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
 	float	m_CubeYaw	= 0.0f;		// Y축 회전
 	float	m_CubePitch	= 0.0f;		// X축 회전
 
+
 	// [ 배경색 ]
 	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f);  //  Light Sky Blue 
+
 
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);				// 라이트 색상
 	XMFLOAT4 m_InitialLightDir = XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f);	// 초기 라이트 방향 (대각선)
 	XMFLOAT4 m_LightDirEvaluated = XMFLOAT4(0, 0, 0, 0);					// 계산된 라이트 방향
+
 
 	// [ ImGui ]
 	bool m_show_another_window = false;
@@ -102,10 +106,11 @@ public:
 
 	// [ Camera ]
 	float m_CameraPos[3] = { 0.0f, 0.0f, -20.0f };
-	float m_CameraFOV = 60.0f;     // degree 단위 
+	float m_CameraFOV = 60.0f;		// degree 단위 
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;
-
+	float m_CameraYaw = 0.0f;		// Y축 회전 
+	float m_CameraPitch = 0.0f;		// X축 회전
 
 
 public:
@@ -114,12 +119,12 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
-	void Render_ImGui();	// Cube, 카메라의 위치 조정 UI
+	void Render_ImGui();	
 
 	bool InitD3D();
 	void UninitD3D();		
 
-	bool InitScene();		// 쉐이더,버텍스,인덱스
+	bool InitScene();		
 	void InitScene_SkyBox();
 	void UninitScene();
 
