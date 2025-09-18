@@ -21,41 +21,6 @@ PS_INPUT_SKY main(VS_INPUT_SKY input)
     output.WorldDir = normalize(mul(input.Pos.xyz, (float3x3) World));
     
     
-    // ----------
-    
-    
-    // World 변환 없이 View + Projection만 적용
-    // output.Pos = mul(input.Pos, World);
-    
-    // 카메라 위치 제거 (View의 translation을 0으로 설정)
-    //matrix viewNoTrans = View;
-    //viewNoTrans._41 = 0;
-    //viewNoTrans._42 = 0;
-    //viewNoTrans._43 = 0;
-
-    //output.Pos = mul(output.Pos, viewNoTrans);
-    //output.Pos = mul(output.Pos, Projection);
-
-    //output.WorldDir = input.Pos;
-
-    
-    
-    
-    // -------------
-    
-    
-    //// 월드 변환　(Local → World → View → Projection)
-    //output.Pos = mul(input.Pos, World);
-    //output.Pos = mul(output.Pos, View);
-    //output.Pos = mul(output.Pos, Projection);
-
-    //// 월드 법선　＂비균등 스케일 문제＂ 주의
-    //output.Norm = normalize(mul(input.Norm, (float3x3) World));
-
-    //// 텍스처 전달
-    //output.Tex = input.Tex;
-    
-    
     // [ 비균등 스케일 문제 ] 주의 !!! 
     // 
     // World 행렬에 스케일/이동이 있으면 단위 벡터가 깨질 수 있음
