@@ -6,5 +6,5 @@
 
 float4 main(PS_INPUT_SKY input) : SV_Target
 {
-    return g_SkyTexture.Sample(samLinear, input.WorldDir);
+    return skyTexture.Sample(samLinear, input.WorldDir);
 }

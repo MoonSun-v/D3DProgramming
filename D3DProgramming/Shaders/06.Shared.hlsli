@@ -1,7 +1,7 @@
 
 Texture2D txDiffuse : register(t0);
 SamplerState samLinear : register(s0);
-TextureCube g_SkyTexture : register(t0);
+TextureCube skyTexture : register(t0);
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
