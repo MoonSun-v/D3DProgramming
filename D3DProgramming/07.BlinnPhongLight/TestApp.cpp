@@ -35,7 +35,7 @@ struct ConstantBuffer
 	Vector4 vAmbient;     // 머티리얼 Ambient
 	Vector4 vDiffuse;     // 머티리얼 Diffuse
 	Vector4 vSpecular;    // 머티리얼 Specular
-	float   fShininess;   // 반짝임 정도
+	float   fShininess = 40.0f;;   // 반짝임 정도
 	float   pad[3];       // 16바이트 정렬 패딩
 };
 
@@ -122,6 +122,11 @@ void TestApp::Render()
 	cb.mProjection = XMMatrixTranspose(m_Projection);
 	cb.vLightDir = m_LightDirEvaluated;
 	cb.vLightColor = m_LightColor;
+	cb.vEyePos = XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
+	cb.vAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	cb.vDiffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	cb.vSpecular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	cb.fShininess = 32.0f;
 
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -439,6 +444,13 @@ bool TestApp::InitScene()
 	};
 	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
+	//float scale = 5.0f;
+	//for (int i = 0; i < ARRAYSIZE(vertices); ++i)
+	//{
+	//	vertices[i].Pos.x *= scale;
+	//	vertices[i].Pos.y *= scale;
+	//	vertices[i].Pos.z *= scale;
+	//}
 
 	// 정점 버퍼 속성 정의 
 	D3D11_BUFFER_DESC bd = {};

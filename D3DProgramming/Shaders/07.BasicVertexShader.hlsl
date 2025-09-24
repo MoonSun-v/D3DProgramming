@@ -8,9 +8,11 @@ PS_INPUT main(VS_INPUT input)
     PS_INPUT output = (PS_INPUT) 0;
 
     // 월드 변환　(Local → World → View → Projection)
-    output.Pos = mul(input.Pos, World);
-    output.Pos = mul(output.Pos, View);
+    float4 worldPos = mul(input.Pos, World);
+    output.Pos = mul(worldPos, View);
     output.Pos = mul(output.Pos, Projection);
+
+    output.WorldPos = worldPos.xyz;
 
     // 월드 법선　＂비균등 스케일 문제＂ 주의
     output.Norm = normalize(mul(input.Norm, (float3x3) World));

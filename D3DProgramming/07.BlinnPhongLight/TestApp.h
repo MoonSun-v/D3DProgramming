@@ -76,7 +76,7 @@ public:
 
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);				// 라이트 색상
-	XMFLOAT4 m_InitialLightDir = XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f);	// 초기 라이트 방향 (대각선)
+	XMFLOAT4 m_InitialLightDir = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);	// 초기 라이트 방향
 	XMFLOAT4 m_LightDirEvaluated = XMFLOAT4(0, 0, 0, 0);					// 계산된 라이트 방향
 
 
@@ -87,7 +87,7 @@ public:
 	int m_counter;
 
 	// [ Camera ]
-	float m_CameraPos[3] = { 0.0f, 0.0f, -20.0f };
+	float m_CameraPos[3] = { 0.0f, 0.0f, -10.0f };
 	float m_CameraFOV = 60.0f;		// degree 단위 
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;
