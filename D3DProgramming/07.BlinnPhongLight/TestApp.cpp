@@ -97,7 +97,7 @@ void TestApp::Update()
 		m_CameraNear,
 		m_CameraFar
 	);
-}
+}     
 
 
 
@@ -206,7 +206,7 @@ void TestApp::Render_ImGui()
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
 	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -10.0f, 10.0f);
 	ImGui::ColorEdit3("Ambient Light (I_a)", (float*)&m_LightAmbient); 
-	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse); 
+	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse);                                                 
 	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 1.0f, 128.0f);
 	
 	ImGui::Text("");
@@ -217,6 +217,14 @@ void TestApp::Render_ImGui()
 																	  // 난반사 계수 -> Diffuse 텍스처 
 	ImGui::ColorEdit3("Specular (k_s)", (float*)&m_MaterialSpecular); // 정반사 계수 
 	
+	ImGui::Text("");
+
+	// [ Camera ]
+	ImGui::Text("[ Camera ]");
+	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
+
+	ImGui::SliderAngle("Camera Yaw (Y axis)", &m_CameraYaw, -180.0f, 180.0f);
+	ImGui::SliderAngle("CameraPitch (X axis)", &m_CameraPitch, -90.0f, 90.0f);
 
 	// [ 끝 ] 
 	ImGui::End();
