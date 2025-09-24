@@ -47,10 +47,6 @@ public:
 	// 텍스처 
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	
 
-	// 라이트 표시용
-	ComPtr<ID3D11PixelShader> m_pPixelShaderSolid;	
-
-
 	// [ 렌더링 파이프라인 관련 정보 ]
 	UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
 	UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
@@ -76,7 +72,7 @@ public:
 
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);				// 라이트 색상
-	XMFLOAT4 m_InitialLightDir = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);	// 초기 라이트 방향
+	XMFLOAT4 m_InitialLightDir = XMFLOAT4(0.0f, 0.0f, -5.0f, 1.0f);	// 초기 라이트 방향
 	XMFLOAT4 m_LightDirEvaluated = XMFLOAT4(0, 0, 0, 0);					// 계산된 라이트 방향
 
 
@@ -94,6 +90,14 @@ public:
 	float m_CameraYaw = 0.0f;		// Y축 회전 
 	float m_CameraPitch = 0.0f;		// X축 회전
 
+	// 머터리얼 조절용
+	XMFLOAT4 m_MaterialAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	XMFLOAT4 m_MaterialSpecular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	float    m_Shininess = 32.0f;
+
+	// 블린-퐁 조명용
+	XMFLOAT4 m_LightAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	XMFLOAT4 m_LightDiffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 public:
 

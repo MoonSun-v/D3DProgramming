@@ -123,10 +123,13 @@ void TestApp::Render()
 	cb.vLightDir = m_LightDirEvaluated;
 	cb.vLightColor = m_LightColor;
 	cb.vEyePos = XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
-	cb.vAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	cb.vDiffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	cb.vSpecular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	cb.fShininess = 32.0f;
+
+	// 머티리얼 + 블린퐁 파라미터
+	cb.vAmbient = m_MaterialAmbient;  // k_a * I_a
+	cb.vDiffuse = m_LightDiffuse;     // Diffuse 텍스처와 곱해 사용 가능
+	cb.vSpecular = m_MaterialSpecular; // k_s
+	cb.fShininess = m_Shininess;
+
 
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -146,7 +149,6 @@ void TestApp::Render()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
-
 	// 3. 라이트 표시 
 	// 라이트의 방향/위치 정보를 이용해 작은 큐브로 "광원 위치"를 시각적으로 표시
 	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
@@ -157,11 +159,6 @@ void TestApp::Render()
 	cb.mWorld = XMMatrixTranspose(mLight);
 	cb.vOutputColor = m_LightColor;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	// 라이트 전용 픽셀 셰이더 적용 후 큐브 렌더링
-	m_pDeviceContext->PSSetShader(m_pPixelShaderSolid.Get(), nullptr, 0);
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
 
 	// 5. UI 그리기 
 	Render_ImGui();
@@ -199,50 +196,27 @@ void TestApp::Render_ImGui()
 
 	// [ Cube UI ]
 	ImGui::Text("[ Cube ]");
-
-	// Cube 회전
-	ImGui::Text("Cube Rotation");
-	ImGui::SliderAngle("Yaw (Y axis)", &m_CubeYaw, -180.0f, 180.0f);
-	ImGui::SliderAngle("Pitch (X axis)", &m_CubePitch, -180.0f, 180.0f);
+	ImGui::SliderAngle("Cube Yaw (Y axis)", &m_CubeYaw, -180.0f, 180.0f);
+	ImGui::SliderAngle("Cube Pitch (X axis)", &m_CubePitch, -180.0f, 180.0f);
 
 	ImGui::Text("");
 
-	// [ Light UI ]
+	// [ Light ]
 	ImGui::Text("[ Light ]");
-
-	// Light 색상
-	ImGui::Text("Light Color");
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
-
-	// Light 방향
-	ImGui::Text("Light Direction");
-	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -1.0f, 1.0f);
-
+	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -10.0f, 10.0f);
+	ImGui::ColorEdit3("Ambient Light (I_a)", (float*)&m_LightAmbient); 
+	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse); 
+	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 1.0f, 128.0f);
+	
 	ImGui::Text("");
 
-	// [ Camera UI ]
-	ImGui::Text("[ Camera ]");
-	 
-	// 카메라 월드 위치 (x,y,z)
-	ImGui::Text("1. Camera Pos");
-	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
-
-	// 카메라 FOV (degree)
-	ImGui::Text("2. FOV (deg)");
-	ImGui::SliderFloat("FOV (deg)", &m_CameraFOV, 10.0f, 120.0f);
-
-	// 카메라 Near, Far
-	ImGui::Text("3. Near");
-	ImGui::SliderFloat("Near", &m_CameraNear, 0.01f, 10.0f);
-
-	ImGui::Text("4. Far");
-	ImGui::SliderFloat("Far", &m_CameraFar, 10.0f, 5000.0f);
-
-	// 카메라 Rotation
-	ImGui::Text("5. Camera Rotation");
-	ImGui::SliderAngle("Yaw (Y axis)_", &m_CameraYaw, -180.0f, 180.0f);
-	ImGui::SliderAngle("Pitch (X axis)_", &m_CameraPitch, -90.0f, 90.0f);
-
+	// [ Material ]
+	ImGui::Text("[ Material ]");
+	ImGui::ColorEdit3("Ambient (k_a)", (float*)&m_MaterialAmbient);   // 환경광 반사 계수 
+																	  // 난반사 계수 -> Diffuse 텍스처 
+	ImGui::ColorEdit3("Specular (k_s)", (float*)&m_MaterialSpecular); // 정반사 계수 
+	
 
 	// [ 끝 ] 
 	ImGui::End();
@@ -444,13 +418,14 @@ bool TestApp::InitScene()
 	};
 	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
-	//float scale = 5.0f;
-	//for (int i = 0; i < ARRAYSIZE(vertices); ++i)
-	//{
-	//	vertices[i].Pos.x *= scale;
-	//	vertices[i].Pos.y *= scale;
-	//	vertices[i].Pos.z *= scale;
-	//}
+	// 스케일 변경 
+	float scale = 3.0f;
+	for (int i = 0; i < ARRAYSIZE(vertices); ++i)
+	{
+		vertices[i].Pos.x *= scale;
+		vertices[i].Pos.y *= scale;
+		vertices[i].Pos.z *= scale;
+	}
 
 	// 정점 버퍼 속성 정의 
 	D3D11_BUFFER_DESC bd = {};
@@ -542,9 +517,7 @@ bool TestApp::InitScene()
 
 	// 빛(라이트) 위치를 시각화할 별도 픽셀 셰이더
 	HR_T(CompileShaderFromFile(L"../Shaders/06.SolidPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShaderSolid.GetAddressOf()));
-
-
+	
 
 	// ================================================================
 	// 6.  상수 버퍼(Constant Buffer) 생성

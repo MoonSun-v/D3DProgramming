@@ -13,7 +13,7 @@ float4 main(PS_INPUT input) : SV_Target
     // Normal
     float3 N = normalize(input.Norm);
 
-    // Light vector (라이트는 포인트라이트)
+    // Light vector (포인트라이트)
     float3 L = normalize(vLightDir.xyz - input.WorldPos);
 
     // View vector

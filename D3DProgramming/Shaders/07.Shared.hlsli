@@ -21,27 +21,25 @@ cbuffer ConstantBuffer : register(b0)
     float4 vDiffuse; // 머티리얼 Diffuse
     float4 vSpecular; // 머티리얼 Specular
     float fShininess; // 반짝임 정도
+    
     float pad[3]; // 16바이트 정렬 패딩
 }
 
-//--------------------------------------------------------------------------------------
-// 일반 오브젝트  
-//--------------------------------------------------------------------------------------
 
 // 정점 입력 구조체
 // - GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑
 struct VS_INPUT
 {
-    float4 Pos : POSITION; // 정점 위치
-    float3 Norm : NORMAL; // 정점 법선 벡터
+    float4 Pos : POSITION;      // 정점 위치
+    float3 Norm : NORMAL;       // 정점 법선 벡터
     float2 Tex : TEXCOORD0;
 };
 
 // 픽셀 셰이더 입력 구조체 (정점 셰이더 출력 -> 픽셀 셰이더 입력)
 struct PS_INPUT
 {
-    float4 Pos : SV_POSITION; // 변환된 정점 좌표 (화면 클립 공간)
-    float3 Norm : NORMAL; // 보간된 정점 법선 벡터
+    float4 Pos : SV_POSITION;   // 변환된 정점 좌표 (화면 클립 공간)
+    float3 Norm : NORMAL;       // 보간된 정점 법선 벡터
     float2 Tex : TEXCOORD0;
     
     float3 WorldPos : TEXCOORD1; // 월드 공간 위치 전달
