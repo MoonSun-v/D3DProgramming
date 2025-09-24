@@ -20,11 +20,6 @@ struct Vertex
 	Vector2 Tex;		// 텍스처 좌표
 };
 
-struct Vertex_Sky
-{
-	Vector3 Pos;		// 위치 정보
-};
-
 // [ 상수 버퍼 CB ] 
 struct ConstantBuffer
 {
@@ -35,6 +30,13 @@ struct ConstantBuffer
 	Vector4 vLightDir;		// 광원 방향
 	Vector4 vLightColor;	// 광원 색상
 	Vector4 vOutputColor;	// 출력 색상 
+
+	Vector4 vEyePos;      // 카메라 위치
+	Vector4 vAmbient;     // 머티리얼 Ambient
+	Vector4 vDiffuse;     // 머티리얼 Diffuse
+	Vector4 vSpecular;    // 머티리얼 Specular
+	float   fShininess;   // 반짝임 정도
+	float   pad[3];       // 16바이트 정렬 패딩
 };
 
 TestApp::TestApp() : GameApp()
@@ -113,48 +115,8 @@ void TestApp::Render()
 
 	// 2. 렌더링 파이프라인 스테이지 설정 ( Draw 호출 전에 세팅하고 호출 해야함 )	
 
-	// ==========================================================
-	// 2-1. 스카이박스 (라이트 X, 단순 큐브맵 샘플링)
-	// ==========================================================
-
-	// [ 스카이박스 렌더링 전 (깊이 테스트, 래스터라이저 상태 변경) ]
-	m_pDeviceContext->OMSetDepthStencilState(m_pDSState_Sky.Get(), 1);
-	m_pDeviceContext->RSSetState(m_pRasterizerState_Sky.Get());
-
-	// CB 업데이트 (카메라 위치 제거)
-	ConstantBuffer cb;
-	cb.mView = XMMatrixTranspose(m_View); // 셰이더 코드 내부에서 이동 제거함
-	cb.mProjection = XMMatrixTranspose(m_Projection); 
-
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout_Sky.Get());
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer_Sky.GetAddressOf(), &m_VertextBufferStride_Sky, &m_VertextBufferOffset_Sky);
-	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer_Sky.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-	m_pDeviceContext->VSSetShader(m_pVertexShader_Sky.Get(), nullptr, 0);
-	m_pDeviceContext->PSSetShader(m_pPixelShader_Sky.Get(), nullptr, 0);
-
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pCubeMap.GetAddressOf());  // 스카이박스 큐브맵
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-	// Draw
-	m_pDeviceContext->DrawIndexed(m_nIndices_Sky, 0, 0);
-
-
-	// [ 스카이박스 그린 후, 기본 상태로 복원 ]
-	m_pDeviceContext->OMSetDepthStencilState(nullptr, 0); 
-	m_pDeviceContext->RSSetState(nullptr);
-
-
-	// ==========================================================
-	// 2-2. 일반 큐브 (라이트 + 텍스처)
-	// ==========================================================
-
 	// CB 업데이트
+	ConstantBuffer cb;
 	cb.mWorld = XMMatrixTranspose(m_World);
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
@@ -174,15 +136,14 @@ void TestApp::Render()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV.GetAddressOf());   // 큐브 텍스처
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// draw
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
-	// ==========================================================
 
-	// 3. 라이트 표시 (광원 위치를 작은 큐브로 렌더링)
+	// 3. 라이트 표시 
+	// 라이트의 방향/위치 정보를 이용해 작은 큐브로 "광원 위치"를 시각적으로 표시
 	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
 	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
 	mLight = mLightScale * mLight;
@@ -423,25 +384,6 @@ bool TestApp::InitD3D()
 	HR_T(m_pDevice.Get()->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
 
-
-	// ================================================================
-	// 6. 스카이박스용 DepthStencilState, RasterizerState 생성
-	// ================================================================
-	D3D11_DEPTH_STENCIL_DESC dsDescSky = {};
-	dsDescSky.DepthEnable = TRUE;
-	dsDescSky.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 기록 안 함
-	dsDescSky.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;      // <= 비교 (끝까지 잘 보이게)
-	dsDescSky.StencilEnable = FALSE;
-	HR_T(m_pDevice->CreateDepthStencilState(&dsDescSky, m_pDSState_Sky.GetAddressOf()));
-
-	D3D11_RASTERIZER_DESC rsDesc = {};
-	rsDesc.FillMode = D3D11_FILL_SOLID;        // 일반 면 채우기
-	rsDesc.CullMode = D3D11_CULL_FRONT;        // 앞면을 제거, 안쪽 면이 보이도록
-	rsDesc.FrontCounterClockwise = false;      // 기본 CCW 기준
-	rsDesc.DepthClipEnable = true;
-	HR_T(m_pDevice->CreateRasterizerState(&rsDesc, m_pRasterizerState_Sky.ReleaseAndGetAddressOf()));
-
-
 	return true;
 }
 
@@ -557,7 +499,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
 	
 	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/06.BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/07.BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
@@ -583,7 +525,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
 
 	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/06.BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/07.BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	// 빛(라이트) 위치를 시각화할 별도 픽셀 셰이더
@@ -608,7 +550,6 @@ bool TestApp::InitScene()
 	// 7. 텍스쳐 및 샘플러 생성
 	// ================================================================
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/cubemap.dds", nullptr, m_pCubeMap.GetAddressOf()));
 
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -618,7 +559,6 @@ bool TestApp::InitScene()
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
 
 	// ================================================================
@@ -642,101 +582,8 @@ bool TestApp::InitScene()
 	);
 
 
-	InitScene_SkyBox();
-
 	return true;
 }
-
-
-void TestApp::InitScene_SkyBox()
-{
-	// =============================================
-	// 1. 스카이박스 정점/인덱스 버퍼 생성
-	// =============================================
-	const float size = 1.0f;
-
-	// - Vector3 Pos만 가지고 있음 (CubeMap 샘플링에 필요)
-	// - 총 24개의 정점, 큐브의 6면(4정점/면) 구성
-	Vertex_Sky skyboxVertices[] =
-	{
-		{ Vector3(-size, -size, -size) }, { Vector3(-size, +size, -size) },
-		{ Vector3(+size, +size, -size) }, { Vector3(+size, -size, -size) },
-
-		{ Vector3(-size, -size, +size) }, { Vector3(+size, -size, +size) },
-		{ Vector3(+size, +size, +size) }, { Vector3(-size, +size, +size) },
-
-		{ Vector3(-size, +size, -size) }, { Vector3(-size, +size, +size) },
-		{ Vector3(+size, +size, +size) }, { Vector3(+size, +size, -size) },
-
-		{ Vector3(-size, -size, -size) }, { Vector3(+size, -size, -size) },
-		{ Vector3(+size, -size, +size) }, { Vector3(-size, -size, +size) },
-
-		{ Vector3(-size, -size, +size) }, { Vector3(-size, +size, +size) },
-		{ Vector3(-size, +size, -size) }, { Vector3(-size, -size, -size) },
-
-		{ Vector3(+size, -size, -size) }, { Vector3(+size, +size, -size) },
-		{ Vector3(+size, +size, +size) }, { Vector3(+size, -size, +size) }
-	};
-
-	// Vertex Buffer
-	D3D11_BUFFER_DESC vbDesc = {};
-	vbDesc.ByteWidth = sizeof(Vertex_Sky) * ARRAYSIZE(skyboxVertices);
-	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = skyboxVertices;
-
-	HR_T(m_pDevice->CreateBuffer(&vbDesc, &vbData, m_pVertexBuffer_Sky.GetAddressOf()));
-	m_VertextBufferStride_Sky = sizeof(Vertex_Sky);
-	m_VertextBufferOffset_Sky = 0;
-
-	// Index Buffer : (총 12개의 삼각형, 6면 * 2삼각형/면)
-	WORD skyboxIndices[] =
-	{
-		0,1,2, 0,2,3,
-		4,5,6, 4,6,7,
-		8,9,10, 8,10,11,
-		12,13,14, 12,14,15,
-		16,17,18, 16,18,19,
-		20,21,22, 20,22,23
-	};
-	m_nIndices_Sky = ARRAYSIZE(skyboxIndices);	// 인덱스 개수 저장
-
-	D3D11_BUFFER_DESC ibDesc = {};
-	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(skyboxIndices);
-	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	ibDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = skyboxIndices;
-
-	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, m_pIndexBuffer_Sky.GetAddressOf()));
-
-
-
-	// =============================================
-	// 2. Vertex Shader -> InputLayout ->  Pixel Shader 생성
-	// =============================================
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-
-	// Vertex Shader
-	ComPtr<ID3DBlob> vertexShaderBuffer_Sky;
-	HR_T(CompileShaderFromFile(L"../Shaders/06.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), NULL, m_pVertexShader_Sky.GetAddressOf()));
-
-	// Input Layout
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), m_pInputLayout_Sky.GetAddressOf()));
-
-	// Pixel Shader
-	ComPtr<ID3DBlob> pixelShaderBuffer_Sky;
-	HR_T(CompileShaderFromFile(L"../Shaders/06.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer_Sky->GetBufferPointer(), pixelShaderBuffer_Sky->GetBufferSize(), NULL, m_pPixelShader_Sky.GetAddressOf()));
-}
-
 
 void TestApp::UninitScene()
 {

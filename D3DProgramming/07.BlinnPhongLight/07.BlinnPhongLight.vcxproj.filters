@@ -27,4 +27,11 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\Shaders\07.BasicPixelShader.hlsl" />
+    <FxCompile Include="..\Shaders\07.BasicVertexShader.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shaders\07.Shared.hlsli" />
+  </ItemGroup>
 </Project>

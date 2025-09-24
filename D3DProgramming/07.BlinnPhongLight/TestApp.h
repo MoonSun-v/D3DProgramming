@@ -36,11 +36,6 @@ public:
 	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView;
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;		// 깊이값 처리를 위한 뎊스스텐실 뷰
 
-	ComPtr<ID3D11SamplerState> m_pSamplerLinear;			// 샘플러 상태
-
-	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
-	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
-
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
@@ -50,30 +45,17 @@ public:
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
 
 	// 텍스처 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	// 큐브
-	ComPtr<ID3D11ShaderResourceView> m_pCubeMap;	// 스카이 박스 
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	
 
 	// 라이트 표시용
 	ComPtr<ID3D11PixelShader> m_pPixelShaderSolid;	
 
-	// 스카이 박스 
-	ComPtr<ID3D11VertexShader> m_pVertexShader_Sky;
-	ComPtr<ID3D11PixelShader> m_pPixelShader_Sky;
-	ComPtr<ID3D11InputLayout> m_pInputLayout_Sky;
-	ComPtr<ID3D11Buffer> m_pVertexBuffer_Sky;			
-	ComPtr<ID3D11Buffer> m_pIndexBuffer_Sky;			
-
 
 	// [ 렌더링 파이프라인 관련 정보 ]
-	// 기본 
 	UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
 	UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
 	UINT m_VertexCount = 0;							// 버텍스 개수
 	int m_nIndices = 0;								// 인덱스 개수
-	// 스카이 박스
-	UINT m_VertextBufferStride_Sky = 0;				
-	UINT m_VertextBufferOffset_Sky = 0;					
-	int m_nIndices_Sky = 0;
 
 
 	// [ 셰이더에 전달할 데이터 ]
@@ -89,7 +71,7 @@ public:
 
 
 	// [ 배경색 ]
-	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f);  //  Light Sky Blue 
+	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);  //  Black
 
 
 	// [ 라이트 정보 ]
