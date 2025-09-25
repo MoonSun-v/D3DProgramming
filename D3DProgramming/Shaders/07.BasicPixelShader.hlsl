@@ -19,13 +19,13 @@ float4 main(PS_INPUT input) : SV_Target
 
     
     // [ Blinn-Phong ] 
-    // R (반사벡터) 대신 H (Half-vector) 사용
-    float3 H = normalize(L + V); // H = L과 V의 합을 정규화한 벡터 -> 라이트 방향과 뷰 방향의 중간 방향
+    // R (반사벡터) 대신 H (Half-vector) 사용 
+    float3 H = normalize(L + V); // H = L과 V의 합을 정규화한 벡터 -> 라이트 방향과 뷰 방향의 중간 방향 
 
     
-    // Ambient 기본 주변광
-    // Diffuse Lambertian 모델
-    // Specular Blinn-Phong 모델, dot(N,H)를 shininess로 제곱
+    // Ambient 기본 주변광 
+    // Diffuse Lambertian 모델 
+    // Specular Blinn-Phong 모델, dot(N,H)를 shininess로 제곱 
     float3 ambient = vAmbient.rgb;
     
     float diff = saturate(dot(N, L));

@@ -149,22 +149,11 @@ void TestApp::Render()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
-	// 3. 라이트 표시 
-	// 라이트의 방향/위치 정보를 이용해 작은 큐브로 "광원 위치"를 시각적으로 표시
-	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirEvaluated));
-	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
-	mLight = mLightScale * mLight;
-
-	// CB 업데이트 (광원 위치 + 색상 반영)
-	cb.mWorld = XMMatrixTranspose(mLight);
-	cb.vOutputColor = m_LightColor;
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	// 5. UI 그리기 
+	// 4. UI 그리기 
 	Render_ImGui();
 
 
-	// 6. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
+	// 5. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
 	m_pSwapChain->Present(0, 0);
 }
 
@@ -204,10 +193,15 @@ void TestApp::Render_ImGui()
 	// [ Light ]
 	ImGui::Text("[ Light ]");
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
-	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -10.0f, 10.0f);
+	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -1.0f, 1.0f);
+	XMVECTOR dir = XMLoadFloat4(&m_InitialLightDir);
+	dir = XMVector3Normalize(dir);
+	XMStoreFloat4(&m_LightDirEvaluated, dir);
+
 	ImGui::ColorEdit3("Ambient Light (I_a)", (float*)&m_LightAmbient); 
 	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse);                                                 
 	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 100.0f, 5000.0f);
+	// ImGui::DragFloat("Shininess (alpha)", &m_Shininess, 0.1f, 1.0f, 5000.0f);
 	
 	ImGui::Text("");
 
