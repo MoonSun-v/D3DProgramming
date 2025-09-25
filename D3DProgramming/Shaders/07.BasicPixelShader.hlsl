@@ -11,10 +11,10 @@ float4 main(PS_INPUT input) : SV_Target
     float3 texColor = txDiffuse.Sample(samLinear, input.Tex).rgb;
 
     // N : Normal vector    픽셀의 노멀 벡터
-    // L : Light vector     픽셀 위치에서 라이트 위치까지의 벡터 (포인트 라이트) 
+    // L : Light vector     픽셀 위치에서 라이트 위치까지의 벡터 
     // V : View vector      픽셀 위치에서 카메라(eye) 위치까지의 벡터
     float3 N = normalize(input.Norm);
-    float3 L = normalize(vLightDir.xyz - input.WorldPos);
+    float3 L = normalize(-vLightDir.xyz); // Directional Light
     float3 V = normalize(vEyePos.xyz - input.WorldPos);
 
     

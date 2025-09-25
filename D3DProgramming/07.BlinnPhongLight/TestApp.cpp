@@ -35,7 +35,7 @@ struct ConstantBuffer
 	Vector4 vAmbient;     // 머티리얼 Ambient
 	Vector4 vDiffuse;     // 머티리얼 Diffuse
 	Vector4 vSpecular;    // 머티리얼 Specular
-	float   fShininess = 40.0f;;   // 반짝임 정도
+	float   fShininess = 40.0f;   // 반짝임 정도
 	float   pad[3];       // 16바이트 정렬 패딩
 };
 
@@ -207,7 +207,7 @@ void TestApp::Render_ImGui()
 	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -10.0f, 10.0f);
 	ImGui::ColorEdit3("Ambient Light (I_a)", (float*)&m_LightAmbient); 
 	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse);                                                 
-	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 1.0f, 128.0f);
+	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 100.0f, 5000.0f);
 	
 	ImGui::Text("");
 
@@ -221,7 +221,7 @@ void TestApp::Render_ImGui()
 
 	// [ Camera ]
 	ImGui::Text("[ Camera ]");
-	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -100.0f, 100.0f);
+	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -1000.0f, 1000.0f);
 
 	ImGui::SliderAngle("Camera Yaw (Y axis)", &m_CameraYaw, -180.0f, 180.0f);
 	ImGui::SliderAngle("CameraPitch (X axis)", &m_CameraPitch, -90.0f, 90.0f);
@@ -427,7 +427,7 @@ bool TestApp::InitScene()
 	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
 	// 스케일 변경 
-	float scale = 3.0f;
+	float scale = 100.0f;
 	for (int i = 0; i < ARRAYSIZE(vertices); ++i)
 	{
 		vertices[i].Pos.x *= scale;
