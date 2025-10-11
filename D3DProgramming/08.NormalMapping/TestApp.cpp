@@ -16,8 +16,9 @@
 struct Vertex
 {
 	Vector3 Pos;		// 위치 정보
-	Vector3 Norm;		// 정점 법선 (광원 계산용)
+	Vector3 Norm;		// 정점 법선 
 	Vector2 Tex;		// 텍스처 좌표
+	Vector3 Tangent; // Tangent 벡터 (노멀맵용)
 };
 
 // [ 상수 버퍼 CB ] 
@@ -32,6 +33,7 @@ struct ConstantBuffer
 	Vector4 vOutputColor;	// 출력 색상 
 
 	Vector4 vEyePos;      // 카메라 위치
+
 	Vector4 vAmbient;     // 머티리얼 Ambient
 	Vector4 vDiffuse;     // 머티리얼 Diffuse
 	Vector4 vSpecular;    // 머티리얼 Specular
@@ -386,37 +388,44 @@ bool TestApp::InitScene()
 	// 1. 정점(Vertex) 데이터 준비 및 정점 버퍼 생성
 	// ================================================================
 
-	Vertex vertices[] =
+	// 큐브 정점 (6면, 각 면 4정점, 총 24) // Pos, Norm, Tex, Tangent
+	Vertex vertices[] = 
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f) , Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		// 윗면 (y = +1) : Normal(0,1,0), Tangent = (1,0,0)
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0,1,0), Vector2(1,0), Vector3(1,0,0) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(0,1,0), Vector2(0,0), Vector3(1,0,0) },
+		{ Vector3(1.0f, 1.0f,  1.0f), Vector3(0,1,0), Vector2(0,1), Vector3(1,0,0) },
+		{ Vector3(-1.0f, 1.0f,  1.0f), Vector3(0,1,0), Vector2(1,1), Vector3(1,0,0) },
 
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		// 아랫면 (y = -1) : Normal(0,-1,0), Tangent = (1,0,0)
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0,-1,0), Vector2(0,0), Vector3(1,0,0) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(0,-1,0), Vector2(1,0), Vector3(1,0,0) },
+		{ Vector3(1.0f, -1.0f,  1.0f), Vector3(0,-1,0), Vector2(1,1), Vector3(1,0,0) },
+		{ Vector3(-1.0f, -1.0f,  1.0f), Vector3(0,-1,0), Vector2(0,1), Vector3(1,0,0) },
 
-		{ Vector3(-1.0f, -1.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) ,Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		// 왼쪽면 (x = -1) : Normal(-1,0,0), Tangent = (0,0,-1)
+		{ Vector3(-1.0f, -1.0f,  1.0f), Vector3(-1,0,0), Vector2(0,1), Vector3(0,0,-1) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1,0,0), Vector2(1,1), Vector3(0,0,-1) },
+		{ Vector3(-1.0f,  1.0f, -1.0f), Vector3(-1,0,0), Vector2(1,0), Vector3(0,0,-1) },
+		{ Vector3(-1.0f,  1.0f,  1.0f), Vector3(-1,0,0), Vector2(0,0), Vector3(0,0,-1) },
 
-		{ Vector3(1.0f, -1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		// 오른쪽면 (x = +1) : Normal(1,0,0), Tangent = (0,0,1)
+		{ Vector3(1.0f, -1.0f,  1.0f), Vector3(1,0,0), Vector2(1,1), Vector3(0,0,1) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(1,0,0), Vector2(0,1), Vector3(0,0,1) },
+		{ Vector3(1.0f,  1.0f, -1.0f), Vector3(1,0,0), Vector2(0,0), Vector3(0,0,1) },
+		{ Vector3(1.0f,  1.0f,  1.0f), Vector3(1,0,0), Vector2(1,0), Vector3(0,0,1) },
 
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
+		// 뒷면 (z = -1) : Normal(0,0,-1), Tangent = (-1,0,0)
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0,0,-1), Vector2(0,1), Vector3(-1,0,0) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(0,0,-1), Vector2(1,1), Vector3(-1,0,0) },
+		{ Vector3(1.0f,  1.0f, -1.0f), Vector3(0,0,-1), Vector2(1,0), Vector3(-1,0,0) },
+		{ Vector3(-1.0f,  1.0f, -1.0f), Vector3(0,0,-1), Vector2(0,0), Vector3(-1,0,0) },
 
-		{ Vector3(-1.0f, -1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
+		// 앞면 (z = +1) : Normal(0,0,1), Tangent = (1,0,0)
+		{ Vector3(-1.0f, -1.0f,  1.0f), Vector3(0,0,1), Vector2(1,1), Vector3(1,0,0) },
+		{ Vector3(1.0f, -1.0f,  1.0f), Vector3(0,0,1), Vector2(0,1), Vector3(1,0,0) },
+		{ Vector3(1.0f,  1.0f,  1.0f), Vector3(0,0,1), Vector2(0,0), Vector3(1,0,0) },
+		{ Vector3(-1.0f,  1.0f,  1.0f), Vector3(0,0,1), Vector2(1,0), Vector3(1,0,0) },
 	};
 	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
@@ -488,7 +497,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
 	
 	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/07.BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/08.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
@@ -501,7 +510,7 @@ bool TestApp::InitScene()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // POSITION : float3 (12바이트)
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },  // NORMAL   : float3 (12바이트, 오프셋 12)
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
-
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 	};
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
@@ -514,7 +523,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
 
 	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/07.BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/08.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	// 빛(라이트) 위치를 시각화할 별도 픽셀 셰이더
