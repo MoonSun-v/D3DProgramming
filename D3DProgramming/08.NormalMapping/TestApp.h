@@ -44,8 +44,12 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
 
-	// 텍스처 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	
+	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
+
+	// 리소스 
+	ComPtr<ID3D11ShaderResourceView> m_pTexture;	 // 큐브 텍스처
+	ComPtr<ID3D11ShaderResourceView> m_pNormal;   // 노멀맵
+	ComPtr<ID3D11ShaderResourceView> m_pSpecular; // 스페큘러맵
 
 	// [ 렌더링 파이프라인 관련 정보 ]
 	UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)

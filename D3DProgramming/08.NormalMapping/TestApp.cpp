@@ -18,7 +18,7 @@ struct Vertex
 	Vector3 Pos;		// 위치 정보
 	Vector3 Norm;		// 정점 법선 
 	Vector2 Tex;		// 텍스처 좌표
-	Vector3 Tangent; // Tangent 벡터 (노멀맵용)
+	Vector3 Tangent;    // Tangent 벡터 (노멀맵용)
 };
 
 // [ 상수 버퍼 CB ] 
@@ -145,7 +145,12 @@ void TestApp::Render()
 
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV.GetAddressOf());   // 큐브 텍스처
+
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());   // 큐브 텍스처
+	m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());    // 노멀맵
+	m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());  // 스페큘러맵
+
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// draw
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
@@ -545,7 +550,9 @@ bool TestApp::InitScene()
 	// ================================================================
 	// 7. 텍스쳐 및 샘플러 생성
 	// ================================================================
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
 
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -555,7 +562,7 @@ bool TestApp::InitScene()
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
+	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
 	// ================================================================
 	// 8. 행렬(World, View, Projection) 설정
