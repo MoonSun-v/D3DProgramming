@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "07.BlinnPhongLight", "07.Bl
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "08.NormalMapping", "08.NormalMapping\08.NormalMapping.vcxproj", "{C98D967A-5C71-4124-AEA2-1C4E75753DB8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "09.FBXLoad", "09.FBXLoad\09.FBXLoad.vcxproj", "{07B4C5C3-3074-4328-9957-01BD278F4C94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -101,6 +103,14 @@ Global
 		{C98D967A-5C71-4124-AEA2-1C4E75753DB8}.Release|x64.Build.0 = Release|x64
 		{C98D967A-5C71-4124-AEA2-1C4E75753DB8}.Release|x86.ActiveCfg = Release|Win32
 		{C98D967A-5C71-4124-AEA2-1C4E75753DB8}.Release|x86.Build.0 = Release|Win32
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Debug|x64.ActiveCfg = Debug|x64
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Debug|x64.Build.0 = Debug|x64
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Debug|x86.ActiveCfg = Debug|Win32
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Debug|x86.Build.0 = Debug|Win32
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Release|x64.ActiveCfg = Release|x64
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Release|x64.Build.0 = Release|x64
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Release|x86.ActiveCfg = Release|Win32
+		{07B4C5C3-3074-4328-9957-01BD278F4C94}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
