@@ -18,7 +18,8 @@ struct Vertex
 	Vector3 Pos;		// 위치 정보
 	Vector3 Norm;		// 정점 법선 
 	Vector2 Tex;		// 텍스처 좌표
-	Vector3 Tangent;    // Tangent 벡터 (노멀맵용)
+	Vector3 Tangent;	// 오브젝트 로컬 Tangent
+	Vector3 Binormal;	// 오브젝트 로컬 Binormal
 };
 
 // [ 상수 버퍼 CB ] 
@@ -152,8 +153,7 @@ void TestApp::Render()
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// draw
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0); // draw
 
 
 	// 4. UI 그리기 
@@ -207,8 +207,7 @@ void TestApp::Render_ImGui()
 
 	ImGui::ColorEdit3("Ambient Light (I_a)", (float*)&m_LightAmbient); 
 	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse);                                                 
-	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 100.0f, 5000.0f);
-	// ImGui::DragFloat("Shininess (alpha)", &m_Shininess, 0.1f, 1.0f, 5000.0f);
+	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 10.0f, 5000.0f);
 	
 	ImGui::Text("");
 
@@ -393,44 +392,50 @@ bool TestApp::InitScene()
 	// 1. 정점(Vertex) 데이터 준비 및 정점 버퍼 생성
 	// ================================================================
 
-	// 큐브 정점 (6면, 각 면 4정점, 총 24) // Pos, Norm, Tex, Tangent
+	// Pos, Norm, Tex, Tangent, Binormal
 	Vertex vertices[] = 
 	{
-		// 윗면 (y = +1) : Normal(0,1,0), Tangent = (1,0,0)
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0,1,0), Vector2(1,0), Vector3(1,0,0) },
-		{ Vector3(1.0f, 1.0f, -1.0f), Vector3(0,1,0), Vector2(0,0), Vector3(1,0,0) },
-		{ Vector3(1.0f, 1.0f,  1.0f), Vector3(0,1,0), Vector2(0,1), Vector3(1,0,0) },
-		{ Vector3(-1.0f, 1.0f,  1.0f), Vector3(0,1,0), Vector2(1,1), Vector3(1,0,0) },
+		// 윗면 (y = +1)
+		// N=(0,1,0), T=(1,0,0), B=(0,0,1)
+		{ Vector3(-1, 1, -1), Vector3(0,1,0), Vector2(1,0), Vector3(1,0,0), Vector3(0,0,1) },
+		{ Vector3(1, 1, -1), Vector3(0,1,0), Vector2(0,0), Vector3(1,0,0), Vector3(0,0,1) },
+		{ Vector3(1, 1,  1), Vector3(0,1,0), Vector2(0,1), Vector3(1,0,0), Vector3(0,0,1) },
+		{ Vector3(-1, 1,  1), Vector3(0,1,0), Vector2(1,1), Vector3(1,0,0), Vector3(0,0,1) },
 
-		// 아랫면 (y = -1) : Normal(0,-1,0), Tangent = (1,0,0)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0,-1,0), Vector2(0,0), Vector3(1,0,0) },
-		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(0,-1,0), Vector2(1,0), Vector3(1,0,0) },
-		{ Vector3(1.0f, -1.0f,  1.0f), Vector3(0,-1,0), Vector2(1,1), Vector3(1,0,0) },
-		{ Vector3(-1.0f, -1.0f,  1.0f), Vector3(0,-1,0), Vector2(0,1), Vector3(1,0,0) },
+		// 아랫면 (y = -1)
+		// N=(0,-1,0), T=(1,0,0), B=(0,0,-1)
+		{ Vector3(-1,-1,-1), Vector3(0,-1,0), Vector2(0,0), Vector3(1,0,0), Vector3(0,0,-1) },
+		{ Vector3(1,-1,-1), Vector3(0,-1,0), Vector2(1,0), Vector3(1,0,0), Vector3(0,0,-1) },
+		{ Vector3(1,-1, 1), Vector3(0,-1,0), Vector2(1,1), Vector3(1,0,0), Vector3(0,0,-1) },
+		{ Vector3(-1,-1, 1), Vector3(0,-1,0), Vector2(0,1), Vector3(1,0,0), Vector3(0,0,-1) },
 
-		// 왼쪽면 (x = -1) : Normal(-1,0,0), Tangent = (0,0,-1)
-		{ Vector3(-1.0f, -1.0f,  1.0f), Vector3(-1,0,0), Vector2(0,1), Vector3(0,0,-1) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1,0,0), Vector2(1,1), Vector3(0,0,-1) },
-		{ Vector3(-1.0f,  1.0f, -1.0f), Vector3(-1,0,0), Vector2(1,0), Vector3(0,0,-1) },
-		{ Vector3(-1.0f,  1.0f,  1.0f), Vector3(-1,0,0), Vector2(0,0), Vector3(0,0,-1) },
+		// 왼쪽면 (x = -1)
+		// N=(-1,0,0), T=(0,0,-1), B=(0,1,0)
+		{ Vector3(-1,-1, 1), Vector3(-1,0,0), Vector2(0,1), Vector3(0,0,-1), Vector3(0,1,0) },
+		{ Vector3(-1,-1,-1), Vector3(-1,0,0), Vector2(1,1), Vector3(0,0,-1), Vector3(0,1,0) },
+		{ Vector3(-1, 1,-1), Vector3(-1,0,0), Vector2(1,0), Vector3(0,0,-1), Vector3(0,1,0) },
+		{ Vector3(-1, 1, 1), Vector3(-1,0,0), Vector2(0,0), Vector3(0,0,-1), Vector3(0,1,0) },
 
-		// 오른쪽면 (x = +1) : Normal(1,0,0), Tangent = (0,0,1)
-		{ Vector3(1.0f, -1.0f,  1.0f), Vector3(1,0,0), Vector2(1,1), Vector3(0,0,1) },
-		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(1,0,0), Vector2(0,1), Vector3(0,0,1) },
-		{ Vector3(1.0f,  1.0f, -1.0f), Vector3(1,0,0), Vector2(0,0), Vector3(0,0,1) },
-		{ Vector3(1.0f,  1.0f,  1.0f), Vector3(1,0,0), Vector2(1,0), Vector3(0,0,1) },
+		// 오른쪽면 (x = +1)
+		// N=(1,0,0), T=(0,0,1), B=(0,1,0)
+		{ Vector3(1,-1, 1), Vector3(1,0,0), Vector2(1,1), Vector3(0,0,1), Vector3(0,1,0) },
+		{ Vector3(1,-1,-1), Vector3(1,0,0), Vector2(0,1), Vector3(0,0,1), Vector3(0,1,0) },
+		{ Vector3(1, 1,-1), Vector3(1,0,0), Vector2(0,0), Vector3(0,0,1), Vector3(0,1,0) },
+		{ Vector3(1, 1, 1), Vector3(1,0,0), Vector2(1,0), Vector3(0,0,1), Vector3(0,1,0) },
 
-		// 뒷면 (z = -1) : Normal(0,0,-1), Tangent = (-1,0,0)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0,0,-1), Vector2(0,1), Vector3(-1,0,0) },
-		{ Vector3(1.0f, -1.0f, -1.0f), Vector3(0,0,-1), Vector2(1,1), Vector3(-1,0,0) },
-		{ Vector3(1.0f,  1.0f, -1.0f), Vector3(0,0,-1), Vector2(1,0), Vector3(-1,0,0) },
-		{ Vector3(-1.0f,  1.0f, -1.0f), Vector3(0,0,-1), Vector2(0,0), Vector3(-1,0,0) },
+		// 뒷면 (z = -1)
+		// N=(0,0,-1), T=(-1,0,0), B=(0,1,0)
+		{ Vector3(-1,-1,-1), Vector3(0,0,-1), Vector2(0,1), Vector3(-1,0,0), Vector3(0,1,0) },
+		{ Vector3(1,-1,-1), Vector3(0,0,-1), Vector2(1,1), Vector3(-1,0,0), Vector3(0,1,0) },
+		{ Vector3(1, 1,-1), Vector3(0,0,-1), Vector2(1,0), Vector3(-1,0,0), Vector3(0,1,0) },
+		{ Vector3(-1, 1,-1), Vector3(0,0,-1), Vector2(0,0), Vector3(-1,0,0), Vector3(0,1,0) },
 
-		// 앞면 (z = +1) : Normal(0,0,1), Tangent = (1,0,0)
-		{ Vector3(-1.0f, -1.0f,  1.0f), Vector3(0,0,1), Vector2(1,1), Vector3(1,0,0) },
-		{ Vector3(1.0f, -1.0f,  1.0f), Vector3(0,0,1), Vector2(0,1), Vector3(1,0,0) },
-		{ Vector3(1.0f,  1.0f,  1.0f), Vector3(0,0,1), Vector2(0,0), Vector3(1,0,0) },
-		{ Vector3(-1.0f,  1.0f,  1.0f), Vector3(0,0,1), Vector2(1,0), Vector3(1,0,0) },
+		// 앞면 (z = +1)
+		// N=(0,0,1), T=(1,0,0), B=(0,1,0)
+		{ Vector3(-1,-1, 1), Vector3(0,0,1), Vector2(1,1), Vector3(1,0,0), Vector3(0,1,0) },
+		{ Vector3(1,-1, 1), Vector3(0,0,1), Vector2(0,1), Vector3(1,0,0), Vector3(0,1,0) },
+		{ Vector3(1, 1, 1), Vector3(0,0,1), Vector2(0,0), Vector3(1,0,0), Vector3(0,1,0) },
+		{ Vector3(-1, 1, 1), Vector3(0,0,1), Vector2(1,0), Vector3(1,0,0), Vector3(0,1,0) },
 	};
 	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
 
@@ -516,6 +521,7 @@ bool TestApp::InitScene()
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },  // NORMAL   : float3 (12바이트, 오프셋 12)
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
