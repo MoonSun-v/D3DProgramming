@@ -13,6 +13,11 @@
 using namespace DirectX::SimpleMath;
 
 
+// ANSI 문자열 -> 유니코드 문자열 변환
+inline std::wstring ToWString(const std::string& str)
+{
+    return std::wstring(str.begin(), str.end());
+}
 
 // ========== [ 유니코드 wide 문자 버전 로그 매크로 ] ========== 
 
