@@ -29,6 +29,8 @@ public:
     UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
     UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
 
+    int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 머티리얼 인덱스
+
 private:
     ComPtr<ID3D11Buffer> m_VertexBuffer;
     ComPtr<ID3D11Buffer> m_IndexBuffer;

@@ -32,8 +32,9 @@ void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiM
     }
     m_IndexCount = (UINT)Indices.size();
 
+	m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
 
-	// ------------------------------------------------
+
 
 	// [ 버텍스 버퍼 & 인덱스 버퍼 생성 ]
 
@@ -70,3 +71,14 @@ void StaticMeshSection::Render(ID3D11DeviceContext* context)
     
     context->DrawIndexed(m_IndexCount, 0, 0);
 }
+
+// TODO : 머티리얼 적용 버전 
+//void StaticMeshSection::Render(ID3D11DeviceContext* context, Material* material)
+//{
+//    if (material && material->DiffuseSRV)
+//    {
+//        context->PSSetShaderResources(0, 1, material->DiffuseSRV.GetAddressOf());
+//    }
+//
+//    Render(context);
+//}
