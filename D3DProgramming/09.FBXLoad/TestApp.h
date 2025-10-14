@@ -11,6 +11,7 @@
 #include <string>
 
 #include "../Common/GameApp.h"
+#include "StaticMesh.h"
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -24,6 +25,11 @@ class TestApp : public GameApp
 public:
 	TestApp();
 	~TestApp();
+
+
+	StaticMesh treeMesh, charMesh, zeldaMesh;
+
+	// ----------------------------------------------------------------
 
 	// [ DXGI ∞¥√º ]
 	ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI∆—≈‰∏Æ

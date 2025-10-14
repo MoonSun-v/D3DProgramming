@@ -1,6 +1,7 @@
 #include "Material.h"
 #include "../Common/Helper.h"
 
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem> // #include <filesystem>
 #include <DirectXTK/WICTextureLoader.h>
 

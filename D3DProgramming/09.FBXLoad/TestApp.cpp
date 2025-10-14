@@ -12,16 +12,6 @@
 #pragma comment(lib, "Psapi.lib")
 
 
-// [ 정점 선언 ]
-struct Vertex
-{
-	Vector3 Pos;		// 위치 정보
-	Vector3 Norm;		// 정점 법선 
-	Vector2 Tex;		// 텍스처 좌표
-	Vector3 Tangent;	// 오브젝트 로컬 Tangent
-	Vector3 Binormal;	// 오브젝트 로컬 Binormal
-};
-
 // [ 상수 버퍼 CB ] 
 struct ConstantBuffer
 {
@@ -74,11 +64,6 @@ void TestApp::Update()
 	__super::Update();
 
 	float totalTime = TimeSystem::m_Instance->TotalTime();
-
-	// [ Cube 월드 행렬 ] -  Y축 기준 회전
-	XMMATRIX mRotYaw = XMMatrixRotationY(m_CubeYaw);
-	XMMATRIX mRotPitch = XMMatrixRotationX(m_CubePitch);
-	m_World = mRotPitch * mRotYaw;
 
 	// [ 광원 처리 ]
 	m_LightDirEvaluated = m_InitialLightDir; 
@@ -136,8 +121,8 @@ void TestApp::Render()
 
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset);
-	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	// m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset);
+	// m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
@@ -147,13 +132,18 @@ void TestApp::Render()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());   // 큐브 텍스처
-	m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());    // 노멀맵
-	m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());  // 스페큘러맵
+	//m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());   // 큐브 텍스처
+	//m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());    // 노멀맵
+	//m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());  // 스페큘러맵
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0); // draw
+
+	treeMesh.Render(m_pDeviceContext.Get());
+	charMesh.Render(m_pDeviceContext.Get());
+	zeldaMesh.Render(m_pDeviceContext.Get());
+
+	// m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0); // draw
 
 
 	// 4. UI 그리기 
@@ -383,120 +373,10 @@ void TestApp::UninitD3D()
 // ★ [ Scene 초기화 ] 
 bool TestApp::InitScene()
 {
-
 	HRESULT hr = 0;                       // DirectX 함수 결과값
 	ID3D10Blob* errorMessage = nullptr;   // 셰이더 컴파일 에러 메시지 버퍼	
 
 
-	// ================================================================
-	// 1. 정점(Vertex) 데이터 준비 및 정점 버퍼 생성
-	// ================================================================
-
-	// Pos, Norm, Tex, Tangent, Binormal
-	Vertex vertices[] = 
-	{
-		// 윗면 (y = +1)
-		// N=(0,1,0), T=(1,0,0), B=(0,0,1)
-		{ Vector3(-1, 1, -1), Vector3(0,1,0), Vector2(1,0), Vector3(1,0,0), Vector3(0,0,1) },
-		{ Vector3(1, 1, -1), Vector3(0,1,0), Vector2(0,0), Vector3(1,0,0), Vector3(0,0,1) },
-		{ Vector3(1, 1,  1), Vector3(0,1,0), Vector2(0,1), Vector3(1,0,0), Vector3(0,0,1) },
-		{ Vector3(-1, 1,  1), Vector3(0,1,0), Vector2(1,1), Vector3(1,0,0), Vector3(0,0,1) },
-
-		// 아랫면 (y = -1)
-		// N=(0,-1,0), T=(1,0,0), B=(0,0,-1)
-		{ Vector3(-1,-1,-1), Vector3(0,-1,0), Vector2(0,0), Vector3(1,0,0), Vector3(0,0,-1) },
-		{ Vector3(1,-1,-1), Vector3(0,-1,0), Vector2(1,0), Vector3(1,0,0), Vector3(0,0,-1) },
-		{ Vector3(1,-1, 1), Vector3(0,-1,0), Vector2(1,1), Vector3(1,0,0), Vector3(0,0,-1) },
-		{ Vector3(-1,-1, 1), Vector3(0,-1,0), Vector2(0,1), Vector3(1,0,0), Vector3(0,0,-1) },
-
-		// 왼쪽면 (x = -1)
-		// N=(-1,0,0), T=(0,0,-1), B=(0,1,0)
-		{ Vector3(-1,-1, 1), Vector3(-1,0,0), Vector2(0,1), Vector3(0,0,-1), Vector3(0,1,0) },
-		{ Vector3(-1,-1,-1), Vector3(-1,0,0), Vector2(1,1), Vector3(0,0,-1), Vector3(0,1,0) },
-		{ Vector3(-1, 1,-1), Vector3(-1,0,0), Vector2(1,0), Vector3(0,0,-1), Vector3(0,1,0) },
-		{ Vector3(-1, 1, 1), Vector3(-1,0,0), Vector2(0,0), Vector3(0,0,-1), Vector3(0,1,0) },
-
-		// 오른쪽면 (x = +1)
-		// N=(1,0,0), T=(0,0,1), B=(0,1,0)
-		{ Vector3(1,-1, 1), Vector3(1,0,0), Vector2(1,1), Vector3(0,0,1), Vector3(0,1,0) },
-		{ Vector3(1,-1,-1), Vector3(1,0,0), Vector2(0,1), Vector3(0,0,1), Vector3(0,1,0) },
-		{ Vector3(1, 1,-1), Vector3(1,0,0), Vector2(0,0), Vector3(0,0,1), Vector3(0,1,0) },
-		{ Vector3(1, 1, 1), Vector3(1,0,0), Vector2(1,0), Vector3(0,0,1), Vector3(0,1,0) },
-
-		// 뒷면 (z = -1)
-		// N=(0,0,-1), T=(-1,0,0), B=(0,1,0)
-		{ Vector3(-1,-1,-1), Vector3(0,0,-1), Vector2(0,1), Vector3(-1,0,0), Vector3(0,1,0) },
-		{ Vector3(1,-1,-1), Vector3(0,0,-1), Vector2(1,1), Vector3(-1,0,0), Vector3(0,1,0) },
-		{ Vector3(1, 1,-1), Vector3(0,0,-1), Vector2(1,0), Vector3(-1,0,0), Vector3(0,1,0) },
-		{ Vector3(-1, 1,-1), Vector3(0,0,-1), Vector2(0,0), Vector3(-1,0,0), Vector3(0,1,0) },
-
-		// 앞면 (z = +1)
-		// N=(0,0,1), T=(1,0,0), B=(0,1,0)
-		{ Vector3(-1,-1, 1), Vector3(0,0,1), Vector2(1,1), Vector3(1,0,0), Vector3(0,1,0) },
-		{ Vector3(1,-1, 1), Vector3(0,0,1), Vector2(0,1), Vector3(1,0,0), Vector3(0,1,0) },
-		{ Vector3(1, 1, 1), Vector3(0,0,1), Vector2(0,0), Vector3(1,0,0), Vector3(0,1,0) },
-		{ Vector3(-1, 1, 1), Vector3(0,0,1), Vector2(1,0), Vector3(1,0,0), Vector3(0,1,0) },
-	};
-	m_VertexCount = ARRAYSIZE(vertices); // 정점 개수 저장
-
-	// 스케일 변경 
-	float scale = 100.0f;
-	for (int i = 0; i < ARRAYSIZE(vertices); ++i)
-	{
-		vertices[i].Pos.x *= scale;
-		vertices[i].Pos.y *= scale;
-		vertices[i].Pos.z *= scale;
-	}
-
-	// 정점 버퍼 속성 정의 
-	D3D11_BUFFER_DESC bd = {};
-	bd.ByteWidth = sizeof(Vertex) * m_VertexCount;    // 버퍼 크기 (정점 크기 × 정점 개수)
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;          // 용도: 정점 버퍼
-	bd.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
-	bd.CPUAccessFlags = 0;
-
-	// 초기 데이터 전달용 구조체
-	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = vertices; // 정점 배열 데이터 할당 
-
-	// 정점 버퍼 생성
-	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, m_pVertexBuffer.GetAddressOf()));
-
-	// 버텍스 버퍼 정보
-	m_VertextBufferStride = sizeof(Vertex); // 정점 하나의 크기
-	m_VertextBufferOffset = 0;              // 시작 오프셋 (0)
-
-
-
-	// ================================================================
-	// 2. 인덱스 버퍼 생성
-	// ================================================================
-
-	WORD indices[] =
-	{
-		// 윗면, 아랫면, 왼쪽, 오른쪽, 뒤, 앞
-		3,1,0, 2,1,3,
-		6,4,5, 7,4,6,
-		11,9,8, 10,9,11,
-		14,12,13, 15,12,14,
-		19,17,16, 18,17,19,
-		22,20,21, 23,20,22
-	};
-	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장
-
-	// 인덱스 버퍼 속성 정의
-	bd = {};
-	bd.ByteWidth = sizeof(WORD) * m_nIndices;		  // 전체 인덱스 배열 크기
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;           // 인덱스 버퍼로 사용
-	bd.Usage = D3D11_USAGE_DEFAULT;                   // GPU에서 읽기 전용(수정X)
-	bd.CPUAccessFlags = 0;
-
-	// 초기 데이터 전달
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = indices;
-
-	// 인덱스 버퍼 생성
-	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, m_pIndexBuffer.GetAddressOf()));
 
 
 
@@ -507,7 +387,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
 	
 	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/08.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/09.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
@@ -534,7 +414,7 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
 
 	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
-	HR_T(CompileShaderFromFile(L"../Shaders/08.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/09.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 
@@ -542,6 +422,7 @@ bool TestApp::InitScene()
 	// 6.  상수 버퍼(Constant Buffer) 생성
 	// ================================================================
 
+	D3D11_BUFFER_DESC bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(ConstantBuffer); // World, View, Projection + Light
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -553,9 +434,13 @@ bool TestApp::InitScene()
 	// ================================================================
 	// 7. 텍스쳐 및 샘플러 생성
 	// ================================================================
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
+	// HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
+	// HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
+	// HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
+
+	treeMesh.LoadFromFBX(m_pDevice.Get(), "../Resource/Tree.fbx");
+	charMesh.LoadFromFBX(m_pDevice.Get(), "../Resource/Character.fbx");
+	zeldaMesh.LoadFromFBX(m_pDevice.Get(), "../Resource/zeldaPosed001.fbx");
 
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -566,6 +451,7 @@ bool TestApp::InitScene()
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
+
 
 	// ================================================================
 	// 8. 행렬(World, View, Projection) 설정
