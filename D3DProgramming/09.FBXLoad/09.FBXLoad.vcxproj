@@ -132,6 +132,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="D3DDevice.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="StaticMeshSection.cpp" />
@@ -139,6 +140,7 @@
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D3DDevice.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="StaticMeshSection.h" />

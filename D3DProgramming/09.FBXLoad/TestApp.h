@@ -1,17 +1,18 @@
 #pragma once
-#include <dxgi1_4.h>
-#include <d3d11.h>
-#include <directxtk/SimpleMath.h>
-#include <wrl/client.h>
+#include "../Common/GameApp.h"
+#include "StaticMesh.h"
+#include "D3DDevice.h"
+
+// #include <dxgi1_4.h>
+// #include <d3d11.h>
+// #include <directxtk/SimpleMath.h>
+// #include <wrl/client.h>
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 #include <string>
-
-#include "../Common/GameApp.h"
-#include "StaticMesh.h"
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -26,30 +27,24 @@ public:
 	TestApp();
 	~TestApp();
 
-
 	StaticMesh treeMesh, charMesh, zeldaMesh;
 
-	// ----------------------------------------------------------------
+private:
+	D3DDevice m_D3DDevice;  // 장치 관리 클래스
+
+public:
 
 	// [ DXGI 객체 ]
-	ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI팩토리
-	ComPtr<IDXGIAdapter3> m_pDXGIAdapter;		// 비디오카드 정보에 접근 가능한 인터페이스
-
-	// [ 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 ] 
-	ComPtr<ID3D11Device> m_pDevice;
-	ComPtr<ID3D11DeviceContext> m_pDeviceContext;
-	ComPtr<IDXGISwapChain1> m_pSwapChain;
-	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView;
-	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;		// 깊이값 처리를 위한 뎊스스텐실 뷰
+	// ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI팩토리
+	// ComPtr<IDXGIAdapter3> m_pDXGIAdapter;		// 비디오카드 정보에 접근 가능한 인터페이스
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
-	ComPtr<ID3D11Buffer> m_pVertexBuffer;			// 버텍스 버퍼
-	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
+	// ComPtr<ID3D11Buffer> m_pVertexBuffer;		// 버텍스 버퍼
+	// ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
-
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
 	// 리소스 
@@ -110,21 +105,17 @@ public:
 	XMFLOAT4 m_LightDiffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 public:
-
 	bool Initialize() override;
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
-	void Render_ImGui();	
 
-	bool InitD3D();
-	void UninitD3D();		
-
+public:
 	bool InitScene();		
-	void InitScene_SkyBox();
-	void UninitScene();
-
 	bool InitImGUI();
+
+	void Render_ImGui();
+
 	void UninitImGUI();
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;

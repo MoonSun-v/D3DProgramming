@@ -39,17 +39,17 @@ TestApp::TestApp() : GameApp()
 
 TestApp::~TestApp()
 {
-	UninitScene();
-	UninitD3D();
 }
 
 bool TestApp::Initialize()
 {
 	__super::Initialize();
 
-	if (!InitD3D())		return false;
+	// if (!InitD3D())		return false;
+	if (!m_D3DDevice.Initialize(m_hWnd, m_ClientWidth, m_ClientHeight)) return false;
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
+
 	return true;
 }
 
@@ -57,6 +57,7 @@ void TestApp::Uninitialize()
 {
 	UninitImGUI();
 	CheckDXGIDebug();	// DirectX 리소스 누수 체크
+	m_D3DDevice.Cleanup();
 }
 
 void TestApp::Update()
@@ -92,66 +93,62 @@ void TestApp::Update()
 // ★ [ 렌더링 ] 
 void TestApp::Render()
 {
-	// 0. 그릴 대상 설정 (렌더 타겟 & 뎁스스텐실 설정)
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
-
-	// 1. 화면 초기화 (컬러 + 깊이 버퍼)
-	const float clear_color_with_alpha[4] = { m_ClearColor.x , m_ClearColor.y , m_ClearColor.z, m_ClearColor.w };
-	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), clear_color_with_alpha);
-	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
+	// 0. 그릴 대상 설정 (렌더 타겟 & 뎁스스텐실 설정) 및 화면 초기화 (컬러 + 깊이 버퍼)
+	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
+	m_D3DDevice.BeginFrame(clearColor);
 
 
-	// 2. 렌더링 파이프라인 스테이지 설정 ( Draw 호출 전에 세팅하고 호출 해야함 )	
+	// 1. 렌더링 파이프라인 스테이지 설정 ( Draw 호출 전에 세팅하고 호출 해야함 )	
 
 	// CB 업데이트
 	ConstantBuffer cb;
-	cb.mWorld = XMMatrixTranspose(m_World);
-	cb.mView = XMMatrixTranspose(m_View);
-	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.vLightDir = m_LightDirEvaluated;
-	cb.vLightColor = m_LightColor;
-	cb.vEyePos = XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
+	cb.mWorld		= XMMatrixTranspose(m_World);
+	cb.mView		= XMMatrixTranspose(m_View);
+	cb.mProjection	= XMMatrixTranspose(m_Projection);
+	cb.vLightDir	= m_LightDirEvaluated;
+	cb.vLightColor	= m_LightColor;
+	cb.vEyePos		= XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
 
 	// 머티리얼 + 블린퐁 파라미터
-	cb.vAmbient = m_MaterialAmbient;  // k_a * I_a
-	cb.vDiffuse = m_LightDiffuse;     // Diffuse 텍스처와 곱해 사용 가능
-	cb.vSpecular = m_MaterialSpecular; // k_s
-	cb.fShininess = m_Shininess;
+	cb.vAmbient		= m_MaterialAmbient;  
+	cb.vDiffuse		= m_LightDiffuse;     
+	cb.vSpecular	= m_MaterialSpecular; 
+	cb.fShininess	= m_Shininess;
 
 
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout.Get());
+	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	// m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset);
 	// m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
-	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	//m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());   // 큐브 텍스처
 	//m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());    // 노멀맵
 	//m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());  // 스페큘러맵
 
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-
-	treeMesh.Render(m_pDeviceContext.Get());
-	charMesh.Render(m_pDeviceContext.Get());
-	zeldaMesh.Render(m_pDeviceContext.Get());
+	// ConstantBuffer 등 설정 후 draw
+	treeMesh.Render(m_D3DDevice.GetDeviceContext());
+	charMesh.Render(m_D3DDevice.GetDeviceContext());
+	zeldaMesh.Render(m_D3DDevice.GetDeviceContext());
 
 	// m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0); // draw
 
 
-	// 4. UI 그리기 
+	// 2. UI 그리기 
 	Render_ImGui();
 
 
-	// 5. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
-	m_pSwapChain->Present(0, 0);
+	// 3. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
+	m_D3DDevice.EndFrame(); // m_pSwapChain->Present(0, 0);
 }
 
 
@@ -225,150 +222,6 @@ void TestApp::Render_ImGui()
 }
 
 
-// ★ [ Direct3D11 초기화 ] 
-bool TestApp::InitD3D()
-{
-	
-	HRESULT hr = 0; // 결과값 : DirectX 함수는 HRESULT 반환
-
-
-	// =====================================
-	// 0. DXGI Factory 생성 및 첫 번째 Adapter 가져오기 (ImGui)
-	// =====================================
-	HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)m_pDXGIFactory.GetAddressOf()));
-	HR_T(m_pDXGIFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_pDXGIAdapter.GetAddressOf()))); 
-
-
-
-	// =====================================
-	// 1. 디바이스 / 디바이스 컨텍스트 생성
-	// =====================================
-
-	UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-
-#ifdef _DEBUG
-	creationFlags |= D3D11_CREATE_DEVICE_DEBUG; // 디버그 레이어 활성화 (검증 메시지 출력)
-#endif
-	// 그래픽 카드 하드웨어의 스펙으로 호환되는 가장 높은 DirectX 기능레벨로 생성하여 드라이버가 작동 한다.
-	// 인터페이스는 Direc3D11 이지만 GPU드라이버는 D3D12 드라이버가 작동할수도 있다.
-	D3D_FEATURE_LEVEL featureLevels[] = // index 0부터 순서대로 시도한다.
-	{ 
-			D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0, D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0
-	};
-	D3D_FEATURE_LEVEL actualFeatureLevel; // 최종 피처 레벨을 저장할 변수
-
-	HR_T(D3D11CreateDevice(
-		nullptr,						// 기본 어댑터 사용
-		D3D_DRIVER_TYPE_HARDWARE,		// 하드웨어 렌더링 사용
-		0,								// 소프트웨어 드라이버 없음
-		creationFlags,					// 디버그 플래그
-		featureLevels,					// Feature Level 설정 
-		ARRAYSIZE(featureLevels),
-		D3D11_SDK_VERSION,				// SDK 버전
-		m_pDevice.GetAddressOf(),		// 디바이스 반환
-		&actualFeatureLevel,			// Feature Level 반환
-		m_pDeviceContext.GetAddressOf() // 디바이스 컨택스트 반환 
-	));
-
-
-
-	// =====================================
-	// 2. DXGI Factory 생성 및 스왑체인 준비
-	// =====================================
-
-	UINT dxgiFactoryFlags = 0;
-#ifdef _DEBUG
-	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-#endif
-
-	ComPtr<IDXGIFactory2> pFactory;
-	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(pFactory.GetAddressOf())));
-
-	// 스왑체인(백버퍼) 설정 
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.BufferCount = 2;									// 백버퍼 개수 
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc.Width = m_ClientWidth;
-	swapChainDesc.Height = m_ClientHeight;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;				// 백버퍼 포맷: 32비트 RGBA
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	// 백버퍼의 용도: 렌더타겟 출력
-	swapChainDesc.SampleDesc.Count = 1;								// 멀티샘플링(안티에일리어싱) 사용 안함 (기본: 1, 안 씀)
-	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;				// Recommended for flip models
-	swapChainDesc.Stereo = FALSE;									// 3D 비활성화
-	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;	// 전체 화면 전환 허용
-	swapChainDesc.Scaling = DXGI_SCALING_NONE;						// 창의 크기와 백 버퍼의 크기가 다를 때. 자동 스케일링X 
-
-	HR_T(pFactory->CreateSwapChainForHwnd(
-		m_pDevice.Get(),
-		m_hWnd,
-		&swapChainDesc,
-		nullptr,
-		nullptr,
-		m_pSwapChain.GetAddressOf()
-	));
-
-
-
-	// =====================================
-    // 3. 렌더타겟뷰(Render Target View) 생성
-    // =====================================
-	
-	ComPtr<ID3D11Texture2D> pBackBufferTexture; 
-	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)(pBackBufferTexture.GetAddressOf())));		// 스왑체인의 0번 버퍼(백버퍼) 가져옴
-	HR_T(m_pDevice.Get()->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf())); // 백버퍼 텍스처를 기반으로 렌더타겟뷰 생성
-
-
-
-	// =====================================
-	// 4. 뷰포트(Viewport) 설정
-	// =====================================
-
-	D3D11_VIEWPORT viewport = {};
-	viewport.TopLeftX = 0;                        // 뷰포트 시작 X
-	viewport.TopLeftY = 0;                        // 뷰포트 시작 Y
-	viewport.Width = (float)m_ClientWidth;        // 뷰포트 너비
-	viewport.Height = (float)m_ClientHeight;      // 뷰포트 높이
-	viewport.MinDepth = 0.0f;                     // 깊이 버퍼 최소값
-	viewport.MaxDepth = 1.0f;                     // 깊이 버퍼 최대값
-
-	// 래스터라이저(RS: Rasterizer) 단계에 뷰포트 설정
-	m_pDeviceContext->RSSetViewports(1, &viewport);
-
-
-
-	// =====================================
-	// 5. 깊이&스텐실 버퍼 및 뷰 생성
-	// =====================================
-
-	D3D11_TEXTURE2D_DESC descDepth = {};
-	descDepth.Width = m_ClientWidth;
-	descDepth.Height = m_ClientHeight;
-	descDepth.MipLevels = 1;
-	descDepth.ArraySize = 1;
-	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24비트 깊이 + 8비트 스텐실
-	descDepth.SampleDesc.Count = 1;
-	descDepth.Usage = D3D11_USAGE_DEFAULT;
-	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
-	HR_T(m_pDevice.Get()->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
-
-	// 깊이 스텐실 뷰 
-	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
-	descDSV.Format = descDepth.Format;
-	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	descDSV.Texture2D.MipSlice = 0;
-	HR_T(m_pDevice.Get()->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
-
-
-	return true;
-}
-
-void TestApp::UninitD3D()
-{
-}
-
-
 
 // ★ [ Scene 초기화 ] 
 bool TestApp::InitScene()
@@ -377,24 +230,17 @@ bool TestApp::InitScene()
 	ID3D10Blob* errorMessage = nullptr;   // 셰이더 컴파일 에러 메시지 버퍼	
 
 
-
-
-
-	// ================================================================
-	// 3. 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
-	// ================================================================
-
+	// ---------------------------------------------------------------
+	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
+	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
-	
-	// ' HLSL 파일에서 main 함수를 vs_4_0 규격으로 컴파일 '
 	HR_T(CompileShaderFromFile(L"../Shaders/09.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
-	// ================================================================
-	// 4. 입력 레이아웃(Input Layout) 생성
-	// ================================================================
-
+	// ---------------------------------------------------------------
+	// 입력 레이아웃(Input Layout) 생성
+	//---------------------------------------------------------------
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // POSITION : float3 (12바이트)
@@ -403,45 +249,39 @@ bool TestApp::InitScene()
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	// 버텍스 셰이더의 Input시그니처와 비교해 유효성 검사 후 -> InputLayout 생성
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 
-	// ================================================================
-	// 5. 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
-	// ================================================================
-
+	// ---------------------------------------------------------------
+	// 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
+	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
-
-	// ' HLSL 파일에서 main 함수를 ps_4_0 규격으로 컴파일 '
 	HR_T(CompileShaderFromFile(L"../Shaders/09.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 
-	// ================================================================
-	// 6.  상수 버퍼(Constant Buffer) 생성
-	// ================================================================
-
+	// ---------------------------------------------------------------
+	// 상수 버퍼(Constant Buffer) 생성
+	// ---------------------------------------------------------------
 	D3D11_BUFFER_DESC bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(ConstantBuffer); // World, View, Projection + Light
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
 	
+	// ---------------------------------------------------------------
+	// 리소스 로드 
+	// ---------------------------------------------------------------
+	treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
+	charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
+	zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
 
-	// ================================================================
-	// 7. 텍스쳐 및 샘플러 생성
-	// ================================================================
-	// HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
-	// HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
-	// HR_T(CreateTextureFromFile(m_pDevice.Get(), L"../Resource/Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
 
-	treeMesh.LoadFromFBX(m_pDevice.Get(), "../Resource/Tree.fbx");
-	charMesh.LoadFromFBX(m_pDevice.Get(), "../Resource/Character.fbx");
-	zeldaMesh.LoadFromFBX(m_pDevice.Get(), "../Resource/zeldaPosed001.fbx");
-
+	// ---------------------------------------------------------------
+	// 샘플러 생성
+	// ---------------------------------------------------------------
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -450,13 +290,12 @@ bool TestApp::InitScene()
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
 
-	// ================================================================
-	// 8. 행렬(World, View, Projection) 설정
-	// ================================================================
-	
+	// ---------------------------------------------------------------
+	// 행렬(World, View, Projection) 설정
+	// ---------------------------------------------------------------
 	m_World = XMMatrixIdentity(); // 단위 행렬 
 
 	// 카메라(View)
@@ -465,26 +304,22 @@ bool TestApp::InitScene()
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);		// 카메라의 위쪽 방향 
 	m_View = XMMatrixLookAtLH(Eye, At, Up);					// 왼손 좌표계(LH) 기준 
 
-	// 투영행렬(Projection)
-	m_Projection = XMMatrixPerspectiveFovLH(
-		XM_PIDIV4,                             // FOV
-		m_ClientWidth / (FLOAT)m_ClientHeight, // 화면 종횡비
-		0.01f,                                 // Near
-		100.0f                                 // Far 
-	);
+	// 투영행렬(Projection) : 카메라의 시야각(FOV), 화면 종횡비, Near, Far 
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4,m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
 
 
 	return true;
-}
-
-void TestApp::UninitScene()
-{
 }
 
 
 // [ ImGui ]
 bool TestApp::InitImGUI()
 {
+	// ???? 
+	// DXGI Factory 생성 및 첫 번째 Adapter 가져오기 (ImGui)
+	// HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)m_pDXGIFactory.GetAddressOf()));
+	// HR_T(m_pDXGIFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_pDXGIAdapter.GetAddressOf())));
+
 	// 1. ImGui 버전 확인 
 	IMGUI_CHECKVERSION();   
 
@@ -496,7 +331,7 @@ bool TestApp::InitImGUI()
 
 	// 4. 플랫폼 및 렌더러 백엔드 초기화
 	ImGui_ImplWin32_Init(m_hWnd);												// Win32 플랫폼용 초기화 (윈도우 핸들 필요)
-	ImGui_ImplDX11_Init(this->m_pDevice.Get(), this->m_pDeviceContext.Get());	// DirectX11 렌더러용 초기화
+	ImGui_ImplDX11_Init(this->m_D3DDevice.GetDevice(), this->m_D3DDevice.GetDeviceContext());	// DirectX11 렌더러용 초기화
 
 
 	return true;
