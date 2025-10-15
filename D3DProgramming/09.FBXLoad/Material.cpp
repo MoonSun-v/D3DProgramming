@@ -21,7 +21,8 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
     if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
     {
         fs::path fullPath = ToWString(std::string(texPath.C_Str()));
-        FilePathDiffuse = textureBasePath + fullPath.filename().wstring();
+        FilePathDiffuse = (fs::path(textureBasePath) / fullPath.filename()).wstring();
+        OutputDebugString((L"[Texture Load] " + FilePathDiffuse + L"\n").c_str());
         HR_T(CreateTextureFromFile(device, FilePathDiffuse.c_str(), DiffuseSRV.GetAddressOf()));
     }
 
@@ -29,7 +30,8 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
     if (material->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS)
     {
         fs::path fullPath = ToWString(std::string(texPath.C_Str()));
-        FilePathNormal = textureBasePath + fullPath.filename().wstring();
+        FilePathNormal = (fs::path(textureBasePath) / fullPath.filename()).wstring();
+        OutputDebugString((L"[Texture Load] " + FilePathNormal + L"\n").c_str());
         HR_T(CreateTextureFromFile(device, FilePathNormal.c_str(), NormalSRV.GetAddressOf()));
     }
 }
