@@ -5,6 +5,7 @@
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem> // #include <filesystem>
+#include "ConstantBuffer.h"
 namespace fs = std::experimental::filesystem;
 
 
@@ -54,39 +55,16 @@ bool StaticMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     return true;
 }
 
-void StaticMesh::Render(ID3D11DeviceContext* context)
+// TODO : 머티리얼 적용
+void StaticMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler)
 {
     for (auto& sub : m_SubMeshes)
     {
-        sub.Render(context);
-    }    
+        Material* material = nullptr;
+        if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
+            material = &m_Materials[sub.m_MaterialIndex];
+
+        if (material)
+            sub.Render(context, *material, globalCB, pCB, pSampler);
+    }
 }
-
-// TODO : 머티리얼 적용
-//void StaticMesh::Render(ID3D11DeviceContext* context)
-//{
-//    for (auto& sub : m_SubMeshes)
-//    {
-//        Material* material = nullptr;
-//        if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
-//            material = &m_Materials[sub.m_MaterialIndex];
-//
-//        sub.Render(context, material);
-//    }
-//}
-
-
-// [ Assimp 파일 로드 ]
-//const aiScene* StaticMesh::ReadFile(const std::string& path, Assimp::Importer& importer)
-//{
-//    unsigned int importFlags =
-//        aiProcess_Triangulate |          // 삼각형으로 분할
-//        aiProcess_GenNormals |           // 노멀 생성
-//        aiProcess_GenUVCoords |          // 텍스처 좌표 생성
-//        aiProcess_CalcTangentSpace |     // 탄젠트 계산
-//        aiProcess_ConvertToLeftHanded |  // 왼손좌표계 변환 (DX용)
-//        aiProcess_PreTransformVertices;  // 노드 변환 적용 (StaticMesh용)
-//
-//    const aiScene* scene = importer.ReadFile(path, importFlags);
-//    return scene;
-//}

@@ -1,14 +1,14 @@
 #pragma once
-#pragma once
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <DirectXMath.h>
 #include <vector>
 #include <assimp/mesh.h>
+#include "Material.h"
+#include "ConstantBuffer.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
-
 
 // [ 정점 선언 ]
 struct Vertex
@@ -24,7 +24,8 @@ class StaticMeshSection
 {
 public:
     std::vector<Vertex> Vertices;
-    std::vector<WORD> Indices;
+    // std::vector<WORD> Indices; //UNIT 
+    std::vector<UINT> Indices; 
 
     int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 머티리얼 인덱스
 
@@ -36,5 +37,10 @@ private:
 
 public:
     void InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh);
-    void Render(ID3D11DeviceContext* context);
+    void Render(
+        ID3D11DeviceContext* context,
+        const Material& mat,
+        const ConstantBuffer& globalCB,
+        ID3D11Buffer* pConstantBuffer,
+        ID3D11SamplerState* pSampler);
 };

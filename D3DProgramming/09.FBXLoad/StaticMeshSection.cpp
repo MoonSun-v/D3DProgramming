@@ -1,4 +1,6 @@
 #include "StaticMeshSection.h"
+#include "ConstantBuffer.h"
+#include "D3DDevice.h"
 
 void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh)
 {
@@ -23,14 +25,14 @@ void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiM
 	// [ 인덱스 데이터 추출 ]
     for (UINT i = 0; i < mesh->mNumFaces; ++i)
     {
-        const aiFace& face = mesh->mFaces[i];
-        for (UINT j = 0; j < face.mNumIndices; ++j)
+        // const aiFace& face = mesh->mFaces[i];
+        for (UINT j = 0; j < mesh->mFaces[i].mNumIndices; ++j)
         {
-            // Indices.push_back(face.mIndices[j]);
-            Indices.push_back(static_cast<WORD>(face.mIndices[j]));
+            Indices.push_back(mesh->mFaces[i].mIndices[j]);
         }
     }
-    m_IndexCount = (UINT)Indices.size();
+    // m_IndexCount = (UINT)Indices.size();
+    m_IndexCount = (int)Indices.size();
 
 	m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
 
@@ -61,24 +63,38 @@ void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiM
     device->CreateBuffer(&bd, &init, m_IndexBuffer.GetAddressOf());
 }
 
-void StaticMeshSection::Render(ID3D11DeviceContext* context)
+// TODO : 머티리얼 적용 버전 
+void StaticMeshSection::Render(
+    ID3D11DeviceContext* context,
+    const Material& mat,
+    const ConstantBuffer& cb,
+    ID3D11Buffer* pConstantBuffer,
+    ID3D11SamplerState* pSampler)    
 {
+    // Vertex / Index 바인딩
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
-
     context->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-    
+    context->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+    // 상수버퍼 업로드
+    context->UpdateSubresource(pConstantBuffer, 0, nullptr, &cb, 0, 0);
+    context->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+    context->PSSetConstantBuffers(0, 1, &pConstantBuffer);
+
+    // Material 텍스처 SRV 바인딩
+    const TextureSRVs& tex = mat.GetTextures();
+    ID3D11ShaderResourceView* srvs[5] =
+    {
+        tex.DiffuseSRV.Get(),
+        tex.NormalSRV.Get(),
+        tex.SpecularSRV.Get(),
+        tex.EmissiveSRV.Get(),
+        tex.OpacitySRV.Get()
+    };
+    context->PSSetShaderResources(0, 5, srvs);
+    context->PSSetSamplers(0, 1, &pSampler);
+
+    // 그리기
     context->DrawIndexed(m_IndexCount, 0, 0);
 }
-
-// TODO : 머티리얼 적용 버전 
-//void StaticMeshSection::Render(ID3D11DeviceContext* context, Material* material)
-//{
-//    if (material && material->DiffuseSRV)
-//    {
-//        context->PSSetShaderResources(0, 1, material->DiffuseSRV.GetAddressOf());
-//    }
-//
-//    Render(context);
-//}

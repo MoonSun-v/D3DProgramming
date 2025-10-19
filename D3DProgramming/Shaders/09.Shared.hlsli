@@ -1,8 +1,10 @@
 
 Texture2D txDiffuse : register(t0);
 SamplerState samLinear : register(s0);
-Texture2D txNormal : register(t1); 
-Texture2D texSpecular : register(t2);
+Texture2D txNormal : register(t1);
+Texture2D txSpecular : register(t2);
+Texture2D txEmissive : register(t3);
+Texture2D txOpacity : register(t4);
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
@@ -18,12 +20,19 @@ cbuffer ConstantBuffer : register(b0)
     float4 vOutputColor;    // 단색 렌더링용 출력 색상
     
     float4 vEyePos;     // 카메라 위치
+    
     float4 vAmbient;    // 머티리얼 Ambient
     float4 vDiffuse;    // 머티리얼 Diffuse
     float4 vSpecular;   // 머티리얼 Specular
     float fShininess;   // 반짝임 정도
+    float pad[3];       // 16바이트 정렬 패딩
     
-    float pad[3]; // 16바이트 정렬 패딩
+    int UseDiffuse;     // 텍스처 사용 여부
+    int UseNormal;
+    int UseSpecular;
+    int UseEmissive;
+    int UseOpacity;
+    int pad2[3];
 }
 
 

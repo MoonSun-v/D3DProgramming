@@ -1,5 +1,5 @@
 #include "TestApp.h"
-#include "../Common/Helper.h"
+#include "ConstantBuffer.h"
 
 #include <string> 
 #include <dxgi1_3.h>
@@ -12,26 +12,6 @@
 #pragma comment(lib, "Psapi.lib")
 
 
-// [ 상수 버퍼 CB ] 
-struct ConstantBuffer
-{
-	Matrix mWorld;			// 월드 변환 행렬 : 64bytes
-	Matrix mView;			// 뷰 변환 행렬   : 64bytes
-	Matrix mProjection;		// 투영 변환 행렬 : 64bytes
-
-	Vector4 vLightDir;		// 광원 방향
-	Vector4 vLightColor;	// 광원 색상
-	Vector4 vOutputColor;	// 출력 색상 
-
-	Vector4 vEyePos;      // 카메라 위치
-
-	Vector4 vAmbient;     // 머티리얼 Ambient
-	Vector4 vDiffuse;     // 머티리얼 Diffuse
-	Vector4 vSpecular;    // 머티리얼 Specular
-	float   fShininess = 40.0f;   // 반짝임 정도
-	float   pad[3];       // 16바이트 정렬 패딩
-};
-
 TestApp::TestApp() : GameApp()
 {
 
@@ -39,16 +19,48 @@ TestApp::TestApp() : GameApp()
 
 TestApp::~TestApp()
 {
+	// UninitScene();
+	// UninitD3D();
 }
 
 bool TestApp::Initialize()
 {
 	__super::Initialize();
 
-	// if (!InitD3D())		return false;
 	if (!m_D3DDevice.Initialize(m_hWnd, m_ClientWidth, m_ClientHeight)) return false;
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
+
+	// Material 기본 텍스처 생성
+	Material::CreateDefaultTextures(m_D3DDevice.GetDevice());
+
+	// 메시 로드 후 각 SubMesh Material 초기화
+	std::wstring textureBasePath = L"../Resource/Textures/";
+
+	auto InitMeshMaterials = [&](StaticMesh& mesh)
+		{
+			for (StaticMeshSection& sub : mesh.m_SubMeshes)
+			{
+				int matIndex = sub.m_MaterialIndex;
+
+				if (matIndex < 0 || matIndex >= (int)mesh.m_Materials.size())
+					continue; // 안전하게 인덱스 체크
+
+				Material& mat = mesh.m_Materials[matIndex];
+
+				// SubMesh가 참조하는 Material 초기화
+				mat.InitializeFromAssimpMaterial(
+					m_D3DDevice.GetDevice(),
+					nullptr,          // Assimp Material 포인터 필요 시 LoadFromFBX 단계에서 저장하도록 수정
+					textureBasePath
+				);
+			}
+		};
+
+	// 각 메시의 SubMesh Material 초기화
+	InitMeshMaterials(treeMesh);
+	InitMeshMaterials(charMesh);
+	InitMeshMaterials(zeldaMesh);
 
 	return true;
 }
@@ -56,8 +68,8 @@ bool TestApp::Initialize()
 void TestApp::Uninitialize()
 {
 	UninitImGUI();
-	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 	m_D3DDevice.Cleanup();
+	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 }
 
 void TestApp::Update()
@@ -81,7 +93,7 @@ void TestApp::Update()
 	// [ 투영 행렬 갱신 ] : 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
 	m_Projection = XMMatrixPerspectiveFovLH
 	(
-		XMConvertToRadians(m_CameraFOV), // degree → radian 변환
+		XMConvertToRadians(m_CameraFOV), // degree -> radian 변환
 		float(m_ClientWidth) / float(m_ClientHeight),
 		m_CameraNear,
 		m_CameraFar
@@ -98,7 +110,7 @@ void TestApp::Render()
 	m_D3DDevice.BeginFrame(clearColor);
 
 
-	// 1. 렌더링 파이프라인 스테이지 설정 ( Draw 호출 전에 세팅하고 호출 해야함 )	
+	// 1. 상수 버퍼 설정 ( Draw 호출 전에 세팅하고 호출 해야함 )	
 
 	// CB 업데이트
 	ConstantBuffer cb;
@@ -115,40 +127,47 @@ void TestApp::Render()
 	cb.vSpecular	= m_MaterialSpecular; 
 	cb.fShininess	= m_Shininess;
 
+	// GPU에 업로드 
+	// m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout.Get());
 	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertextBufferStride, &m_VertextBufferOffset);
-	// m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
-
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	//m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());   // 큐브 텍스처
-	//m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());    // 노멀맵
-	//m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());  // 스페큘러맵
-
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// ConstantBuffer 등 설정 후 draw
-	treeMesh.Render(m_D3DDevice.GetDeviceContext());
-	charMesh.Render(m_D3DDevice.GetDeviceContext());
-	zeldaMesh.Render(m_D3DDevice.GetDeviceContext());
+	// 메시 렌더링
+	auto RenderMesh = [&](StaticMesh& mesh)
+		{
+			for (StaticMeshSection& sub : mesh.m_SubMeshes)
+			{
+				// Material 텍스처 바인딩
+				const TextureSRVs& tex = mesh.m_Materials[sub.m_MaterialIndex].GetTextures();
+				ID3D11ShaderResourceView* srvs[5] =
+				{
+					tex.DiffuseSRV.Get(),
+					tex.NormalSRV.Get(),
+					tex.SpecularSRV.Get(),
+					tex.EmissiveSRV.Get(),
+					tex.OpacitySRV.Get()
+				};
+				m_D3DDevice.GetDeviceContext()->PSSetShaderResources(0, 5, srvs);
 
-	// m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0); // draw
+				// SubMesh 렌더링
+				sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
+			}
+		};
 
+	RenderMesh(treeMesh);
+	RenderMesh(charMesh);
+	RenderMesh(zeldaMesh);
 
-	// 2. UI 그리기 
+	// UI 그리기 
 	Render_ImGui();
 
-
-	// 3. 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
-	m_D3DDevice.EndFrame(); // m_pSwapChain->Present(0, 0);
+	// 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
+	m_D3DDevice.EndFrame(); 
 }
 
 
@@ -179,8 +198,8 @@ void TestApp::Render_ImGui()
 
 	// [ Cube UI ]
 	ImGui::Text("[ Cube ]");
-	ImGui::SliderAngle("Cube Yaw (Y axis)", &m_CubeYaw, -180.0f, 180.0f);
-	ImGui::SliderAngle("Cube Pitch (X axis)", &m_CubePitch, -180.0f, 180.0f);
+	// ImGui::SliderAngle("Cube Yaw (Y axis)", &m_CubeYaw, -180.0f, 180.0f);
+	// ImGui::SliderAngle("Cube Pitch (X axis)", &m_CubePitch, -180.0f, 180.0f);
 
 	ImGui::Text("");
 
@@ -275,8 +294,8 @@ bool TestApp::InitScene()
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
-	charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
-	zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
+	// charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
+	// zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
 
 
 	// ---------------------------------------------------------------

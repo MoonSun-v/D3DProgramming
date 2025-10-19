@@ -48,15 +48,15 @@ public:
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
 	// 리소스 
-	ComPtr<ID3D11ShaderResourceView> m_pTexture;	 // 큐브 텍스처
+	// ComPtr<ID3D11ShaderResourceView> m_pTexture;  // 큐브 텍스처
 	ComPtr<ID3D11ShaderResourceView> m_pNormal;   // 노멀맵
 	ComPtr<ID3D11ShaderResourceView> m_pSpecular; // 스페큘러맵
 
 	// [ 렌더링 파이프라인 관련 정보 ]
-	UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
-	UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
-	UINT m_VertexCount = 0;							// 버텍스 개수
-	int m_nIndices = 0;								// 인덱스 개수
+	// UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
+	// UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
+	// UINT m_VertexCount = 0;							// 버텍스 개수
+	// int m_nIndices = 0;								// 인덱스 개수
 
 
 	// [ 셰이더에 전달할 데이터 ]
@@ -66,9 +66,9 @@ public:
 
 
 	// [ 큐브 오브젝트 ]
-	Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
-	float	m_CubeYaw	= 0.0f;		// Y축 회전
-	float	m_CubePitch	= 0.0f;		// X축 회전
+	// Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
+	// float	m_CubeYaw	= 0.0f;		// Y축 회전
+	// float	m_CubePitch	= 0.0f;		// X축 회전
 
 
 	// [ 배경색 ]
@@ -88,7 +88,7 @@ public:
 	int m_counter;
 
 	// [ Camera ]
-	float m_CameraPos[3] = { 0.0f, 0.0f, -300.0f };
+	float m_CameraPos[3] = { 0.0f, 0.0f, -700.0f };
 	float m_CameraFOV = 60.0f;		// degree 단위 
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;
@@ -116,6 +116,8 @@ public:
 
 	void Render_ImGui();
 
+	void UninitScene();
+	void UninitD3D();
 	void UninitImGUI();
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
