@@ -24,12 +24,6 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         CreateDefaultTextures(device); 
     }
 
-    if (!material)
-    {
-        m_textures = s_defaultTextures;
-        return;
-    }
-
     auto LoadTex = [&](aiTextureType type, ComPtr<ID3D11ShaderResourceView>& out, std::wstring& outPath, ComPtr<ID3D11ShaderResourceView> fallback)
         {
             aiString texPath;
@@ -51,8 +45,6 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
             }
             else
             {
-                // 실패 시 디버그 출력 후 기본 텍스처 사용
-                OutputDebugString((L"[Texture Load Failed] " + outPath + L"\n").c_str());
                 out = fallback;
             }
         };
@@ -63,7 +55,6 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
     LoadTex(aiTextureType_SPECULAR, m_textures.SpecularSRV, FilePathSpecular, s_defaultTextures.SpecularSRV);
     LoadTex(aiTextureType_EMISSIVE, m_textures.EmissiveSRV, FilePathEmissive, s_defaultTextures.EmissiveSRV);
     LoadTex(aiTextureType_OPACITY, m_textures.OpacitySRV, FilePathOpacity, s_defaultTextures.OpacitySRV);
-
 }
 
 
@@ -81,30 +72,30 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = desc.Height = 1;
         desc.MipLevels = 1;
-            desc.ArraySize = 1;
-            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            desc.Usage = D3D11_USAGE_IMMUTABLE;
-            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            desc.CPUAccessFlags = 0;
-            desc.MiscFlags = 0;
-            desc.SampleDesc.Count = 1;
-            desc.SampleDesc.Quality = 0;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.Usage = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = 0;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
 
-            D3D11_SUBRESOURCE_DATA init{};
-            init.pSysMem = color;
-            init.SysMemPitch = 4;
+        D3D11_SUBRESOURCE_DATA init{};
+        init.pSysMem = color;
+        init.SysMemPitch = 4;
 
-            ComPtr<ID3D11Texture2D> tex;
-            device->CreateTexture2D(&desc, &init, &tex);
+        ComPtr<ID3D11Texture2D> tex;
+        device->CreateTexture2D(&desc, &init, &tex);
 
-            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-            srvDesc.Format = desc.Format;
-            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-            srvDesc.Texture2D.MipLevels = 1;
-            srvDesc.Texture2D.MostDetailedMip = 0;
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        srvDesc.Format = desc.Format;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Texture2D.MostDetailedMip = 0;
 
-            device->CreateShaderResourceView(tex.Get(), &srvDesc, &srv);
-        };
+        device->CreateShaderResourceView(tex.Get(), &srvDesc, &srv);
+    };
 
     Create1x1Tex(white, s_defaultTextures.DiffuseSRV);
     Create1x1Tex(normal, s_defaultTextures.NormalSRV);
@@ -112,8 +103,7 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     Create1x1Tex(black, s_defaultTextures.EmissiveSRV);
     Create1x1Tex(white, s_defaultTextures.OpacitySRV);
 
-
-    OutputDebugString(L"[Texture Load] CreateDefaultTextures \n");
+    // OutputDebugString(L"[Texture Load] CreateDefaultTextures \n");
 }
 
 void Material::DestroyDefaultTextures()

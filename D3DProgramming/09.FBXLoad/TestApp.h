@@ -3,11 +3,6 @@
 #include "StaticMesh.h"
 #include "D3DDevice.h"
 
-// #include <dxgi1_4.h>
-// #include <d3d11.h>
-// #include <directxtk/SimpleMath.h>
-// #include <wrl/client.h>
-
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
@@ -42,22 +37,8 @@ public:
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
-	// ComPtr<ID3D11Buffer> m_pVertexBuffer;		// 버텍스 버퍼
-	// ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 인덱스 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
-
-	// 리소스 
-	// ComPtr<ID3D11ShaderResourceView> m_pTexture;  // 큐브 텍스처
-	ComPtr<ID3D11ShaderResourceView> m_pNormal;   // 노멀맵
-	ComPtr<ID3D11ShaderResourceView> m_pSpecular; // 스페큘러맵
-
-	// [ 렌더링 파이프라인 관련 정보 ]
-	// UINT m_VertextBufferStride = 0;					// 버텍스 하나의 크기 (바이트 단위)
-	// UINT m_VertextBufferOffset = 0;					// 버텍스 버퍼의 오프셋
-	// UINT m_VertexCount = 0;							// 버텍스 개수
-	// int m_nIndices = 0;								// 인덱스 개수
-
 
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
@@ -65,7 +46,7 @@ public:
 	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)		
 
 
-	// [ 큐브 오브젝트 ]
+	// [ 오브젝트 ]
 	// Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
 	// float	m_CubeYaw	= 0.0f;		// Y축 회전
 	// float	m_CubePitch	= 0.0f;		// X축 회전
@@ -86,6 +67,7 @@ public:
 	bool m_show_demo_window = true;
 	float m_f;
 	int m_counter;
+
 
 	// [ Camera ]
 	float m_CameraPos[3] = { 0.0f, 0.0f, -700.0f };

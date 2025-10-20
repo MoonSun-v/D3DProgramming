@@ -19,7 +19,6 @@ public:
     // [ FBX 파일로부터 StaticMesh 로드 ]
     bool LoadFromFBX(ID3D11Device* device, const std::string& path);
 
-    // void Render(ID3D11DeviceContext* context);
     void Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler);
 
 };

@@ -105,25 +105,25 @@ void TestApp::Render()
 
 	// 메시 렌더링
 	auto RenderMesh = [&](StaticMesh& mesh)
+	{
+		for (StaticMeshSection& sub : mesh.m_SubMeshes)
 		{
-			for (StaticMeshSection& sub : mesh.m_SubMeshes)
+			// Material 텍스처 바인딩
+			const TextureSRVs& tex = mesh.m_Materials[sub.m_MaterialIndex].GetTextures();
+			ID3D11ShaderResourceView* srvs[5] =
 			{
-				// Material 텍스처 바인딩
-				const TextureSRVs& tex = mesh.m_Materials[sub.m_MaterialIndex].GetTextures();
-				ID3D11ShaderResourceView* srvs[5] =
-				{
-					tex.DiffuseSRV.Get(),
-					tex.NormalSRV.Get(),
-					tex.SpecularSRV.Get(),
-					tex.EmissiveSRV.Get(),
-					tex.OpacitySRV.Get()
-				};
-				m_D3DDevice.GetDeviceContext()->PSSetShaderResources(0, 5, srvs);
+				tex.DiffuseSRV.Get(),
+				tex.NormalSRV.Get(),
+				tex.SpecularSRV.Get(),
+				tex.EmissiveSRV.Get(),
+				tex.OpacitySRV.Get()
+			};
+			m_D3DDevice.GetDeviceContext()->PSSetShaderResources(0, 5, srvs);
 
-				// SubMesh 렌더링
-				sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
-			}
-		};
+			// SubMesh 렌더링
+			sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
+		}
+	};
 
 	RenderMesh(treeMesh);
 	RenderMesh(charMesh);
@@ -259,12 +259,9 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-
-	// Material::CreateDefaultTextures(m_D3DDevice.GetDevice()); // Material 기본 텍스처 생성
-
-	treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
+	// treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
 	// charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
-	// zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
+	zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
 
 
 	// ---------------------------------------------------------------
