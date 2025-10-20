@@ -25,13 +25,11 @@ void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiM
 	// [ 인덱스 데이터 추출 ]
     for (UINT i = 0; i < mesh->mNumFaces; ++i)
     {
-        // const aiFace& face = mesh->mFaces[i];
         for (UINT j = 0; j < mesh->mFaces[i].mNumIndices; ++j)
         {
             Indices.push_back(mesh->mFaces[i].mIndices[j]);
         }
     }
-    // m_IndexCount = (UINT)Indices.size();
     m_IndexCount = (int)Indices.size();
 
 	m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
@@ -49,7 +47,6 @@ void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiM
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     // bd.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
     // bd.CPUAccessFlags = 0;
-
     init.pSysMem = Vertices.data();
     device->CreateBuffer(&bd, &init, m_VertexBuffer.GetAddressOf());
 
@@ -75,7 +72,7 @@ void StaticMeshSection::Render(
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+    context->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0); // DXGI_FORMAT_R32_UINT
 
     // 상수버퍼 업로드
     context->UpdateSubresource(pConstantBuffer, 0, nullptr, &cb, 0, 0);

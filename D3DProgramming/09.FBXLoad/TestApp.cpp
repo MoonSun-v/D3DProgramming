@@ -31,37 +31,6 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	// Material 기본 텍스처 생성
-	Material::CreateDefaultTextures(m_D3DDevice.GetDevice());
-
-	// 메시 로드 후 각 SubMesh Material 초기화
-	std::wstring textureBasePath = L"../Resource/Textures/";
-
-	auto InitMeshMaterials = [&](StaticMesh& mesh)
-		{
-			for (StaticMeshSection& sub : mesh.m_SubMeshes)
-			{
-				int matIndex = sub.m_MaterialIndex;
-
-				if (matIndex < 0 || matIndex >= (int)mesh.m_Materials.size())
-					continue; // 안전하게 인덱스 체크
-
-				Material& mat = mesh.m_Materials[matIndex];
-
-				// SubMesh가 참조하는 Material 초기화
-				mat.InitializeFromAssimpMaterial(
-					m_D3DDevice.GetDevice(),
-					nullptr,          // Assimp Material 포인터 필요 시 LoadFromFBX 단계에서 저장하도록 수정
-					textureBasePath
-				);
-			}
-		};
-
-	// 각 메시의 SubMesh Material 초기화
-	InitMeshMaterials(treeMesh);
-	InitMeshMaterials(charMesh);
-	InitMeshMaterials(zeldaMesh);
-
 	return true;
 }
 
@@ -127,9 +96,6 @@ void TestApp::Render()
 	cb.vSpecular	= m_MaterialSpecular; 
 	cb.fShininess	= m_Shininess;
 
-	// GPU에 업로드 
-	// m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
 	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout.Get());
 	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -163,13 +129,14 @@ void TestApp::Render()
 	RenderMesh(charMesh);
 	RenderMesh(zeldaMesh);
 
+
 	// UI 그리기 
 	Render_ImGui();
+
 
 	// 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
 	m_D3DDevice.EndFrame(); 
 }
-
 
 
 // ★ [ ImGui ] - UI 프레임 준비 및 렌더링
@@ -241,7 +208,6 @@ void TestApp::Render_ImGui()
 }
 
 
-
 // ★ [ Scene 초기화 ] 
 bool TestApp::InitScene()
 {
@@ -293,6 +259,9 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
+
+	// Material::CreateDefaultTextures(m_D3DDevice.GetDevice()); // Material 기본 텍스처 생성
+
 	treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
 	// charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
 	// zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");

@@ -18,7 +18,6 @@ cbuffer ConstantBuffer : register(b0)
     float4 vLightDir;       // 광원 방향 벡터 
     float4 vLightColor;     // 광원 색상 
     float4 vOutputColor;    // 단색 렌더링용 출력 색상
-    
     float4 vEyePos;     // 카메라 위치
     
     float4 vAmbient;    // 머티리얼 Ambient
@@ -26,15 +25,24 @@ cbuffer ConstantBuffer : register(b0)
     float4 vSpecular;   // 머티리얼 Specular
     float fShininess;   // 반짝임 정도
     float pad[3];       // 16바이트 정렬 패딩
-    
-    int UseDiffuse;     // 텍스처 사용 여부
-    int UseNormal;
-    int UseSpecular;
-    int UseEmissive;
-    int UseOpacity;
-    int pad2[3];
 }
 
+//cbuffer ConstantBuffer : register(b0)
+//{
+//    matrix world;
+//    matrix view;
+//    matrix projection;
+//    matrix normalMatrix;
+    
+//    float4 cameraPos;
+//    float4 lightDir;
+//    float4 lightColor;
+//    float4 ambientLightColor;
+//    float4 shininess;
+    
+//    float4 materialAmbient;
+//    float4 materialSpecular;
+//}
 
 // 정점 입력 구조체
 // GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑

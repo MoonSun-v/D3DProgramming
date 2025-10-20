@@ -24,8 +24,7 @@ class StaticMeshSection
 {
 public:
     std::vector<Vertex> Vertices;
-    // std::vector<WORD> Indices; //UNIT 
-    std::vector<UINT> Indices; 
+    std::vector<WORD> Indices; //UNIT 
 
     int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 머티리얼 인덱스
 

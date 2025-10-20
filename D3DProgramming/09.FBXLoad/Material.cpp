@@ -19,7 +19,10 @@ TextureSRVs Material::s_defaultTextures; // static 구조체
 void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMaterial* material, const std::wstring& textureBasePath)
 {
     // default texture 보장
-    if (!s_defaultTextures.DiffuseSRV) CreateDefaultTextures(device);
+    if (!s_defaultTextures.DiffuseSRV) 
+    { 
+        CreateDefaultTextures(device); 
+    }
 
     if (!material)
     {
@@ -48,7 +51,8 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
             }
             else
             {
-                // 텍스처 없으면 기본 텍스처 사용
+                // 실패 시 디버그 출력 후 기본 텍스처 사용
+                OutputDebugString((L"[Texture Load Failed] " + outPath + L"\n").c_str());
                 out = fallback;
             }
         };
@@ -73,14 +77,18 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     unsigned char normal[] = { 128,128,255,255 };
 
     auto Create1x1Tex = [&](unsigned char color[4], ComPtr<ID3D11ShaderResourceView>& srv)
-        {
-            D3D11_TEXTURE2D_DESC desc{};
-            desc.Width = desc.Height = 1;
-            desc.MipLevels = 1;
+    {
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = desc.Height = 1;
+        desc.MipLevels = 1;
             desc.ArraySize = 1;
             desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             desc.Usage = D3D11_USAGE_IMMUTABLE;
             desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.CPUAccessFlags = 0;
+            desc.MiscFlags = 0;
+            desc.SampleDesc.Count = 1;
+            desc.SampleDesc.Quality = 0;
 
             D3D11_SUBRESOURCE_DATA init{};
             init.pSysMem = color;
@@ -104,6 +112,8 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     Create1x1Tex(black, s_defaultTextures.EmissiveSRV);
     Create1x1Tex(white, s_defaultTextures.OpacitySRV);
 
+
+    OutputDebugString(L"[Texture Load] CreateDefaultTextures \n");
 }
 
 void Material::DestroyDefaultTextures()
