@@ -10,7 +10,7 @@
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
-// [ 정점 선언 ]
+// [ 정점(Vertex) 구조 ]
 struct Vertex
 {
     XMFLOAT3 Position;
@@ -24,9 +24,9 @@ class StaticMeshSection
 {
 public:
     std::vector<Vertex> Vertices;
-    std::vector<WORD> Indices; //UNIT 
+    std::vector<WORD> Indices;  // UNIT 
 
-    int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 머티리얼 인덱스
+    int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 Material 인덱스
 
 private:
     ComPtr<ID3D11Buffer> m_VertexBuffer;
@@ -35,13 +35,8 @@ private:
     int m_IndexCount = 0;
 
 public:
+    // FBX aiMesh -> SubMesh
     void InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh);
-    void Render(
-        ID3D11DeviceContext* context,
-        const Material& mat,
-        const ConstantBuffer& globalCB,
-        ID3D11Buffer* pConstantBuffer,
-        ID3D11SamplerState* pSampler);
-
+    void Render(ID3D11DeviceContext* context, const Material& mat, const ConstantBuffer& globalCB, ID3D11Buffer* pConstantBuffer, ID3D11SamplerState* pSampler);
     void Clear();
 };

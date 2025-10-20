@@ -2,6 +2,7 @@
 #include "ConstantBuffer.h"
 #include "D3DDevice.h"
 
+// Assimp FBX aiMesh -> StaticMeshSection 초기화
 void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh)
 {
 	// [ 버텍스 데이터 추출 ]
@@ -31,36 +32,30 @@ void StaticMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const aiM
         }
     }
     m_IndexCount = (int)Indices.size();
-
 	m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
 
 
-
-	// [ 버텍스 버퍼 & 인덱스 버퍼 생성 ]
-
+    // [ GPU 버퍼 생성 ]
     D3D11_BUFFER_DESC bd{};
     D3D11_SUBRESOURCE_DATA init{};
 
-    // 버텍스
+    // VertexBuffer
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(Vertex) * (UINT)Vertices.size();
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    // bd.Usage = D3D11_USAGE_DEFAULT;                   // GPU가 읽고 쓰는 기본 버퍼
-    // bd.CPUAccessFlags = 0;
     init.pSysMem = Vertices.data();
     device->CreateBuffer(&bd, &init, m_VertexBuffer.GetAddressOf());
 
-
-    // 인덱스
+    // IndexBuffer
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(WORD) * (UINT)Indices.size();
     bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
     init.pSysMem = Indices.data();
     device->CreateBuffer(&bd, &init, m_IndexBuffer.GetAddressOf());
 }
 
-// TODO : 머티리얼 적용 버전 
+
+// [ SubMesh 단위로 렌더링 ]
 void StaticMeshSection::Render(
     ID3D11DeviceContext* context,
     const Material& mat,
@@ -79,7 +74,7 @@ void StaticMeshSection::Render(
     context->VSSetConstantBuffers(0, 1, &pConstantBuffer);
     context->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 
-    // Material 텍스처 SRV 바인딩
+    // Material 텍스처 바인딩
     const TextureSRVs& tex = mat.GetTextures();
     ID3D11ShaderResourceView* srvs[5] =
     {

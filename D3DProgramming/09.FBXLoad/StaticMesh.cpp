@@ -31,7 +31,7 @@ bool StaticMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
     if (!scene) return false;
 
-	// 텍스처 경로
+	// 텍스처 기본 경로
     std::wstring textureBase = fs::path(path).parent_path().wstring();
 
     // [ 머티리얼 로드 ]
@@ -55,17 +55,22 @@ bool StaticMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     return true;
 }
 
-// TODO : 머티리얼 적용
+
+// [ SubMesh 단위로 Material 적용 후 렌더링 ]
 void StaticMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler)
 {
     for (auto& sub : m_SubMeshes)
     {
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
+        {
             material = &m_Materials[sub.m_MaterialIndex];
+        }
 
         if (material)
+        {
             sub.Render(context, *material, globalCB, pCB, pSampler);
+        }
     }
 }
 

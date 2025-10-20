@@ -25,7 +25,7 @@ public:
 	StaticMesh treeMesh, charMesh, zeldaMesh;
 
 private:
-	D3DDevice m_D3DDevice;  // 장치 관리 클래스
+	D3DDevice m_D3DDevice;  
 
 public:
 
@@ -40,20 +40,24 @@ public:
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
+
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
 	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
 	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)		
 
-
 	// [ 오브젝트 ]
-	// Vector3 m_WorldPos	= Vector3(0.0f, 0.0f, 0.0f); // 위치 
-	// float	m_CubeYaw	= 0.0f;		// Y축 회전
-	// float	m_CubePitch	= 0.0f;		// X축 회전
+	Matrix m_WorldTree;
+	Matrix m_WorldChar;
+	Matrix m_WorldZelda;
+	float m_TreePos[3] = { -200.0f, -150.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, -150.0f, 0.0f };
+	float m_ZeldaPos[3] = { 200.0f, -150.0f, 0.0f };
 
 
 	// [ 배경색 ]
-	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);  //  Black
+	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
+	// (0.80f, 0.92f, 1.0f, 1.0f) // Light Sky 
 
 
 	// [ 라이트 정보 ]
@@ -62,15 +66,8 @@ public:
 	XMFLOAT4 m_LightDirEvaluated = XMFLOAT4(0, 0, 0, 0);			// 계산된 라이트 방향
 
 
-	// [ ImGui ]
-	bool m_show_another_window = false;
-	bool m_show_demo_window = true;
-	float m_f;
-	int m_counter;
-
-
-	// [ Camera ]
-	float m_CameraPos[3] = { 0.0f, 0.0f, -700.0f };
+	// [ Camera 설정 값 ]
+	float m_CameraPos[3] = { 0.0f, 0.0f, -350.0f };
 	float m_CameraFOV = 60.0f;		// degree 단위 
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;

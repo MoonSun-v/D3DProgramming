@@ -16,6 +16,7 @@ TextureSRVs Material::s_defaultTextures; // static 구조체
 // 같은 타입을 여러장 쓰는 경우는 특수한 경우이므로 인덱스 0만 사용 
 // GetTexture(aiTextureType_DIFFUSE, 0, &texturePath))
 
+// [ Assimp 머티리얼에서 텍스처 읽어서 DirectX SRV 생성 ]
 void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMaterial* material, const std::wstring& textureBasePath)
 {
     // default texture 보장
@@ -24,6 +25,7 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         CreateDefaultTextures(device); 
     }
 
+    // 텍스처 타입별로 로드, 실패 시 fallback
     auto LoadTex = [&](aiTextureType type, ComPtr<ID3D11ShaderResourceView>& out, std::wstring& outPath, ComPtr<ID3D11ShaderResourceView> fallback)
     {
         aiString texPath;
@@ -33,19 +35,17 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
             fs::path fileName = fs::path(texPath.C_Str()).filename();
             outPath = (fs::path(textureBasePath) / fileName).wstring();
 
-            // 디버그 출력
             OutputDebugString((L"[Texture Load] " + outPath + L"\n").c_str());
 
             // 텍스처 로드
             if (FAILED(CreateTextureFromFile(device, outPath.c_str(), out.GetAddressOf())))
             {
-                // 실패 시 기본 텍스처 사용
-                out = fallback;
+                out = fallback; // 실패 시 기본 텍스처 사용
             }
         }
         else
         {
-            out = fallback;
+            out = fallback; 
         }
     };
 
@@ -58,7 +58,7 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
 }
 
 
-
+// [ 1x1 기본 텍스처 생성 ] 
 void Material::CreateDefaultTextures(ID3D11Device* device)
 {
     if (s_defaultTextures.DiffuseSRV) return; // 이미 생성됨
@@ -69,6 +69,7 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
 
     auto Create1x1Tex = [&](unsigned char color[4], ComPtr<ID3D11ShaderResourceView>& srv)
     {
+        // Texture2D 설정
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = desc.Height = 1;
         desc.MipLevels = 1;
@@ -88,6 +89,7 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
         ComPtr<ID3D11Texture2D> tex;
         device->CreateTexture2D(&desc, &init, &tex);
 
+        // ShaderResourceView 생성
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
         srvDesc.Format = desc.Format;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -102,8 +104,6 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     Create1x1Tex(black, s_defaultTextures.SpecularSRV);
     Create1x1Tex(black, s_defaultTextures.EmissiveSRV);
     Create1x1Tex(white, s_defaultTextures.OpacitySRV);
-
-    // OutputDebugString(L"[Texture Load] CreateDefaultTextures \n");
 }
 
 const TextureSRVs& Material::GetDefaultTextures()

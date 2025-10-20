@@ -14,7 +14,6 @@
 
 TestApp::TestApp() : GameApp()
 {
-
 }
 
 TestApp::~TestApp()
@@ -69,31 +68,12 @@ void TestApp::Update()
 }     
 
 
-
 // ★ [ 렌더링 ] 
 void TestApp::Render()
 {
-	// 0. 그릴 대상 설정 (렌더 타겟 & 뎁스스텐실 설정) 및 화면 초기화 (컬러 + 깊이 버퍼)
+	// 화면 초기화
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
-
-
-	// 1. 상수 버퍼 설정 ( Draw 호출 전에 세팅하고 호출 해야함 )	
-
-	// CB 업데이트
-	ConstantBuffer cb;
-	cb.mWorld		= XMMatrixTranspose(m_World);
-	cb.mView		= XMMatrixTranspose(m_View);
-	cb.mProjection	= XMMatrixTranspose(m_Projection);
-	cb.vLightDir	= m_LightDirEvaluated;
-	cb.vLightColor	= m_LightColor;
-	cb.vEyePos		= XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
-
-	// 머티리얼 + 블린퐁 파라미터
-	cb.vAmbient		= m_MaterialAmbient;  
-	cb.vDiffuse		= m_LightDiffuse;     
-	cb.vSpecular	= m_MaterialSpecular; 
-	cb.fShininess	= m_Shininess;
 
 	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout.Get());
 	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -102,9 +82,21 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// 메시 렌더링
-	auto RenderMesh = [&](StaticMesh& mesh)
+	// Mesh 렌더링
+	auto RenderMesh = [&](StaticMesh& mesh, const Matrix& world)
 	{
+		ConstantBuffer cb;
+		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치 
+		cb.mView = XMMatrixTranspose(m_View);
+		cb.mProjection = XMMatrixTranspose(m_Projection);
+		cb.vLightDir = m_LightDirEvaluated;
+		cb.vLightColor = m_LightColor;
+		cb.vEyePos = XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
+		cb.vAmbient = m_MaterialAmbient;
+		cb.vDiffuse = m_LightDiffuse;
+		cb.vSpecular = m_MaterialSpecular;
+		cb.fShininess = m_Shininess;
+
 		for (StaticMeshSection& sub : mesh.m_SubMeshes)
 		{
 			// Material 텍스처 바인딩
@@ -123,10 +115,10 @@ void TestApp::Render()
 			sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
 		}
 	};
-
-	RenderMesh(treeMesh);
-	RenderMesh(charMesh);
-	RenderMesh(zeldaMesh);
+	
+	RenderMesh(treeMesh, m_WorldTree);
+	RenderMesh(charMesh, m_WorldChar);
+	RenderMesh(zeldaMesh, m_WorldZelda);
 
 
 	// UI 그리기 
@@ -155,48 +147,63 @@ void TestApp::Render_ImGui()
 
 	// 초기 창 크기 지정
 	// ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_FirstUseEver); 
-	ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_Always);
 
-	// [ Cube & Light Control UI ]
-	ImGui::Begin("Cube & Light Control");
+	// [ Control UI ]
+	ImGui::Begin("Controllor");
 
-	ImGui::Text("");
 
-	// [ Cube UI ]
-	ImGui::Text("[ Cube ]");
-	// ImGui::SliderAngle("Cube Yaw (Y axis)", &m_CubeYaw, -180.0f, 180.0f);
-	// ImGui::SliderAngle("Cube Pitch (X axis)", &m_CubePitch, -180.0f, 180.0f);
-
-	ImGui::Text("");
-
+	// -----------------------------
 	// [ Light ]
+	// -----------------------------
+	ImGui::Text(" ");
 	ImGui::Text("[ Light ]");
+
+	// 광원 색상
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
-	ImGui::SliderFloat3("Light Dir", (float*)&m_InitialLightDir, -1.0f, 1.0f);
-	XMVECTOR dir = XMLoadFloat4(&m_InitialLightDir);
-	dir = XMVector3Normalize(dir);
-	XMStoreFloat4(&m_LightDirEvaluated, dir);
 
-	ImGui::ColorEdit3("Ambient Light (I_a)", (float*)&m_LightAmbient); 
-	ImGui::ColorEdit3("Diffuse Light (I_l)", (float*)&m_LightDiffuse);                                                 
-	ImGui::SliderFloat("Shininess (alpha)", &m_Shininess, 10.0f, 5000.0f);
-	
+	// 광원 방향 
+	ImGui::DragFloat3("Light Dir", (float*)&m_InitialLightDir, 0.01f, -1.0f, 1.0f);
+
+	// 방향 벡터 정규화
+	{
+		XMVECTOR dir = XMLoadFloat4(&m_InitialLightDir);
+		dir = XMVector3Normalize(dir);
+		XMStoreFloat4(&m_LightDirEvaluated, dir);
+	}
+
+	// 주변광 / 난반사 / 정반사 계수
+	ImGui::ColorEdit3("Ambient Light", (float*)&m_LightAmbient);
+	ImGui::ColorEdit3("Diffuse Light", (float*)&m_LightDiffuse);
+	ImGui::DragFloat("Shininess (alpha)", &m_Shininess, 10.0f, 5.0f, 1000.0f);
+
+	ImGui::Separator();
 	ImGui::Text("");
 
+
+	// -----------------------------
 	// [ Material ]
+	// -----------------------------
 	ImGui::Text("[ Material ]");
-	ImGui::ColorEdit3("Ambient (k_a)", (float*)&m_MaterialAmbient);   // 환경광 반사 계수 
-																	  // 난반사 계수 -> Diffuse 텍스처 
-	ImGui::ColorEdit3("Specular (k_s)", (float*)&m_MaterialSpecular); // 정반사 계수 
-	
+
+	ImGui::ColorEdit3("Ambient", (float*)&m_MaterialAmbient);
+	ImGui::ColorEdit3("Specular", (float*)&m_MaterialSpecular);
+
+	ImGui::Separator();
 	ImGui::Text("");
 
-	// [ Camera ]
-	ImGui::Text("[ Camera ]");
-	ImGui::SliderFloat3("Camera Pos", m_CameraPos, -1000.0f, 1000.0f);
 
-	ImGui::SliderAngle("Camera Yaw (Y axis)", &m_CameraYaw, -180.0f, 180.0f);
-	ImGui::SliderAngle("CameraPitch (X axis)", &m_CameraPitch, -90.0f, 90.0f);
+	// -----------------------------
+	// [ Camera ]
+	// -----------------------------
+	ImGui::Text("[ Camera ]");
+
+	// 카메라 위치 
+	ImGui::DragFloat3("Camera Pos", m_CameraPos, 1.0f, -1000.0f, 1000.0f);
+
+	// 카메라 회전 (Yaw / Pitch)
+	ImGui::DragFloat("Yaw", &m_CameraYaw, 0.01f);
+	ImGui::DragFloat("Pitch", &m_CameraPitch, 0.01f);
 
 	// [ 끝 ] 
 	ImGui::End();
@@ -258,8 +265,8 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	// treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
-	// charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
+	treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
+	charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
 	zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
 
 
@@ -281,6 +288,10 @@ bool TestApp::InitScene()
 	// 행렬(World, View, Projection) 설정
 	// ---------------------------------------------------------------
 	m_World = XMMatrixIdentity(); // 단위 행렬 
+
+	m_WorldTree = XMMatrixTranslation(m_TreePos[0], m_TreePos[1], m_TreePos[2]);
+	m_WorldChar = XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);
+	m_WorldZelda = XMMatrixTranslation(m_ZeldaPos[0], m_ZeldaPos[1], m_ZeldaPos[2]);
 
 	// 카메라(View)
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);	// 카메라 위치
