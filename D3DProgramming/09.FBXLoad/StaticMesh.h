@@ -21,4 +21,5 @@ public:
 
     void Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler);
 
+    void Clear();
 };

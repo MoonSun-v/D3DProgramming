@@ -36,4 +36,6 @@ public:
     static void CreateDefaultTextures(ID3D11Device* device);
     static void DestroyDefaultTextures();
     static const TextureSRVs& GetDefaultTextures();
+
+    void Clear();
 };

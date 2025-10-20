@@ -95,3 +95,9 @@ void StaticMeshSection::Render(
     // ±×¸®±â
     context->DrawIndexed(m_IndexCount, 0, 0);
 }
+
+void StaticMeshSection::Clear()
+{
+    m_VertexBuffer.Reset();
+    m_IndexBuffer.Reset();
+}

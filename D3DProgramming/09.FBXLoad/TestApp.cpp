@@ -19,8 +19,6 @@ TestApp::TestApp() : GameApp()
 
 TestApp::~TestApp()
 {
-	// UninitScene();
-	// UninitD3D();
 }
 
 bool TestApp::Initialize()
@@ -38,6 +36,7 @@ void TestApp::Uninitialize()
 {
 	UninitImGUI();
 	m_D3DDevice.Cleanup();
+	UninitScene();      // 리소스 해제 
 	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 }
 
@@ -295,6 +294,25 @@ bool TestApp::InitScene()
 
 	return true;
 }
+
+void TestApp::UninitScene()
+{
+	// 샘플러, 상수버퍼, 셰이더, 입력레이아웃 해제
+	m_pSamplerLinear.Reset();
+	m_pConstantBuffer.Reset();
+	m_pVertexShader.Reset();
+	m_pPixelShader.Reset();
+	m_pInputLayout.Reset();
+
+	// Mesh, Material 해제
+	treeMesh.Clear();
+	charMesh.Clear();
+	zeldaMesh.Clear();
+
+	// 기본 텍스처 해제
+	Material::DestroyDefaultTextures();
+}
+
 
 
 // [ ImGui ]

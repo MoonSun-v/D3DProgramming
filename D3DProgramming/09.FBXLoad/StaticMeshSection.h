@@ -42,4 +42,6 @@ public:
         const ConstantBuffer& globalCB,
         ID3D11Buffer* pConstantBuffer,
         ID3D11SamplerState* pSampler);
+
+    void Clear();
 };

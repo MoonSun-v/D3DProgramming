@@ -68,3 +68,15 @@ void StaticMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& glob
             sub.Render(context, *material, globalCB, pCB, pSampler);
     }
 }
+
+
+void StaticMesh::Clear()
+{
+    // SubMesh Clear
+    for (auto& sub : m_SubMeshes) sub.Clear();
+    m_SubMeshes.clear();
+
+    // Material Clear
+    for (auto& mat : m_Materials) mat.Clear();
+    m_Materials.clear();
+}

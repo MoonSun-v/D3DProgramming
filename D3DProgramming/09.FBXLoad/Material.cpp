@@ -25,29 +25,29 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
     }
 
     auto LoadTex = [&](aiTextureType type, ComPtr<ID3D11ShaderResourceView>& out, std::wstring& outPath, ComPtr<ID3D11ShaderResourceView> fallback)
+    {
+        aiString texPath;
+        if (material->GetTexture(type, 0, &texPath) == AI_SUCCESS)
         {
-            aiString texPath;
-            if (material->GetTexture(type, 0, &texPath) == AI_SUCCESS)
-            {
-                // 파일 경로 조합
-                fs::path fileName = fs::path(texPath.C_Str()).filename();
-                outPath = (fs::path(textureBasePath) / fileName).wstring();
+            // 파일 경로 조합
+            fs::path fileName = fs::path(texPath.C_Str()).filename();
+            outPath = (fs::path(textureBasePath) / fileName).wstring();
 
-                // 디버그 출력
-                OutputDebugString((L"[Texture Load] " + outPath + L"\n").c_str());
+            // 디버그 출력
+            OutputDebugString((L"[Texture Load] " + outPath + L"\n").c_str());
 
-                // 텍스처 로드
-                if (FAILED(CreateTextureFromFile(device, outPath.c_str(), out.GetAddressOf())))
-                {
-                    // 실패 시 기본 텍스처 사용
-                    out = fallback;
-                }
-            }
-            else
+            // 텍스처 로드
+            if (FAILED(CreateTextureFromFile(device, outPath.c_str(), out.GetAddressOf())))
             {
+                // 실패 시 기본 텍스처 사용
                 out = fallback;
             }
-        };
+        }
+        else
+        {
+            out = fallback;
+        }
+    };
 
     // 각 텍스처 로드
     LoadTex(aiTextureType_DIFFUSE, m_textures.DiffuseSRV, FilePathDiffuse, s_defaultTextures.DiffuseSRV);
@@ -106,6 +106,11 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     // OutputDebugString(L"[Texture Load] CreateDefaultTextures \n");
 }
 
+const TextureSRVs& Material::GetDefaultTextures()
+{
+    return s_defaultTextures;
+}
+
 void Material::DestroyDefaultTextures()
 {
     s_defaultTextures.DiffuseSRV.Reset();
@@ -115,7 +120,11 @@ void Material::DestroyDefaultTextures()
     s_defaultTextures.OpacitySRV.Reset();
 }
 
-const TextureSRVs& Material::GetDefaultTextures()
+void Material::Clear()
 {
-    return s_defaultTextures;
+    m_textures.DiffuseSRV.Reset();
+    m_textures.NormalSRV.Reset();
+    m_textures.SpecularSRV.Reset();
+    m_textures.EmissiveSRV.Reset();
+    m_textures.OpacitySRV.Reset();
 }
