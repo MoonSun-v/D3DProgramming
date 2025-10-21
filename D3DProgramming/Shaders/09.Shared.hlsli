@@ -27,23 +27,6 @@ cbuffer ConstantBuffer : register(b0)
     float pad[3];       // 16바이트 정렬 패딩
 }
 
-//cbuffer ConstantBuffer : register(b0)
-//{
-//    matrix world;
-//    matrix view;
-//    matrix projection;
-//    matrix normalMatrix;
-    
-//    float4 cameraPos;
-//    float4 lightDir;
-//    float4 lightColor;
-//    float4 ambientLightColor;
-//    float4 shininess;
-    
-//    float4 materialAmbient;
-//    float4 materialSpecular;
-//}
-
 // 정점 입력 구조체
 // GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑
 struct VS_INPUT

@@ -23,7 +23,7 @@ float4 main(PS_INPUT input) : SV_Target
     float4 texOpacColor = txOpacity.Sample(samLinear, input.Tex);
 
     
-    // 2. Opacity Clipping (투명도 테스트)
+    // 2. Opacity Clipping (투명도 테스트) -> DepthBuffer, 알파 블렌딩 필요 없음 
     // 투명도 값이 0.5보다 작으면 픽셀을 그리지 않고 버림
     clip(texOpacColor.a - 0.5f); 
 
@@ -62,7 +62,7 @@ float4 main(PS_INPUT input) : SV_Target
     // 8. 최종 색상 합산
     float4 finalColor = saturate(diffuse + ambient + specular + emissive);
     
-     // Alpha 채널은 opacity 텍스처 사용
+    // Alpha 채널은 opacity 텍스처 사용
     finalColor.a = texOpacColor.a;
 
     return finalColor;

@@ -29,10 +29,6 @@ private:
 
 public:
 
-	// [ DXGI 객체 ]
-	// ComPtr<IDXGIFactory4> m_pDXGIFactory;		// DXGI팩토리
-	// ComPtr<IDXGIAdapter3> m_pDXGIAdapter;		// 비디오카드 정보에 접근 가능한 인터페이스
-
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
@@ -56,23 +52,20 @@ public:
 
 
 	// [ 배경색 ]
-	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
-	// (0.80f, 0.92f, 1.0f, 1.0f) // Light Sky 
+	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
+	// Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f); // Light Sky 
+	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.3f, 1.0f); // Navy
 
 
 	// [ 라이트 정보 ]
-	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);		// 라이트 색상
-	XMFLOAT4 m_InitialLightDir = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);	// 초기 라이트 방향
-	XMFLOAT4 m_LightDirEvaluated = XMFLOAT4(0, 0, 0, 0);			// 계산된 라이트 방향
+	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // 라이트 색상
+	XMFLOAT4 m_LightDir = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);	  // 라이트 방향
 
 
 	// [ Camera 설정 값 ]
-	float m_CameraPos[3] = { 0.0f, 0.0f, -350.0f };
-	float m_CameraFOV = 60.0f;		// degree 단위 
+	float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 1000.0f;
-	float m_CameraYaw = 0.0f;		// Y축 회전 
-	float m_CameraPitch = 0.0f;		// X축 회전
 
 	// 머터리얼 조절용
 	XMFLOAT4 m_MaterialAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);

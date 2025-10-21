@@ -28,6 +28,10 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
+	m_Camera.m_Position = Vector3(0.0f, 0.0f, -500.0f);
+	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
+	m_Camera.SetSpeed(200.0f);
+
 	return true;
 }
 
@@ -45,26 +49,7 @@ void TestApp::Update()
 
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
-	// [ 광원 처리 ]
-	m_LightDirEvaluated = m_InitialLightDir; 
-
-	// [ 카메라 갱신 ] 
-	m_Camera.m_Position = { m_CameraPos[0], m_CameraPos[1], m_CameraPos[2] }; 
-	m_Camera.m_Rotation.y = m_CameraYaw; 
-	m_Camera.m_Rotation.x = m_CameraPitch; 
-
-	m_Camera.Update(m_Timer.DeltaTime());	// 카메라 상태 업데이트 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
-
-
-	// [ 투영 행렬 갱신 ] : 카메라 Projection 행렬 갱신 (FOV, Near, Far 반영)
-	m_Projection = XMMatrixPerspectiveFovLH
-	(
-		XMConvertToRadians(m_CameraFOV), // degree -> radian 변환
-		float(m_ClientWidth) / float(m_ClientHeight),
-		m_CameraNear,
-		m_CameraFar
-	);
 }     
 
 
@@ -89,9 +74,9 @@ void TestApp::Render()
 		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치 
 		cb.mView = XMMatrixTranspose(m_View);
 		cb.mProjection = XMMatrixTranspose(m_Projection);
-		cb.vLightDir = m_LightDirEvaluated;
+		cb.vLightDir = m_LightDir;
 		cb.vLightColor = m_LightColor;
-		cb.vEyePos = XMFLOAT4(m_CameraPos[0], m_CameraPos[1], m_CameraPos[2], 1.0f);
+		cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
 		cb.vAmbient = m_MaterialAmbient;
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
@@ -115,7 +100,7 @@ void TestApp::Render()
 			sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
 		}
 	};
-	
+
 	RenderMesh(treeMesh, m_WorldTree);
 	RenderMesh(charMesh, m_WorldChar);
 	RenderMesh(zeldaMesh, m_WorldZelda);
@@ -146,8 +131,7 @@ void TestApp::Render_ImGui()
 
 
 	// 초기 창 크기 지정
-	// ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_FirstUseEver); 
-	ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(400, 450), ImGuiCond_Always); // ImGuiCond_FirstUseEver
 
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
@@ -163,14 +147,7 @@ void TestApp::Render_ImGui()
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
 
 	// 광원 방향 
-	ImGui::DragFloat3("Light Dir", (float*)&m_InitialLightDir, 0.01f, -1.0f, 1.0f);
-
-	// 방향 벡터 정규화
-	{
-		XMVECTOR dir = XMLoadFloat4(&m_InitialLightDir);
-		dir = XMVector3Normalize(dir);
-		XMStoreFloat4(&m_LightDirEvaluated, dir);
-	}
+	ImGui::DragFloat3("Light Dir", (float*)&m_LightDir, 0.01f, -1.0f, 1.0f);
 
 	// 주변광 / 난반사 / 정반사 계수
 	ImGui::ColorEdit3("Ambient Light", (float*)&m_LightAmbient);
@@ -198,12 +175,37 @@ void TestApp::Render_ImGui()
 	// -----------------------------
 	ImGui::Text("[ Camera ]");
 
-	// 카메라 위치 
-	ImGui::DragFloat3("Camera Pos", m_CameraPos, 1.0f, -1000.0f, 1000.0f);
+	// 카메라 위치
+	ImGui::Text("Position (XYZ)");
+	if (ImGui::DragFloat3("Position", &m_Camera.m_Position.x, 0.5f))
+	{
+		// 위치 변경 시 즉시 World 행렬 업데이트
+		m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
+	}
 
-	// 카메라 회전 (Yaw / Pitch)
-	ImGui::DragFloat("Yaw", &m_CameraYaw, 0.01f);
-	ImGui::DragFloat("Pitch", &m_CameraPitch, 0.01f);
+	// 카메라 회전 (도 단위)
+	Vector3 rotationDegree = 
+	{
+		XMConvertToDegrees(m_Camera.m_Rotation.x),
+		XMConvertToDegrees(m_Camera.m_Rotation.y),
+		XMConvertToDegrees(m_Camera.m_Rotation.z)
+	};
+
+	ImGui::Text("Rotation (Degrees)");
+	if (ImGui::DragFloat3("Rotation", &rotationDegree.x, 0.5f))
+	{
+		// 입력값을 라디안으로 변환하여 카메라에 적용
+		m_Camera.m_Rotation.x = XMConvertToRadians(rotationDegree.x);
+		m_Camera.m_Rotation.y = XMConvertToRadians(rotationDegree.y);
+		m_Camera.m_Rotation.z = XMConvertToRadians(rotationDegree.z);
+
+		// 회전 변경 시 World 행렬 갱신
+		m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
+	}
+
+	// 이동 속도 조절
+	ImGui::Text("Move Speed");
+	ImGui::SliderFloat("Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
 
 	// [ 끝 ] 
 	ImGui::End();
@@ -300,7 +302,7 @@ bool TestApp::InitScene()
 	m_View = XMMatrixLookAtLH(Eye, At, Up);					// 왼손 좌표계(LH) 기준 
 
 	// 투영행렬(Projection) : 카메라의 시야각(FOV), 화면 종횡비, Near, Far 
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4,m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4,m_ClientWidth / (FLOAT)m_ClientHeight, m_CameraNear, m_CameraFar);
 
 
 	return true;
@@ -329,11 +331,6 @@ void TestApp::UninitScene()
 // [ ImGui ]
 bool TestApp::InitImGUI()
 {
-	// ???? 
-	// DXGI Factory 생성 및 첫 번째 Adapter 가져오기 (ImGui)
-	// HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)m_pDXGIFactory.GetAddressOf()));
-	// HR_T(m_pDXGIFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_pDXGIAdapter.GetAddressOf())));
-
 	// 1. ImGui 버전 확인 
 	IMGUI_CHECKVERSION();   
 
