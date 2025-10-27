@@ -1,7 +1,7 @@
 #pragma once
 #include "../Common/GameApp.h"
 #include "../Common/D3DDevice.h"
-#include "StaticMesh.h"
+#include "SkeletalMesh.h"
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
@@ -22,7 +22,7 @@ public:
 	TestApp();
 	~TestApp();
 
-	StaticMesh treeMesh, charMesh, zeldaMesh;
+	SkeletalMesh treeMesh, charMesh, zeldaMesh;
 
 private:
 	D3DDevice m_D3DDevice;  

@@ -127,16 +127,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Animation.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="StaticMesh.h" />
-    <ClInclude Include="StaticMeshSection.h" />
+    <ClInclude Include="SkeletalMesh.h" />
+    <ClInclude Include="SkeletalMeshSection.h" />
+    <ClInclude Include="SkeletonInfo.h" />
     <ClInclude Include="TestApp.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Animation.cpp" />
     <ClCompile Include="Material.cpp" />
-    <ClCompile Include="StaticMesh.cpp" />
-    <ClCompile Include="StaticMeshSection.cpp" />
+    <ClCompile Include="SkeletalMesh.cpp" />
+    <ClCompile Include="SkeletalMeshSection.cpp" />
+    <ClCompile Include="SkeletonInfo.cpp" />
     <ClCompile Include="TestApp.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>

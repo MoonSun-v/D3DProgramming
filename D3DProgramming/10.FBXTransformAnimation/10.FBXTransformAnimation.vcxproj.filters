@@ -21,13 +21,19 @@
     <ClInclude Include="Material.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="StaticMesh.h">
+    <ClInclude Include="SkeletalMesh.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="StaticMeshSection.h">
+    <ClInclude Include="SkeletalMeshSection.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="TestApp.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletonInfo.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,16 +41,22 @@
     <ClCompile Include="Material.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="StaticMesh.cpp">
+    <ClCompile Include="SkeletalMesh.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="StaticMeshSection.cpp">
+    <ClCompile Include="SkeletalMeshSection.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="TestApp.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="WinMain.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Animation.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletonInfo.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

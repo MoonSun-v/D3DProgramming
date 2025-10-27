@@ -68,7 +68,7 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Mesh 렌더링
-	auto RenderMesh = [&](StaticMesh& mesh, const Matrix& world)
+	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;
 		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치 
@@ -82,7 +82,7 @@ void TestApp::Render()
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
 
-		for (StaticMeshSection& sub : mesh.m_SubMeshes)
+		for (SkeletalMeshSection& sub : mesh.m_SubMeshes)
 		{
 			// Material 텍스처 바인딩
 			const TextureSRVs& tex = mesh.m_Materials[sub.m_MaterialIndex].GetTextures();

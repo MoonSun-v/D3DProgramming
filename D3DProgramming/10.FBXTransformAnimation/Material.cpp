@@ -9,7 +9,7 @@ using namespace DirectX;
 
 namespace fs = std::experimental::filesystem;
 
-
+// 기본 텍스처 static 멤버
 TextureSRVs Material::s_defaultTextures; // static 구조체
 
 // 텍스처 타입, 인덱스, 출력 경로
