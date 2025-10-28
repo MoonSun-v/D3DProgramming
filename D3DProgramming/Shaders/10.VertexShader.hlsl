@@ -6,20 +6,37 @@
 PS_INPUT main(VS_INPUT input)
 {
     PS_INPUT output = (PS_INPUT) 0;
-
-    // Rigid 본 변환
-    matrix boneMat = gBones[0];
-    float4 posBone = mul(input.Pos, boneMat); // 본 변환된 위치
-
-    // 월드 변환　(Local -> World -> View -> Projection)
-    float4 worldPos = mul(posBone, World); // 기존 input.Pos -> posBone 사용
-    output.Pos = mul(worldPos, View);
-    output.Pos = mul(output.Pos, Projection);
+    
+    float4 posBone = input.Pos;
+    
+    //// Rigid이면 월드 행렬만 적용
+    //if (gIsRigid != 1)
+    //{
+    //    posBone = mul(input.Pos, gModelMatricies[gRefBoneIndex]);
+    //}
+    //else
+    //{
+    //    // Skinned 로직 필요 (Weight 합산 등)  : 추후 수정 
+    //    posBone = mul(input.Pos, gModelMatricies[gRefBoneIndex]);
+    //}
+    
+    // Skinned 로직 필요 (Weight 합산 등)  : 추후 수정 
+    if (gIsRigid != 1)
+    {
+        posBone = mul(input.Pos, gModelMatricies[gRefBoneIndex]);
+    }
+    
+    // Model -> World 
+    float4 worldPos = mul(posBone, gWorld); 
+    
+    // World -> View -> Projection
+    output.Pos = mul(worldPos, gView);
+    output.Pos = mul(output.Pos, gProjection);
 
     output.WorldPos = worldPos.xyz;
 
     // 월드 공간 변환용 3x3 행렬
-    float3x3 world3x3 = (float3x3) World;
+    float3x3 world3x3 = (float3x3) gWorld;
 
     // 월드 법선, Tangent, Binormal 변환
     output.Norm = normalize(mul(input.Norm, world3x3));

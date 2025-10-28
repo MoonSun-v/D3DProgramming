@@ -11,26 +11,35 @@ Texture2D txOpacity : register(t4);
 //--------------------------------------------------------------------------------------
 cbuffer ConstantBuffer : register(b0)
 {
-    matrix World;       // 월드 변환 행렬 (모델 좌표 → 월드 좌표)
-    matrix View;        // 뷰 변환 행렬 (월드 좌표 → 카메라 좌표)
-    matrix Projection;  // 투영 변환 행렬 (카메라 좌표 → 클립 좌표)
+    matrix gWorld; // 월드 변환 행렬 (모델 좌표 → 월드 좌표)
+    matrix gView; // 뷰 변환 행렬 (월드 좌표 → 카메라 좌표)
+    matrix gProjection; // 투영 변환 행렬 (카메라 좌표 → 클립 좌표)
 
-    float4 vLightDir;       // 광원 방향 벡터 
-    float4 vLightColor;     // 광원 색상 
-    float4 vOutputColor;    // 단색 렌더링용 출력 색상
-    float4 vEyePos;     // 카메라 위치
+    float4 vLightDir; // 광원 방향 벡터 
+    float4 vLightColor; // 광원 색상 
+    float4 vOutputColor; // 단색 렌더링용 출력 색상
+    float4 vEyePos; // 카메라 위치
     
-    float4 vAmbient;    // 머티리얼 Ambient
-    float4 vDiffuse;    // 머티리얼 Diffuse
-    float4 vSpecular;   // 머티리얼 Specular
-    float fShininess;   // 반짝임 정도
-    float pad[3];       // 16바이트 정렬 패딩
+    float4 vAmbient; // 머티리얼 Ambient
+    float4 vDiffuse; // 머티리얼 DiffuseA
+    float4 vSpecular; // 머티리얼 Specular
+    
+    float fShininess; // 반짝임 정도
+    float pad1[3]; // 16바이트 정렬 패딩
+    
+    float gIsRigid; // 1: Rigid, 0: Skinned
+    float gRefBoneIndex; // 리지드일 때 참조 본 인덱스
+    float pad2[2]; // 16바이트 정렬
+    
+    float pad3[4];
+    float pad4[4];
 }
 
-// 본 행렬 배열 (rigid용: 1본만 사용함)
-cbuffer cbBones : register(b1)
+
+// 각 본 변환 행렬 
+cbuffer ModelMatrix : register(b1)
 {
-    matrix gBones[128]; // 최대 128본 
+    matrix gModelMatricies[128]; 
 }
 
 
@@ -44,7 +53,7 @@ struct VS_INPUT
     float3 Tangent : TANGENT;
     float3 Binormal : BINORMAL; // CPU에서 미리 지정된 Binormal 추가
     
-    // uint BoneIndex : BLENDINDICES; // 단일 본 인덱스 
+    // uint BoneIndex : BLENDINDICES; // 본 인덱스 
     // float4 BoneWeights : BLENDWEIGHT0;
 };
 

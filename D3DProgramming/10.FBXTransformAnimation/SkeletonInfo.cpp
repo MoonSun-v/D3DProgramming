@@ -1,6 +1,5 @@
 ﻿#include "SkeletonInfo.h"
 
-
 // 노드 개수 세기 
 void SkeletonInfo::CountNode(int& count, const aiNode* pNode)
 {

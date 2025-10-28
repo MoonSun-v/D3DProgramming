@@ -1,6 +1,7 @@
 #pragma once
 #include "../Common/Helper.h"
 
+__declspec(align(16))
 struct ConstantBuffer
 {
 	Matrix mWorld;			// 월드 변환 행렬 : 64bytes
@@ -16,6 +17,14 @@ struct ConstantBuffer
 	Vector4 vAmbient;		// 머티리얼 Ambient
 	Vector4 vDiffuse;		// 머티리얼 Diffuse
 	Vector4 vSpecular;		// 머티리얼 Specular
+
 	float   fShininess = 40.0f;   // 반짝임 정도
-	float   pad[3];
+	float   pad1[3];
+
+	float	gIsRigid = 1;      // 1: Rigid, 0: Skinned
+	float	gRefBoneIndex = 0; // 리지드일 때 참조 본 인덱스
+	float	pad2[2];       // 16바이트 정렬
+
+	float	pad3[4];
+	float	pad4[4];
 };

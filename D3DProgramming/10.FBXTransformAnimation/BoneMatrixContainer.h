@@ -5,7 +5,7 @@
 struct BoneMatrixContainer
 {
     static constexpr int MaxBones = 128;  // GPU 상수 버퍼 최대 크기
-    Matrix m_Model[MaxBones];             // 각 본의 최종 행렬
+    Matrix m_Model[128];             // 각 본의 최종 행렬
 
     void Clear()
     {

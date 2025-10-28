@@ -150,9 +150,6 @@ void SkeletalMeshSection::Render(
     context->VSSetConstantBuffers(0, 1, &pConstantBuffer);
     context->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 
-    // 본 행렬 상수버퍼 업로드 (b1)
-    context->VSSetConstantBuffers(1, 1, &pBoneBuffer); // ★ b1
-
     // Material 텍스처 바인딩
     const TextureSRVs& tex = mat.GetTextures();
     ID3D11ShaderResourceView* srvs[5] =

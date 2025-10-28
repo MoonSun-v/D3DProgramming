@@ -116,7 +116,7 @@ void SkeletalMesh::Update(float deltaTime)
 
 void SkeletalMesh::UpdateBoneBuffer(ID3D11DeviceContext* context, ID3D11Buffer* pBoneBuffer)
 {
-    context->UpdateSubresource(pBoneBuffer, 0, nullptr, &m_SkeletonPose, 0, 0);
+    context->UpdateSubresource(pBoneBuffer, 0, nullptr, &m_SkeletonPose.m_Model, 0, 0);
     context->VSSetConstantBuffers(1, 1, &pBoneBuffer);
 }
 

@@ -73,7 +73,7 @@ void TestApp::Render()
 	// Rigid용 본 행렬 버퍼 준비
 	BoneMatrixContainer boneCB;
 	boneCB.Clear();
-	boneCB.SetMatrix(0, XMMatrixIdentity()); // boxHuman 단일 본
+	boneCB.SetMatrix(0, m_WorldChar); // boxHuman 단일 본
 
 	// GPU 상수 버퍼 업데이트
 	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
@@ -95,27 +95,11 @@ void TestApp::Render()
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
-
-		for (SkeletalMeshSection& sub : mesh.m_Sections)
-		{
-			// Material 텍스처 바인딩
-			const TextureSRVs& tex = mesh.m_Materials[sub.m_MaterialIndex].GetTextures();
-			ID3D11ShaderResourceView* srvs[5] =
-			{
-				tex.DiffuseSRV.Get(),
-				tex.NormalSRV.Get(),
-				tex.SpecularSRV.Get(),
-				tex.EmissiveSRV.Get(),
-				tex.OpacitySRV.Get()
-			};
-			m_D3DDevice.GetDeviceContext()->PSSetShaderResources(0, 5, srvs);
-
-			// SubMesh 렌더링
-			sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
-		}
+		cb.gIsRigid = 1;           // Rigid 모델이면 1 
+		cb.gRefBoneIndex = 0;      // 리지드일때 참조 본 인덱스 : 단일 본이면 0? 
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
-		// mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
+		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
 	};
 	
 	RenderMesh(boxHuman, m_WorldChar);
@@ -256,7 +240,6 @@ bool TestApp::InitScene()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		// { "BLENDINDICES", 0, DXGI_FORMAT_R32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // BoneIndex
 	};
 	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
@@ -274,7 +257,8 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	D3D11_BUFFER_DESC bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBuffer); // World, View, Projection + Light
+	bd.ByteWidth = sizeof(ConstantBuffer); 
+	OutputDebugString((L"[sizeof(ConstantBuffer)] " + std::to_wstring(sizeof(ConstantBuffer)) + L"\n").c_str());
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
@@ -283,17 +267,22 @@ bool TestApp::InitScene()
 	D3D11_BUFFER_DESC bdBone = {};
 	bdBone.Usage = D3D11_USAGE_DEFAULT;
 	bdBone.ByteWidth = sizeof(BoneMatrixContainer); // 128 x 4x4 Matrix
+	OutputDebugString((L"[sizeof(BoneMatrixContainer)] " + std::to_wstring(sizeof(BoneMatrixContainer)) + L"\n").c_str());
 	bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bdBone.CPUAccessFlags = 0;
-	bdBone.MiscFlags = 0;
-	bdBone.StructureByteStride = 0;
+	//bdBone.MiscFlags = 0;
+	//bdBone.StructureByteStride = 0;
 
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneBuffer.GetAddressOf()));
 	
+
+
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
+
+
 
 	// ---------------------------------------------------------------
 	// 샘플러 생성
@@ -309,14 +298,12 @@ bool TestApp::InitScene()
 	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
 
+
 	// ---------------------------------------------------------------
 	// 행렬(World, View, Projection) 설정
 	// ---------------------------------------------------------------
 	m_World = XMMatrixIdentity(); // 단위 행렬 
-
-	// m_WorldTree = XMMatrixTranslation(m_TreePos[0], m_TreePos[1], m_TreePos[2]);
 	m_WorldChar = XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);
-	// m_WorldZelda = XMMatrixTranslation(m_ZeldaPos[0], m_ZeldaPos[1], m_ZeldaPos[2]);
 
 	// 카메라(View)
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);	// 카메라 위치

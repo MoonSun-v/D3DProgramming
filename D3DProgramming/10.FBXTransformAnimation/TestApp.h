@@ -45,7 +45,7 @@ public:
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, -150.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, -450.0f, 0.0f };
 
 
 	// [ 배경색 ]
