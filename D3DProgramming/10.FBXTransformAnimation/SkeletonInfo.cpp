@@ -1,5 +1,6 @@
 ﻿#include "SkeletonInfo.h"
 
+
 // 노드 개수 세기 
 void SkeletonInfo::CountNode(int& count, const aiNode* pNode)
 {
@@ -30,9 +31,10 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
     // 1️. 루트 노드부터 재귀적으로 BoneInfo 생성
     const aiNode* rootNode = pScene->mRootNode;
 
-    // 재귀 순회 함수 대체 (직접 구현)
+    // 루트 노드는 Scene Root이므로 실제 본 노드는 자식부터 시작
     std::vector<const aiNode*> nodeStack;
-    nodeStack.push_back(rootNode);
+    for (unsigned int i = 0; i < rootNode->mNumChildren; ++i)
+        nodeStack.push_back(rootNode->mChildren[i]);
 
     while (!nodeStack.empty())
     {
@@ -57,6 +59,18 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
         int index = static_cast<int>(Bones.size());
         Bones.push_back(bone);
         BoneMappingTable[bone.Name] = index;
+
+
+        // 부모 인덱스 연결
+        if (!bone.ParentBoneName.empty())
+        {
+            int parentIndex = GetBoneIndexByBoneName(bone.ParentBoneName);
+            Bones[index].ParentIndex = parentIndex;
+        }
+        else
+        {
+            Bones[index].ParentIndex = -1; // 루트 본
+        }
 
         // 자식 노드 추가
         for (unsigned int i = 0; i < currentNode->mNumChildren; ++i)
@@ -124,59 +138,6 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
     }
 
     std::cout << "[SkeletonInfo] Bone Count: " << Bones.size() << std::endl;
-}
-
-
-// BoneInfo 생성 (호출형, 현재 사용 X)
-//BoneInfo* SkeletonInfo::CreateBoneInfo(const aiScene* pScene, const aiScene* pNode)
-//{
-//    // 오타 주의 : pNode는 aiScene이 아니라 aiNode가 되어야 하지만
-//    // 헤더 시그니처를 그대로 따름.
-//    if (!pNode)  return nullptr;
-//
-//    BoneInfo bone;
-//    bone.Name = pNode->mName.C_Str();
-//    bone.ParentBoneName = (pNode->mParent) ? pNode->mParent->mName.C_Str() : "";
-//
-//    aiMatrix4x4 aiMat = pNode->mTransformation;
-//    Matrix transform(
-//        aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1,
-//        aiMat.a2, aiMat.b2, aiMat.c2, aiMat.d2,
-//        aiMat.a3, aiMat.b3, aiMat.c3, aiMat.d3,
-//        aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4
-//    );
-//    bone.RelativeTransform = transform.Transpose();
-//
-//    Bones.push_back(bone);
-//    int index = (int)Bones.size() - 1;
-//    BoneMappingTable[bone.Name] = index;
-//
-//    return &Bones[index];
-//}
-
-// BoneInfo 생성 (호출형, 현재 사용 X)
-BoneInfo* SkeletonInfo::CreateBoneInfo(const aiScene* pScene, const aiNode* pNode)
-{
-    if (!pNode) return nullptr;
-
-    BoneInfo bone;
-    bone.Name = pNode->mName.C_Str();
-    bone.ParentBoneName = (pNode->mParent) ? pNode->mParent->mName.C_Str() : "";
-
-    aiMatrix4x4 aiMat = pNode->mTransformation;
-    Matrix transform(
-        aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1,
-        aiMat.a2, aiMat.b2, aiMat.c2, aiMat.d2,
-        aiMat.a3, aiMat.b3, aiMat.c3, aiMat.d3,
-        aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4
-    );
-    bone.RelativeTransform = transform.Transpose();
-
-    Bones.push_back(bone);
-    int index = (int)Bones.size() - 1;
-    BoneMappingTable[bone.Name] = index;
-
-    return &Bones[index];
 }
 
 

@@ -20,22 +20,16 @@ struct Vertex
     XMFLOAT3 Binormal;
 };
 
-//struct BoneWeightVertex
-//{
-//    UINT BoneIndices[4] = { 0, 0, 0, 0 };
-//    float BoneWeights[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-//};
-
 class SkeletalMeshSection
 {
 public:
     std::vector<Vertex> Vertices;
-    // std::vector<BoneWeightVertex> BoneWeightVertices; 
-
     std::vector<WORD> Indices;  // UNIT 
 
     int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 Material 인덱스
-    int m_RefBoneIndex = -1;
+    int m_RefBoneIndex = -1;    // 이 섹션이 종속된 본 인덱스 (Rigid 핵심)
+
+    XMMATRIX m_WorldTransform = XMMatrixIdentity(); // rigid 방식
 
 private:
     ComPtr<ID3D11Buffer> m_VertexBuffer;
@@ -51,7 +45,5 @@ public:
 
 private:
     void CreateVertexBuffer(ID3D11Device* device);
-    // void CreateBoneWeightedVertex(const aiMesh* mesh);
     void CreateIndexBuffer(ID3D11Device* device);
-    void SetSkeletonInfo(const aiMesh* mesh);
 };

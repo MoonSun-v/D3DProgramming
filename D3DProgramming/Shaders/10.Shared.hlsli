@@ -28,8 +28,10 @@ cbuffer ConstantBuffer : register(b0)
     float pad1[3]; // 16바이트 정렬 패딩
     
     float gIsRigid; // 1: Rigid, 0: Skinned
-    float gRefBoneIndex; // 리지드일 때 참조 본 인덱스
-    float pad2[2]; // 16바이트 정렬
+    float pad2[3];
+    
+    //float gRefBoneIndex; // 리지드일 때 참조 본 인덱스
+    //float pad2[2]; // 16바이트 정렬
     
     float pad3[4];
     float pad4[4];

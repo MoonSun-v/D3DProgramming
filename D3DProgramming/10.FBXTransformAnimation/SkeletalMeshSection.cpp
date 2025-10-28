@@ -35,7 +35,7 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
         }
     }
     m_IndexCount = (int)Indices.size();
-    m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
+    // m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
 
     // [3] 인덱스 정보 생성
     CreateIndexBuffer(device);
@@ -45,7 +45,7 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
 
     // [5] 머티리얼 / 본 정보 설정
     // m_MaterialIndex = mesh->mMaterialIndex;
-    SetSkeletonInfo(mesh);
+    // SetSkeletonInfo(mesh);
 }
 
 // [버텍스 버퍼 생성]
@@ -66,46 +66,6 @@ void SkeletalMeshSection::CreateVertexBuffer(ID3D11Device* device)
 }
 
 
-// [본 가중치 정보 생성]
-/*
-void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
-{
-    BoneWeightVertices.resize(mesh->mNumVertices);
-
-    // 초기화
-    for (auto& bw : BoneWeightVertices)
-    {
-        for (int i = 0; i < 4; ++i)
-        {
-            bw.BoneIndices[i] = 0;
-            bw.BoneWeights[i] = 0.0f;
-        }
-    }
-
-    // 본 데이터 적용
-    for (UINT boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
-    {
-        aiBone* bone = mesh->mBones[boneIndex];
-        for (UINT w = 0; w < bone->mNumWeights; ++w)
-        {
-            UINT vertexId = bone->mWeights[w].mVertexId;
-            float weight = bone->mWeights[w].mWeight;
-
-            // 4개까지만 지원
-            for (int i = 0; i < 4; ++i)
-            {
-                if (BoneWeightVertices[vertexId].BoneWeights[i] == 0.0f)
-                {
-                    BoneWeightVertices[vertexId].BoneIndices[i] = boneIndex;
-                    BoneWeightVertices[vertexId].BoneWeights[i] = weight;
-                    break;
-                }
-            }
-        }
-    }
-}
-*/
-
 // [인덱스 버퍼 생성]
 void SkeletalMeshSection::CreateIndexBuffer(ID3D11Device* device)
 {
@@ -119,14 +79,6 @@ void SkeletalMeshSection::CreateIndexBuffer(ID3D11Device* device)
 
     init.pSysMem = Indices.data();
     device->CreateBuffer(&bd, &init, m_IndexBuffer.GetAddressOf());
-}
-
-// [ 본 관련 정보 세팅 ]
-void SkeletalMeshSection::SetSkeletonInfo(const aiMesh* mesh)
-{
-    // FBX의 본 이름 / 오프셋 매트릭스 등 SkeletonInfo와 연동할 때 구현
-    // 현재는 단순 참조 인덱스 초기화만 수행
-    m_RefBoneIndex = (mesh->mNumBones > 0) ? 0 : -1;
 }
 
 
@@ -178,4 +130,5 @@ void SkeletalMeshSection::Clear()
     m_IndexCount = 0;
     m_MaterialIndex = -1;
     m_RefBoneIndex = -1;
+    m_WorldTransform = XMMatrixIdentity();
 }

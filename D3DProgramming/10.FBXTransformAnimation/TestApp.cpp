@@ -73,12 +73,16 @@ void TestApp::Render()
 	// Rigid용 본 행렬 버퍼 준비
 	BoneMatrixContainer boneCB;
 	boneCB.Clear();
-	boneCB.SetMatrix(0, m_WorldChar); // boxHuman 단일 본
+	// boneCB.SetMatrix(0, XMMatrixTranspose(m_WorldChar)); =
+    // boxHuman은 단일 본
+	if (!boxHuman.m_Skeleton.empty())
+		boneCB.SetMatrix(0, XMMatrixTranspose(boxHuman.m_Skeleton[0].m_Model * boxHuman.m_World));
 
 	// GPU 상수 버퍼 업데이트
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
-	boxHuman.UpdateBoneBuffer(m_D3DDevice.GetDeviceContext(), m_pBoneBuffer.Get());
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
+	
+	// boxHuman.UpdateBoneBuffer(m_D3DDevice.GetDeviceContext(), m_pBoneBuffer.Get());
 
 
 	// Mesh 렌더링
@@ -95,15 +99,15 @@ void TestApp::Render()
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
-		cb.gIsRigid = 1;           // Rigid 모델이면 1 
-		cb.gRefBoneIndex = 0;      // 리지드일때 참조 본 인덱스 : 단일 본이면 0? 
+		cb.gIsRigid = 1.0f;           // Rigid 모델이면 1 
+		// cb.gRefBoneIndex = mesh.RefBoneIndex;      // 리지드일때 참조 본 인덱스 : 단일 본이면 0? 
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
 		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
 	};
 	
 	RenderMesh(boxHuman, m_WorldChar);
-
+	// PrintMatrix(m_WorldChar);
 
 	// UI 그리기 
 	Render_ImGui();
@@ -113,6 +117,22 @@ void TestApp::Render()
 	m_D3DDevice.EndFrame(); 
 }
 
+void TestApp::PrintMatrix(const Matrix& mat)
+{
+	char buf[512];
+	sprintf_s(buf,
+		"Matrix:\n"
+		"[%f %f %f %f]\n"
+		"[%f %f %f %f]\n"
+		"[%f %f %f %f]\n"
+		"[%f %f %f %f]\n",
+		mat._11, mat._12, mat._13, mat._14,
+		mat._21, mat._22, mat._23, mat._24,
+		mat._31, mat._32, mat._33, mat._34,
+		mat._41, mat._42, mat._43, mat._44);
+
+	OutputDebugStringA(buf);
+}
 
 // ★ [ ImGui ] - UI 프레임 준비 및 렌더링
 void TestApp::Render_ImGui()

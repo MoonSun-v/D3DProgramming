@@ -9,25 +9,16 @@ PS_INPUT main(VS_INPUT input)
     
     float4 posBone = input.Pos;
     
-    //// Rigid이면 월드 행렬만 적용
-    //if (gIsRigid != 1)
-    //{
-    //    posBone = mul(input.Pos, gModelMatricies[gRefBoneIndex]);
-    //}
-    //else
-    //{
-    //    // Skinned 로직 필요 (Weight 합산 등)  : 추후 수정 
-    //    posBone = mul(input.Pos, gModelMatricies[gRefBoneIndex]);
-    //}
-    
-    // Skinned 로직 필요 (Weight 합산 등)  : 추후 수정 
-    if (gIsRigid != 1)
+    // Rigid: 월드 행렬만 적용
+    if (gIsRigid == 1)
     {
-        posBone = mul(input.Pos, gModelMatricies[gRefBoneIndex]);
+        posBone = mul(posBone, gModelMatricies[0]);
+        // posBone = mul(gModelMatricies[0], input.Pos );
     }
     
     // Model -> World 
     float4 worldPos = mul(posBone, gWorld); 
+    // float4 worldPos = mul(input.Pos, gWorld);
     
     // World -> View -> Projection
     output.Pos = mul(worldPos, gView);

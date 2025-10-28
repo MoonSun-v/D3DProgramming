@@ -46,7 +46,7 @@ public:
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
 	float m_CharPos[3] = { 0.0f, -450.0f, 0.0f };
-
+	void PrintMatrix(const Matrix& mat);
 
 	// [ 배경색 ]
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black

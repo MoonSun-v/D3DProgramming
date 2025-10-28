@@ -13,6 +13,8 @@ struct BoneInfo
 	Matrix RelativeTransform; // node->mTransformation (converted & transposed)
 	std::string Name;
 	std::string ParentBoneName;
+
+	int ParentIndex = -1;
 };
 
 // 본 전체 정보를 저장하는 구조체
