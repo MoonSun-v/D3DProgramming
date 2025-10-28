@@ -20,17 +20,17 @@ struct Vertex
     XMFLOAT3 Binormal;
 };
 
-struct BoneWeightVertex
-{
-    UINT BoneIndices[4] = { 0, 0, 0, 0 };
-    float BoneWeights[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-};
+//struct BoneWeightVertex
+//{
+//    UINT BoneIndices[4] = { 0, 0, 0, 0 };
+//    float BoneWeights[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+//};
 
 class SkeletalMeshSection
 {
 public:
     std::vector<Vertex> Vertices;
-    std::vector<BoneWeightVertex> BoneWeightVertices; 
+    // std::vector<BoneWeightVertex> BoneWeightVertices; 
 
     std::vector<WORD> Indices;  // UNIT 
 
@@ -46,12 +46,12 @@ private:
 public:
     // FBX aiMesh -> SubMesh
     void InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh);
-    void Render(ID3D11DeviceContext* context, const Material& mat, const ConstantBuffer& globalCB, ID3D11Buffer* pConstantBuffer, ID3D11SamplerState* pSampler);
+    void Render(ID3D11DeviceContext* context, const Material& mat, const ConstantBuffer& globalCB, ID3D11Buffer* pConstantBuffer, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler);
     void Clear();
 
 private:
     void CreateVertexBuffer(ID3D11Device* device);
-    void CreateBoneWeightedVertex(const aiMesh* mesh);
-    void CreateIndexBuffer(ID3D11Device* device, const aiMesh* mesh);
+    // void CreateBoneWeightedVertex(const aiMesh* mesh);
+    void CreateIndexBuffer(ID3D11Device* device);
     void SetSkeletonInfo(const aiMesh* mesh);
 };

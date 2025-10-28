@@ -24,10 +24,21 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
     }
 
     // [2] 본 가중치 데이터 생성
-    CreateBoneWeightedVertex(mesh);
+    // CreateBoneWeightedVertex(mesh);
+
+    // [ 인덱스 데이터 추출 ]
+    for (UINT i = 0; i < mesh->mNumFaces; ++i)
+    {
+        for (UINT j = 0; j < mesh->mFaces[i].mNumIndices; ++j)
+        {
+            Indices.push_back(mesh->mFaces[i].mIndices[j]);
+        }
+    }
+    m_IndexCount = (int)Indices.size();
+    m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
 
     // [3] 인덱스 정보 생성
-    CreateIndexBuffer(device, mesh);
+    CreateIndexBuffer(device);
 
     // [4] GPU 버텍스 버퍼 생성
     CreateVertexBuffer(device);
@@ -35,71 +46,6 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
     // [5] 머티리얼 / 본 정보 설정
     // m_MaterialIndex = mesh->mMaterialIndex;
     SetSkeletonInfo(mesh);
-
-
- //   // [ 본 가중치 데이터 초기화 ]
- //   BoneWeightVertices.resize(mesh->mNumVertices);
- //   for (auto& bw : BoneWeightVertices)
- //   {
- //       for (int i = 0; i < 4; ++i)
- //       {
- //           bw.BoneIndices[i] = 0;
- //           bw.BoneWeights[i] = 0.0f;
- //       }
- //   }
-
- //   // [ 본 인덱스 및 가중치 정보 로드 ]
- //   for (UINT boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
- //   {
- //       aiBone* bone = mesh->mBones[boneIndex];
-
- //       for (UINT w = 0; w < bone->mNumWeights; ++w)
- //       {
- //           UINT vertexId = bone->mWeights[w].mVertexId;
- //           float weight = bone->mWeights[w].mWeight;
-
- //           // 4개까지 지원 (넘으면 무시)
- //           for (int i = 0; i < 4; ++i)
- //           {
- //               if (BoneWeights[vertexId].BoneWeights[i] == 0.0f)
- //               {
- //                   BoneWeights[vertexId].BoneIndices[i] = boneIndex;
- //                   BoneWeights[vertexId].BoneWeights[i] = weight;
- //                   break;
- //               }
- //           }
- //       }
- //   }
-
-	//// [ 인덱스 데이터 추출 ]
- //   for (UINT i = 0; i < mesh->mNumFaces; ++i)
- //   {
- //       for (UINT j = 0; j < mesh->mFaces[i].mNumIndices; ++j)
- //       {
- //           Indices.push_back(mesh->mFaces[i].mIndices[j]);
- //       }
- //   }
- //   m_IndexCount = (int)Indices.size();
-	//m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
-
-
- //   // [ GPU 버퍼 생성 ]
- //   D3D11_BUFFER_DESC bd{};
- //   D3D11_SUBRESOURCE_DATA init{};
-
- //   // VertexBuffer
- //   bd.Usage = D3D11_USAGE_DEFAULT;
- //   bd.ByteWidth = sizeof(Vertex) * (UINT)Vertices.size();
- //   bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
- //   init.pSysMem = Vertices.data();
- //   device->CreateBuffer(&bd, &init, m_VertexBuffer.GetAddressOf());
-
- //   // IndexBuffer
- //   bd.Usage = D3D11_USAGE_DEFAULT;
- //   bd.ByteWidth = sizeof(WORD) * (UINT)Indices.size();
- //   bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
- //   init.pSysMem = Indices.data();
- //   device->CreateBuffer(&bd, &init, m_IndexBuffer.GetAddressOf());
 }
 
 // [버텍스 버퍼 생성]
@@ -121,6 +67,7 @@ void SkeletalMeshSection::CreateVertexBuffer(ID3D11Device* device)
 
 
 // [본 가중치 정보 생성]
+/*
 void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 {
     BoneWeightVertices.resize(mesh->mNumVertices);
@@ -157,26 +104,12 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
         }
     }
 }
-
+*/
 
 // [인덱스 버퍼 생성]
-void SkeletalMeshSection::CreateIndexBuffer(ID3D11Device* device, const aiMesh* mesh)
+void SkeletalMeshSection::CreateIndexBuffer(ID3D11Device* device)
 {
-    Indices.clear();
-
-
-    // [ 인덱스 데이터 추출 ]
-    for (UINT i = 0; i < mesh->mNumFaces; ++i)
-    {
-        for (UINT j = 0; j < mesh->mFaces[i].mNumIndices; ++j)
-        {
-            Indices.push_back(mesh->mFaces[i].mIndices[j]);
-        }
-    }
-    m_IndexCount = (int)Indices.size();
-    m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
-
-    // GPU 버퍼 생성
+    // IndexBuffer
     D3D11_BUFFER_DESC bd{};
     D3D11_SUBRESOURCE_DATA init{};
 
@@ -203,6 +136,7 @@ void SkeletalMeshSection::Render(
     const Material& mat,
     const ConstantBuffer& cb,
     ID3D11Buffer* pConstantBuffer,
+    ID3D11Buffer* pBoneBuffer,
     ID3D11SamplerState* pSampler)    
 {
     // Vertex / Index 바인딩
@@ -215,6 +149,9 @@ void SkeletalMeshSection::Render(
     context->UpdateSubresource(pConstantBuffer, 0, nullptr, &cb, 0, 0);
     context->VSSetConstantBuffers(0, 1, &pConstantBuffer);
     context->PSSetConstantBuffers(0, 1, &pConstantBuffer);
+
+    // 본 행렬 상수버퍼 업로드 (b1)
+    context->VSSetConstantBuffers(1, 1, &pBoneBuffer); // ★ b1
 
     // Material 텍스처 바인딩
     const TextureSRVs& tex = mat.GetTextures();
@@ -239,7 +176,7 @@ void SkeletalMeshSection::Clear()
     m_IndexBuffer.Reset();
 
     Vertices.clear();
-    BoneWeightVertices.clear();
+    // BoneWeightVertices.clear();
     Indices.clear();
     m_IndexCount = 0;
     m_MaterialIndex = -1;

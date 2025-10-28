@@ -1,7 +1,7 @@
-#include "SkeletonInfo.h"
+ï»¿#include "SkeletonInfo.h"
 
 
-// ³ëµå °³¼ö ¼¼±â 
+// ë…¸ë“œ ê°œìˆ˜ ì„¸ê¸° 
 void SkeletonInfo::CountNode(int& count, const aiNode* pNode)
 {
     if (!pNode)  return;
@@ -15,7 +15,7 @@ void SkeletonInfo::CountNode(int& count, const aiNode* pNode)
 }
 
 
-// aiScene ·ÎºÎÅÍ Skeleton »ı¼º
+// aiScene ë¡œë¶€í„° Skeleton ìƒì„±
 void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
 {
     if (!pScene || !pScene->mRootNode)
@@ -28,10 +28,10 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
     BoneMappingTable.clear();
     MeshMappingTable.clear();
 
-    // 1?. ·çÆ® ³ëµåºÎÅÍ Àç±ÍÀûÀ¸·Î BoneInfo »ı¼º
+    // 1ï¸. ë£¨íŠ¸ ë…¸ë“œë¶€í„° ì¬ê·€ì ìœ¼ë¡œ BoneInfo ìƒì„±
     const aiNode* rootNode = pScene->mRootNode;
 
-    // Àç±Í ¼øÈ¸ ÇÔ¼ö ´ëÃ¼ (Á÷Á¢ ±¸Çö)
+    // ì¬ê·€ ìˆœíšŒ í•¨ìˆ˜ ëŒ€ì²´ (ì§ì ‘ êµ¬í˜„)
     std::vector<const aiNode*> nodeStack;
     nodeStack.push_back(rootNode);
 
@@ -44,7 +44,7 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
         bone.Name = currentNode->mName.C_Str();
         bone.ParentBoneName = (currentNode->mParent) ? currentNode->mParent->mName.C_Str() : "";
 
-        // aiMatrix4x4 -> SimpleMath::Matrix º¯È¯
+        // aiMatrix4x4 -> SimpleMath::Matrix ë³€í™˜
         aiMatrix4x4 aiMat = currentNode->mTransformation;
         Matrix transform(
             aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1,
@@ -53,22 +53,22 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
             aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4
         );
 
-        bone.RelativeTransform = transform.Transpose(); // Row -> Column º¸Á¤
+        bone.RelativeTransform = transform.Transpose(); // Row -> Column ë³´ì •
 
         int index = static_cast<int>(Bones.size());
         Bones.push_back(bone);
         BoneMappingTable[bone.Name] = index;
 
-        // ÀÚ½Ä ³ëµå Ãß°¡
+        // ìì‹ ë…¸ë“œ ì¶”ê°€
         for (unsigned int i = 0; i < currentNode->mNumChildren; ++i)
         {
             nodeStack.push_back(currentNode->mChildren[i]);
         }
     }
 
-    // 2?. ¸Ş½Ã Á¤º¸¿¡¼­ Bone ¿ÀÇÁ¼Â Çà·Ä ÃßÃâ
-    BoneOffsetMatrices.clear();
-    BoneOffsetMatrices.resize(Bones.size(), Matrix::Identity);
+    // 2ï¸. ë©”ì‹œ ì •ë³´ì—ì„œ Bone ì˜¤í”„ì…‹ í–‰ë ¬ ì¶”ì¶œ
+    BoneOffsetMatrices.Clear();
+    BoneOffsetMatrices.SetBoneCount((int)Bones.size());
 
     for (unsigned int meshIdx = 0; meshIdx < pScene->mNumMeshes; ++meshIdx)
     {
@@ -84,7 +84,7 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
             int boneIndex = GetBoneIndexByBoneName(boneName);
             if (boneIndex == -1)
             {
-                // ¾ø´Â º»ÀÌ¶ó¸é »õ·Î Ãß°¡
+                // ì—†ëŠ” ë³¸ì´ë¼ë©´ ìƒˆë¡œ ì¶”ê°€
                 BoneInfo extra;
                 extra.Name = boneName;
                 extra.ParentBoneName = "";
@@ -93,10 +93,13 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
                 boneIndex = (int)Bones.size();
                 Bones.push_back(extra);
                 BoneMappingTable[boneName] = boneIndex;
-                BoneOffsetMatrices.push_back(Matrix::Identity);
+
+                // ì˜¤í”„ì…‹ í–‰ë ¬ ì´ˆê¸°í™”
+                if (boneIndex < BoneMatrixContainer::MaxBones)
+                    BoneOffsetMatrices.SetMatrix(boneIndex, Matrix::Identity);
             }
 
-            // Offset Çà·Ä ÀúÀå
+            // Offset í–‰ë ¬ ì €ì¥
             aiMatrix4x4 offset = aiBone->mOffsetMatrix;
             Matrix offsetMat(
                 offset.a1, offset.b1, offset.c1, offset.d1,
@@ -104,10 +107,11 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
                 offset.a3, offset.b3, offset.c3, offset.d3,
                 offset.a4, offset.b4, offset.c4, offset.d4
             );
-            BoneOffsetMatrices[boneIndex] = offsetMat.Transpose();
+            if (boneIndex < BoneMatrixContainer::MaxBones)
+                BoneOffsetMatrices.SetMatrix(boneIndex, offsetMat.Transpose());
         }
 
-        // ¸Ş½Ã ÀÌ¸§ -> Ã¹ ¹øÂ° º» ÀÎµ¦½º ¸ÅÇÎ
+        // ë©”ì‹œ ì´ë¦„ -> ì²« ë²ˆì§¸ ë³¸ ì¸ë±ìŠ¤ ë§¤í•‘
         std::string meshName = mesh->mName.C_Str();
         if (!meshName.empty())
         {
@@ -124,12 +128,37 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
 }
 
 
-// BoneInfo »ı¼º (È£ÃâÇü, ÇöÀç »ç¿ë X)
-BoneInfo* SkeletonInfo::CreateBoneInfo(const aiScene* pScene, const aiScene* pNode)
+// BoneInfo ìƒì„± (í˜¸ì¶œí˜•, í˜„ì¬ ì‚¬ìš© X)
+//BoneInfo* SkeletonInfo::CreateBoneInfo(const aiScene* pScene, const aiScene* pNode)
+//{
+//    // ì˜¤íƒ€ ì£¼ì˜ : pNodeëŠ” aiSceneì´ ì•„ë‹ˆë¼ aiNodeê°€ ë˜ì–´ì•¼ í•˜ì§€ë§Œ
+//    // í—¤ë” ì‹œê·¸ë‹ˆì²˜ë¥¼ ê·¸ëŒ€ë¡œ ë”°ë¦„.
+//    if (!pNode)  return nullptr;
+//
+//    BoneInfo bone;
+//    bone.Name = pNode->mName.C_Str();
+//    bone.ParentBoneName = (pNode->mParent) ? pNode->mParent->mName.C_Str() : "";
+//
+//    aiMatrix4x4 aiMat = pNode->mTransformation;
+//    Matrix transform(
+//        aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1,
+//        aiMat.a2, aiMat.b2, aiMat.c2, aiMat.d2,
+//        aiMat.a3, aiMat.b3, aiMat.c3, aiMat.d3,
+//        aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4
+//    );
+//    bone.RelativeTransform = transform.Transpose();
+//
+//    Bones.push_back(bone);
+//    int index = (int)Bones.size() - 1;
+//    BoneMappingTable[bone.Name] = index;
+//
+//    return &Bones[index];
+//}
+
+// BoneInfo ìƒì„± (í˜¸ì¶œí˜•, í˜„ì¬ ì‚¬ìš© X)
+BoneInfo* SkeletonInfo::CreateBoneInfo(const aiScene* pScene, const aiNode* pNode)
 {
-    // ¿ÀÅ¸ ÁÖÀÇ : pNode´Â aiSceneÀÌ ¾Æ´Ï¶ó aiNode°¡ µÇ¾î¾ß ÇÏÁö¸¸
-    // Çì´õ ½Ã±×´ÏÃ³¸¦ ±×´ë·Î µû¸§.
-    if (!pNode)  return nullptr;
+    if (!pNode) return nullptr;
 
     BoneInfo bone;
     bone.Name = pNode->mName.C_Str();
@@ -152,7 +181,7 @@ BoneInfo* SkeletonInfo::CreateBoneInfo(const aiScene* pScene, const aiScene* pNo
 }
 
 
-// ÀÌ¸§À¸·Î BoneInfo Ã£±â
+// ì´ë¦„ìœ¼ë¡œ BoneInfo ì°¾ê¸°
 BoneInfo* SkeletonInfo::GetBoneInfoByName(const std::string& name)
 {
     int index = GetBoneIndexByBoneName(name);
@@ -162,7 +191,7 @@ BoneInfo* SkeletonInfo::GetBoneInfoByName(const std::string& name)
 }
 
 
-// ÀÎµ¦½º·Î BoneInfo Ã£±â
+// ì¸ë±ìŠ¤ë¡œ BoneInfo ì°¾ê¸°
 BoneInfo* SkeletonInfo::GetBoneInfoByIndex(int index)
 {
     if (index < 0 || index >= (int)Bones.size())
@@ -171,7 +200,7 @@ BoneInfo* SkeletonInfo::GetBoneInfoByIndex(int index)
 }
 
 
-// Bone ÀÌ¸§À¸·Î ÀÎµ¦½º Ã£±â
+// Bone ì´ë¦„ìœ¼ë¡œ ì¸ë±ìŠ¤ ì°¾ê¸°
 int SkeletonInfo::GetBoneIndexByBoneName(const std::string& boneName)
 {
     auto it = BoneMappingTable.find(boneName);
@@ -181,7 +210,7 @@ int SkeletonInfo::GetBoneIndexByBoneName(const std::string& boneName)
 }
 
 
-// Mesh ÀÌ¸§À¸·Î ÀÎµ¦½º Ã£±â
+// Mesh ì´ë¦„ìœ¼ë¡œ ì¸ë±ìŠ¤ ì°¾ê¸°
 int SkeletonInfo::GetBoneIndexByMeshName(const std::string& meshName)
 {
     auto it = MeshMappingTable.find(meshName);

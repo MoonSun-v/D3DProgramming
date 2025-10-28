@@ -6,11 +6,8 @@
 #include "Material.h"
 #include "Animation.h"
 #include "SkeletonInfo.h"
+#include "Bone.h"
 
-struct BoneMatrixContainer
-{
-    std::vector<Matrix> Matrices;
-};
 
 class SkeletalMesh
 {
@@ -33,9 +30,10 @@ public:
 
     // [ FBX 파일로부터 SkeletalMesh 로드 ]
     bool LoadFromFBX(ID3D11Device* device, const std::string& path);
-    void Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler);
+    void Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler);
     void Clear();
     void Update(float deltaTime);
+    void UpdateBoneBuffer(ID3D11DeviceContext* context, ID3D11Buffer* pBoneBuffer);
 
 private:
     void ReadSkeletalMeshFile(const std::string& path);

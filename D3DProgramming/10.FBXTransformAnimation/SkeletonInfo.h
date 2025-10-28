@@ -4,6 +4,7 @@
 #include <map>
 #include <assimp/scene.h>
 #include <directxtk/SimpleMath.h>
+#include "BoneMatrixContainer.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -26,7 +27,7 @@ public:
 
 public:
 	void CreateFromAiScene(const aiScene* pScene);
-	BoneInfo* CreateBoneInfo(const aiScene* pScene, const aiScene* pNode);
+	BoneInfo* CreateBoneInfo(const aiScene* pScene, const aiNode* pNode);
 
 	BoneInfo* GetBoneInfoByName(const std::string& name);
 	BoneInfo* GetBoneInfoByIndex(int index);

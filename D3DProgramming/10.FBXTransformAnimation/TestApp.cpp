@@ -47,9 +47,12 @@ void TestApp::Update()
 {
 	__super::Update();
 
+	float deltaTime = TimeSystem::m_Instance->DeltaTime();
 	float totalTime = TimeSystem::m_Instance->TotalTime();
 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
+
+	boxHuman.Update(deltaTime); // 본 애니메이션 업데이트
 }     
 
 
@@ -67,6 +70,17 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
+	// Rigid용 본 행렬 버퍼 준비
+	BoneMatrixContainer boneCB;
+	boneCB.Clear();
+	boneCB.SetMatrix(0, XMMatrixIdentity()); // boxHuman 단일 본
+
+	// GPU 상수 버퍼 업데이트
+	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
+	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
+	boxHuman.UpdateBoneBuffer(m_D3DDevice.GetDeviceContext(), m_pBoneBuffer.Get());
+
+
 	// Mesh 렌더링
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
@@ -82,7 +96,7 @@ void TestApp::Render()
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
 
-		for (SkeletalMeshSection& sub : mesh.m_SubMeshes)
+		for (SkeletalMeshSection& sub : mesh.m_Sections)
 		{
 			// Material 텍스처 바인딩
 			const TextureSRVs& tex = mesh.m_Materials[sub.m_MaterialIndex].GetTextures();
@@ -97,13 +111,14 @@ void TestApp::Render()
 			m_D3DDevice.GetDeviceContext()->PSSetShaderResources(0, 5, srvs);
 
 			// SubMesh 렌더링
-			sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
+			sub.Render(m_D3DDevice.GetDeviceContext(), mesh.m_Materials[sub.m_MaterialIndex], cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
 		}
-	};
 
-	RenderMesh(treeMesh, m_WorldTree);
-	RenderMesh(charMesh, m_WorldChar);
-	RenderMesh(zeldaMesh, m_WorldZelda);
+		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
+		// mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
+	};
+	
+	RenderMesh(boxHuman, m_WorldChar);
 
 
 	// UI 그리기 
@@ -227,7 +242,7 @@ bool TestApp::InitScene()
 	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/09.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/10.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
@@ -241,6 +256,7 @@ bool TestApp::InitScene()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		// { "BLENDINDICES", 0, DXGI_FORMAT_R32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // BoneIndex
 	};
 	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
@@ -249,7 +265,7 @@ bool TestApp::InitScene()
 	// 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/09.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/10.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 
@@ -263,14 +279,21 @@ bool TestApp::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
+	// 본 행렬용 상수 버퍼
+	D3D11_BUFFER_DESC bdBone = {};
+	bdBone.Usage = D3D11_USAGE_DEFAULT;
+	bdBone.ByteWidth = sizeof(BoneMatrixContainer); // 128 x 4x4 Matrix
+	bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdBone.CPUAccessFlags = 0;
+	bdBone.MiscFlags = 0;
+	bdBone.StructureByteStride = 0;
+
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneBuffer.GetAddressOf()));
 	
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	treeMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
-	charMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
-	zeldaMesh.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
-
+	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
 
 	// ---------------------------------------------------------------
 	// 샘플러 생성
@@ -291,9 +314,9 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	m_World = XMMatrixIdentity(); // 단위 행렬 
 
-	m_WorldTree = XMMatrixTranslation(m_TreePos[0], m_TreePos[1], m_TreePos[2]);
+	// m_WorldTree = XMMatrixTranslation(m_TreePos[0], m_TreePos[1], m_TreePos[2]);
 	m_WorldChar = XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);
-	m_WorldZelda = XMMatrixTranslation(m_ZeldaPos[0], m_ZeldaPos[1], m_ZeldaPos[2]);
+	// m_WorldZelda = XMMatrixTranslation(m_ZeldaPos[0], m_ZeldaPos[1], m_ZeldaPos[2]);
 
 	// 카메라(View)
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);	// 카메라 위치
@@ -318,9 +341,7 @@ void TestApp::UninitScene()
 	m_pInputLayout.Reset();
 
 	// Mesh, Material 해제
-	treeMesh.Clear();
-	charMesh.Clear();
-	zeldaMesh.Clear();
+	boxHuman.Clear();
 
 	// 기본 텍스처 해제
 	Material::DestroyDefaultTextures();

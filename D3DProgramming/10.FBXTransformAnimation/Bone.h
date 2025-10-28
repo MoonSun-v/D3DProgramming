@@ -5,14 +5,6 @@
 
 using namespace DirectX;
 
-// 인스턴스 데이터 Bone 
-// Matrix Local; // 부모에서의 변환 (상대적 변환)
-// Matrix Model; // 누적된 모델 공간으로의 변환 
-// int m_ParentIndex
-// int m_Index
-// string m_Name
-// m_pBoneAnimation 
-
 // [0] pelvis : ParentIndex = -1
 // [1] spine : ParentIndex = 0
 

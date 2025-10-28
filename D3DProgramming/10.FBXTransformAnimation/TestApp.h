@@ -22,7 +22,7 @@ public:
 	TestApp();
 	~TestApp();
 
-	SkeletalMesh treeMesh, charMesh, zeldaMesh;
+	SkeletalMesh boxHuman;
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -34,6 +34,7 @@ public:
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
+	ComPtr<ID3D11Buffer> m_pBoneBuffer;             // 본 전용 상수 버퍼 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
 
@@ -43,12 +44,8 @@ public:
 	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)		
 
 	// [ 오브젝트 ]
-	Matrix m_WorldTree;
 	Matrix m_WorldChar;
-	Matrix m_WorldZelda;
-	float m_TreePos[3] = { -200.0f, -150.0f, 0.0f };
 	float m_CharPos[3] = { 0.0f, -150.0f, 0.0f };
-	float m_ZeldaPos[3] = { 200.0f, -150.0f, 0.0f };
 
 
 	// [ 배경색 ]

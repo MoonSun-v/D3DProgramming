@@ -56,38 +56,35 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     // [스켈레톤 생성]
     CreateSkeleton(scene);
 
-
     return true;
 }
 
 
 // [ SubMesh 단위로 Material 적용 후 렌더링 ]
-void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler)
+void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler)
 {
     for (auto& sub : m_Sections)
     {
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
-        {
             material = &m_Materials[sub.m_MaterialIndex];
-        }
 
-        if (material)
-        {
-            sub.Render(context, *material, globalCB, pCB, pSampler);
-        }
+        if (!material) continue;
+
+        // SubMesh 렌더링
+        sub.Render(context, *material, globalCB, pCB, pBoneBuffer, pSampler);
     }
 }
 
 // 애니메이션 업데이트 
 void SkeletalMesh::Update(float deltaTime)
 {
-    if (m_Animations.empty() || m_Skeleton.empty())
+    if (/*m_Animations.empty() ||*/ m_Skeleton.empty())
         return;
 
-    const Animation& anim = m_Animations[m_AnimationIndex];
-    m_AnimationProgressTime += deltaTime;
-    m_AnimationProgressTime = fmod(m_AnimationProgressTime, anim.Duration);
+    //const Animation& anim = m_Animations[m_AnimationIndex];
+    //m_AnimationProgressTime += deltaTime;
+    //m_AnimationProgressTime = fmod(m_AnimationProgressTime, anim.Duration);
 
     // 본별 트랜스폼 계산
     for (auto& bone : m_Skeleton)
@@ -111,10 +108,16 @@ void SkeletalMesh::Update(float deltaTime)
         else
             bone.m_Model = bone.m_Local;
 
-        // GPU로 보낼 최종 본 행렬 저장
-        if (bone.m_Index < (int)m_SkeletonPose.Matrices.size())
-            m_SkeletonPose.Matrices[bone.m_Index] = XMMatrixTranspose(bone.m_Model);
+        // GPU용 본 행렬 저장
+        if (bone.m_Index < BoneMatrixContainer::MaxBones)
+            m_SkeletonPose.SetMatrix(bone.m_Index, XMMatrixTranspose(bone.m_Model));
     }
+}
+
+void SkeletalMesh::UpdateBoneBuffer(ID3D11DeviceContext* context, ID3D11Buffer* pBoneBuffer)
+{
+    context->UpdateSubresource(pBoneBuffer, 0, nullptr, &m_SkeletonPose, 0, 0);
+    context->VSSetConstantBuffers(1, 1, &pBoneBuffer);
 }
 
 
@@ -129,7 +132,7 @@ void SkeletalMesh::Clear()
     m_Materials.clear();
 
     m_Skeleton.clear();
-    m_SkeletonPose.Matrices.clear();
+    m_SkeletonPose.Clear();
     m_Animations.clear();
 }
 
@@ -138,7 +141,9 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
 {
     if (!scene->mRootNode) return;
 
-    // 단순 예시: 노드 순회하며 본 생성
+    m_SkeletonPose.Clear(); // 기존 Pose 초기화
+
+    // 노드 순회하며 본 생성
     std::function<void(aiNode*, int)> traverse = [&](aiNode* node, int parentIdx)
         {
             Bone bone;
@@ -156,8 +161,10 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
             bone.m_Model = bone.m_Local;
             bone.m_Index = (int)m_Skeleton.size();
 
-            m_Skeleton.push_back(bone);
-            m_SkeletonPose.Matrices.push_back(XMMatrixIdentity());
+            m_Skeleton.push_back(bone);        
+            
+            if (bone.m_Index < BoneMatrixContainer::MaxBones)
+                m_SkeletonPose.SetMatrix(bone.m_Index, XMMatrixIdentity());
 
             for (UINT i = 0; i < node->mNumChildren; ++i)
                 traverse(node->mChildren[i], bone.m_Index);

@@ -41,11 +41,13 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
             if (FAILED(CreateTextureFromFile(device, outPath.c_str(), out.GetAddressOf())))
             {
                 out = fallback; // 실패 시 기본 텍스처 사용
+                OutputDebugString((L"[Texture Load] failed. default textur" + outPath + L"\n").c_str());
             }
         }
         else
         {
             out = fallback; 
+            OutputDebugString((L"[Texture Load] default texture" + outPath + L"\n").c_str());
         }
     };
 
