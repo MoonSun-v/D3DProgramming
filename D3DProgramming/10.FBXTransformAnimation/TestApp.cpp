@@ -73,23 +73,18 @@ void TestApp::Render()
 	// Rigid용 본 행렬 버퍼 준비
 	BoneMatrixContainer boneCB;
 	boneCB.Clear();
-	// boneCB.SetMatrix(0, XMMatrixTranspose(m_WorldChar)); =
-    // boxHuman은 단일 본
-	if (!boxHuman.m_Skeleton.empty())
-		boneCB.SetMatrix(0, XMMatrixTranspose(boxHuman.m_Skeleton[0].m_Model * boxHuman.m_World));
+	//if (!boxHuman.m_Skeleton.empty())
+	//	boneCB.SetMatrix(0, XMMatrixTranspose(boxHuman.m_Skeleton[0].m_Model)); // 루트 본만 전송
 
 	// GPU 상수 버퍼 업데이트
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
 	
-	// boxHuman.UpdateBoneBuffer(m_D3DDevice.GetDeviceContext(), m_pBoneBuffer.Get());
-
-
 	// Mesh 렌더링
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;
-		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치 
+		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치  
 		cb.mView = XMMatrixTranspose(m_View);
 		cb.mProjection = XMMatrixTranspose(m_Projection);
 		cb.vLightDir = m_LightDir;
@@ -100,14 +95,15 @@ void TestApp::Render()
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
 		cb.gIsRigid = 1.0f;           // Rigid 모델이면 1 
-		// cb.gRefBoneIndex = mesh.RefBoneIndex;      // 리지드일때 참조 본 인덱스 : 단일 본이면 0? 
+		// cb.gRefBoneIndex = mesh.RefBoneIndex;     
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
 		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
 	};
 	
 	RenderMesh(boxHuman, m_WorldChar);
-	// PrintMatrix(m_WorldChar);
+
+	// PrintMatrix(boxHuman.m_World);
 
 	// UI 그리기 
 	Render_ImGui();

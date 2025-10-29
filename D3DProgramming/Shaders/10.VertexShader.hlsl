@@ -10,11 +10,11 @@ PS_INPUT main(VS_INPUT input)
     float4 posBone = input.Pos;
     
     // Rigid: 월드 행렬만 적용
-    if (gIsRigid == 1)
-    {
-        posBone = mul(posBone, gModelMatricies[0]);
-        // posBone = mul(gModelMatricies[0], input.Pos );
-    }
+    //if (gIsRigid == 1)
+    //{
+    //    posBone = mul(posBone, gModelMatricies[0]);
+    //    // posBone = mul(gModelMatricies[0], input.Pos );
+    //}
     
     // Model -> World 
     float4 worldPos = mul(posBone, gWorld); 
