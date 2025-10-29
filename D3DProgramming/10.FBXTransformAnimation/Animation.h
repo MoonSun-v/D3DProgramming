@@ -8,10 +8,10 @@ using namespace DirectX::SimpleMath;
 
 struct AnimationKey
 {
-	float Time;              // 키프레임 시간 (초)
-	Vector3 Position;  // 위치 키
+	float Time;          // 키프레임 시간 (초)
+	Vector3 Position;    // 위치 키
 	Quaternion Rotation; // 회전 키
-	Vector3 Scaling;   // 스케일 키
+	Vector3 Scaling;     // 스케일 키
 };
 
 class BoneAnimation

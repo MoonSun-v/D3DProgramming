@@ -45,13 +45,13 @@ public:
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, -450.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, -1000.0f, 0.0f };
 	void PrintMatrix(const Matrix& mat);
 
 	// [ 배경색 ]
-	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
+	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
 	// Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f); // Light Sky 
-	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.3f, 1.0f); // Navy
+	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.3f, 1.0f); // Navy
 
 
 	// [ 라이트 정보 ]
@@ -62,7 +62,7 @@ public:
 	// [ Camera 설정 값 ]
 	float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
 	float m_CameraNear = 0.1f;
-	float m_CameraFar = 1000.0f;
+	float m_CameraFar = 2000.0f;
 
 	// 머터리얼 조절용
 	XMFLOAT4 m_MaterialAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);

@@ -26,7 +26,7 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
         aiProcess_GenUVCoords |          // 텍스처 좌표 생성
         aiProcess_CalcTangentSpace |     // 탄젠트 벡터 생성 
         aiProcess_ConvertToLeftHanded;   // 왼손좌표계 변환 (DX용)
-        // aiProcess_PreTransformVertices;  // 노드의 변환행렬을 적용한 버텍스 생성한다.  *StaticMesh로 처리할때만 사용 
+        // aiProcess_PreTransformVertices;  // 노드의 변환행렬을 적용한 버텍스 생성한다.  **StaticMesh로 처리할때만 사용 
 
     const aiScene* scene = importer.ReadFile(path, importFlags);
 
@@ -48,69 +48,69 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     
     // [ 애니메이션 존재 여부 ]
     bool hasAnimation = (scene->mNumAnimations > 0);
-    // OutputDebugString((L"[hasAnimation] " + std::to_wstring(hasAnimation) + L"\n").c_str());
+    OutputDebugString((L"[hasAnimation] " + std::to_wstring(hasAnimation) + L"\n").c_str());
 
     // 애니메이션이 있으면 Animation 리스트 채우기
-    //if (hasAnimation)
-    //{
-    //    m_Animations.resize(scene->mNumAnimations);
+    if (hasAnimation)
+    {
+        m_Animations.resize(scene->mNumAnimations);
 
-    //    for (UINT animIdx = 0; animIdx < scene->mNumAnimations; ++animIdx)
-    //    {
-    //        aiAnimation* aiAnim = scene->mAnimations[animIdx];
-    //        Animation& anim = m_Animations[animIdx];
+        for (UINT animIdx = 0; animIdx < scene->mNumAnimations; ++animIdx)
+        {
+            aiAnimation* aiAnim = scene->mAnimations[animIdx];
+            Animation& anim = m_Animations[animIdx];
 
-    //        anim.Name = aiAnim->mName.C_Str();
-    //        anim.Duration = static_cast<float>(aiAnim->mDuration / aiAnim->mTicksPerSecond);
+            anim.Name = aiAnim->mName.C_Str();
+            anim.Duration = static_cast<float>(aiAnim->mDuration / aiAnim->mTicksPerSecond);
 
-    //        // BoneAnimation 채우기
-    //        anim.BoneAnimations.resize(m_Skeleton.size()); // Skeleton의 본 개수만큼 생성
+            // BoneAnimation 채우기
+            anim.BoneAnimations.resize(m_Skeleton.size()); // Skeleton의 본 개수만큼 생성
 
-    //        for (UINT c = 0; c < aiAnim->mNumChannels; ++c)
-    //        {
-    //            aiNodeAnim* channel = aiAnim->mChannels[c];
-    //            std::string boneName = channel->mNodeName.C_Str();
+            for (UINT c = 0; c < aiAnim->mNumChannels; ++c)
+            {
+                aiNodeAnim* channel = aiAnim->mChannels[c];
+                std::string boneName = channel->mNodeName.C_Str();
 
-    //            // Skeleton에서 이름으로 인덱스 찾기
-    //            auto it = std::find_if(m_Skeleton.begin(), m_Skeleton.end(), [&](const Bone& b) { return b.m_Name == boneName; });
+                // Skeleton에서 이름으로 인덱스 찾기
+                auto it = std::find_if(m_Skeleton.begin(), m_Skeleton.end(), [&](const Bone& b) { return b.m_Name == boneName; });
 
-    //            if (it != m_Skeleton.end())
-    //            {
-    //                int boneIndex = static_cast<int>(it - m_Skeleton.begin());
-    //                BoneAnimation& boneAnim = anim.BoneAnimations[boneIndex];
+                if (it != m_Skeleton.end())
+                {
+                    int boneIndex = static_cast<int>(it - m_Skeleton.begin());
+                    BoneAnimation& boneAnim = anim.BoneAnimations[boneIndex];
 
-    //                // 위치 키
-    //                for (UINT k = 0; k < channel->mNumPositionKeys; ++k)
-    //                {
-    //                    aiVectorKey& pk = channel->mPositionKeys[k];
-    //                    AnimationKey key;
-    //                    key.Time = static_cast<float>(pk.mTime / aiAnim->mTicksPerSecond);
-    //                    key.Position = Vector3(pk.mValue.x, pk.mValue.y, pk.mValue.z);
-    //                    boneAnim.AnimationKeys.push_back(key);
-    //                }
+                    // 위치 키
+                    for (UINT k = 0; k < channel->mNumPositionKeys; ++k)
+                    {
+                        aiVectorKey& pk = channel->mPositionKeys[k];
+                        AnimationKey key;
+                        key.Time = static_cast<float>(pk.mTime / aiAnim->mTicksPerSecond);
+                        key.Position = Vector3(pk.mValue.x, pk.mValue.y, pk.mValue.z);
+                        boneAnim.AnimationKeys.push_back(key);
+                    }
 
-    //                // 회전 키
-    //                for (UINT k = 0; k < channel->mNumRotationKeys; ++k)
-    //                {
-    //                    aiQuatKey& rk = channel->mRotationKeys[k];
-    //                    AnimationKey& key = boneAnim.AnimationKeys[k]; // 같은 인덱스 사용
-    //                    key.Rotation = Quaternion(rk.mValue.x, rk.mValue.y, rk.mValue.z, rk.mValue.w);
-    //                }
+                    // 회전 키
+                    for (UINT k = 0; k < channel->mNumRotationKeys; ++k)
+                    {
+                        aiQuatKey& rk = channel->mRotationKeys[k];
+                        AnimationKey& key = boneAnim.AnimationKeys[k]; // 같은 인덱스 사용
+                        key.Rotation = Quaternion(rk.mValue.x, rk.mValue.y, rk.mValue.z, rk.mValue.w);
+                    }
 
-    //                // 스케일 키
-    //                for (UINT k = 0; k < channel->mNumScalingKeys; ++k)
-    //                {
-    //                    aiVectorKey& sk = channel->mScalingKeys[k];
-    //                    AnimationKey& key = boneAnim.AnimationKeys[k]; // 같은 인덱스 사용
-    //                    key.Scaling = Vector3(sk.mValue.x, sk.mValue.y, sk.mValue.z);
-    //                }
+                    // 스케일 키
+                    for (UINT k = 0; k < channel->mNumScalingKeys; ++k)
+                    {
+                        aiVectorKey& sk = channel->mScalingKeys[k];
+                        AnimationKey& key = boneAnim.AnimationKeys[k]; // 같은 인덱스 사용
+                        key.Scaling = Vector3(sk.mValue.x, sk.mValue.y, sk.mValue.z);
+                    }
 
-    //                // Skeleton의 본에 이 BoneAnimation 연결
-    //                it->m_pBoneAnimation = &boneAnim;
-    //            }
-    //        }
-    //    }
-    //}
+                    // Skeleton의 본에 이 BoneAnimation 연결
+                    it->m_pBoneAnimation = &boneAnim;
+                }
+            }
+        }
+    }
 
     
     // [ 서브메시 로드 ]
@@ -150,7 +150,7 @@ void SkeletalMesh::FindMeshBoneMapping(aiNode* node, const aiScene* scene)
         {
             m_Sections[meshIndex].m_RefBoneIndex = boneIndex;
 
-            // [ Mesh - Bone 연결 디버깅 ]
+            // [ Mesh - Bone 짝궁 디버깅 ]
             //char buf[256];
             //sprintf_s(buf, "[MeshMapping] Mesh[%d] → Bone[%d] (%s)\n", meshIndex, boneIndex, m_Skeleton[boneIndex].m_Name.c_str());
             //OutputDebugStringA(buf);
@@ -196,10 +196,20 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
     }
 }
 
-// [ 업데이트 ]
 void SkeletalMesh::Update(float deltaTime)
 {
+    if (m_Animations.empty()) return;
+
+    Animation& anim = m_Animations[m_AnimationIndex];
     m_AnimationTime += deltaTime;
+    if (m_AnimationTime > anim.Duration)
+    {
+        m_AnimationTime = fmod(m_AnimationTime, anim.Duration);
+    }
+
+    // 루트 본만 사용 (Rigid)
+    Matrix rootTransform = anim.GetBoneTransform(0, m_AnimationTime);
+    m_World = rootTransform;  // 오브젝트 자체의 월드 변환으로 적용
 
     for (auto& bone : m_Skeleton)
     {
@@ -247,7 +257,7 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
             bone.m_Name = node->mName.C_Str();
             bone.m_ParentIndex = parentIdx;
 
-            // 변환행렬 복사
+            // 변환행렬 복사 : 열 -> 행 : 전치된 상태로 들어감 
             aiMatrix4x4 transform = node->mTransformation;
             bone.m_Local = Matrix(
                 transform.a1, transform.b1, transform.c1, transform.d1,
@@ -257,7 +267,7 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
             );
         
             // 부모 행렬과 결합해서 월드행렬(모델행렬) 계산
-            bone.m_Model = XMMatrixMultiply(parentTransform, bone.m_Local);
+            bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
 
             bone.m_Index = (int)m_Skeleton.size();
 

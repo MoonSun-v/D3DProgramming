@@ -35,7 +35,7 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
         }
     }
     m_IndexCount = (int)Indices.size();
-    // m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
+    m_MaterialIndex = mesh->mMaterialIndex;  // 메시가 참조하는 머티리얼 인덱스
 
     // [3] 인덱스 정보 생성
     CreateIndexBuffer(device);

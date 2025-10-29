@@ -28,7 +28,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(0.0f, 0.0f, -30.0f);
+	m_Camera.m_Position = Vector3(0.0f, 340.0f, -1200.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 
@@ -70,17 +70,14 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// Rigid용 본 행렬 버퍼 준비
+	// Skinned용 본 행렬 버퍼 준비 (지금 사용X)
 	BoneMatrixContainer boneCB;
 	boneCB.Clear();
-	//if (!boxHuman.m_Skeleton.empty())
-	//	boneCB.SetMatrix(0, XMMatrixTranspose(boxHuman.m_Skeleton[0].m_Model)); // 루트 본만 전송
-
-	// GPU 상수 버퍼 업데이트
+	
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
 	
-	// Mesh 렌더링
+	// [ Mesh 렌더링 ]
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;
@@ -100,7 +97,6 @@ void TestApp::Render()
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
 		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
 	};
-	
 	RenderMesh(boxHuman, m_WorldChar);
 
 	// PrintMatrix(boxHuman.m_World);
