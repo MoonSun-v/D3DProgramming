@@ -28,7 +28,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(0.0f, 340.0f, -1200.0f);
+	m_Camera.m_Position = Vector3(0.0f, 0.0f, -500.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 
@@ -52,7 +52,13 @@ void TestApp::Update()
 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
-	boxHuman.Update(deltaTime); // 본 애니메이션 업데이트
+	// [ 오브젝트 ]
+	Matrix world =
+		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *   // 스케일
+		XMMatrixRotationRollPitchYaw(rotX, rotY, rotZ) *                 // 입력 회전
+		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
+	m_WorldChar = world; // TODO 
+	boxHuman.Update(deltaTime, world);
 }     
 
 
@@ -77,7 +83,7 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
 	
-	// [ Mesh 렌더링 ]
+	// [ Mesh 렌더링 ] TODO : 깔끔하게 수정 
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;
@@ -109,22 +115,6 @@ void TestApp::Render()
 	m_D3DDevice.EndFrame(); 
 }
 
-void TestApp::PrintMatrix(const Matrix& mat)
-{
-	char buf[512];
-	sprintf_s(buf,
-		"Matrix:\n"
-		"[%f %f %f %f]\n"
-		"[%f %f %f %f]\n"
-		"[%f %f %f %f]\n"
-		"[%f %f %f %f]\n",
-		mat._11, mat._12, mat._13, mat._14,
-		mat._21, mat._22, mat._23, mat._24,
-		mat._31, mat._32, mat._33, mat._34,
-		mat._41, mat._42, mat._43, mat._44);
-
-	OutputDebugStringA(buf);
-}
 
 // ★ [ ImGui ] - UI 프레임 준비 및 렌더링
 void TestApp::Render_ImGui()
@@ -142,16 +132,43 @@ void TestApp::Render_ImGui()
 
 
 	// 초기 창 크기 지정
-	ImGui::SetNextWindowSize(ImVec2(400, 450), ImGuiCond_Always); // ImGuiCond_FirstUseEver
+	ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_Always); // ImGuiCond_FirstUseEver
 
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
 
 
 	// -----------------------------
-	// [ Light ]
+	// [ Object Transform ]
 	// -----------------------------
 	ImGui::Text(" ");
+	ImGui::Text("[ Object Transform ]");
+
+	// 위치
+	ImGui::Text("Position (XYZ)");
+	ImGui::DragFloat3("Object_Position", m_CharPos, 1.0f);
+
+	// 스케일
+	ImGui::Text("Scale (XYZ)");
+	ImGui::DragFloat3("Object_Scale", (float*)&m_CharScale, 0.01f, 0.01f, 10.0f);
+
+	// 회전 (도 단위)
+	static float rotDegree[3] = { XMConvertToDegrees(rotX), XMConvertToDegrees(rotY), XMConvertToDegrees(rotZ) };
+	ImGui::Text("Rotation (Degrees)");
+	if (ImGui::DragFloat3("Object_Rotation", rotDegree, 0.5f, -360.0f, 360.0f))
+	{
+		// 입력값을 라디안으로 변환 적용
+		rotX = XMConvertToRadians(rotDegree[0]);
+		rotY = XMConvertToRadians(rotDegree[1]);
+		rotZ = XMConvertToRadians(rotDegree[2]);
+	}
+
+	ImGui::Separator();
+	ImGui::Text("");
+
+	// -----------------------------
+	// [ Light ]
+	// -----------------------------
 	ImGui::Text("[ Light ]");
 
 	// 광원 색상
@@ -315,7 +332,6 @@ bool TestApp::InitScene()
 	// 행렬(World, View, Projection) 설정
 	// ---------------------------------------------------------------
 	m_World = XMMatrixIdentity(); // 단위 행렬 
-	m_WorldChar = XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);
 
 	// 카메라(View)
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);	// 카메라 위치
@@ -375,6 +391,23 @@ void TestApp::UninitImGUI()
 	ImGui::DestroyContext();	// ImGui 컨텍스트 삭제
 }
 
+
+void TestApp::PrintMatrix(const Matrix& mat)
+{
+	char buf[512];
+	sprintf_s(buf,
+		"Matrix:\n"
+		"[%f %f %f %f]\n"
+		"[%f %f %f %f]\n"
+		"[%f %f %f %f]\n"
+		"[%f %f %f %f]\n",
+		mat._11, mat._12, mat._13, mat._14,
+		mat._21, mat._22, mat._23, mat._24,
+		mat._31, mat._32, mat._33, mat._34,
+		mat._41, mat._42, mat._43, mat._44);
+
+	OutputDebugStringA(buf);
+}
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

@@ -174,7 +174,7 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
 
         int refBone = sub.m_RefBoneIndex;  // OutputDebugString((L"[refBone] " + std::to_wstring(refBone) + L"\n").c_str());
 
-        if (sub.m_RefBoneIndex != -1)
+        if (refBone != -1)
         {
             cb.mWorld = XMMatrixTranspose(m_Skeleton[refBone].m_Model * sub.m_WorldTransform);
         }
@@ -196,7 +196,7 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
     }
 }
 
-void SkeletalMesh::Update(float deltaTime)
+void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
 {
     if (m_Animations.empty()) return;
 
@@ -207,9 +207,8 @@ void SkeletalMesh::Update(float deltaTime)
         m_AnimationTime = fmod(m_AnimationTime, anim.Duration);
     }
 
-    // 루트 본만 사용 (Rigid)
-    Matrix rootTransform = anim.GetBoneTransform(0, m_AnimationTime);
-    m_World = rootTransform;  // 오브젝트 자체의 월드 변환으로 적용
+    // SimpleMath::Matrix -> XMMATRIX
+    XMMATRIX worldMat = XMLoadFloat4x4(&worldTransform);
 
     for (auto& bone : m_Skeleton)
     {
@@ -230,7 +229,7 @@ void SkeletalMesh::Update(float deltaTime)
         }
         else
         {
-            bone.m_Model = bone.m_Local;
+            bone.m_Model = bone.m_Local * worldMat; // 조정 : 루트 본만 적용  
         }
 
         // [ m_Model 디버그 출력 ]

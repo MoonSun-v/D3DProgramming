@@ -30,7 +30,7 @@ public:
     bool LoadFromFBX(ID3D11Device* device, const std::string& path);
     void Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler);
     void Clear();
-    void Update(float deltaTime);
+    void Update(float deltaTime, const Matrix& worldTransform);
 
 private:
     void CreateSkeleton(const aiScene* scene);
