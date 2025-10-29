@@ -27,7 +27,7 @@ public:
     std::vector<WORD> Indices;  // UNIT 
 
     int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 Material 인덱스
-    int m_RefBoneIndex = -1;    // 이 섹션이 종속된 본 인덱스 (Rigid 핵심)
+    int m_RefBoneIndex = -1;    // 이 섹션이 종속된 본 인덱스 
 
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
 

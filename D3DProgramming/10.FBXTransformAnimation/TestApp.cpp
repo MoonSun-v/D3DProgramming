@@ -28,7 +28,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(0.0f, 0.0f, -500.0f);
+	m_Camera.m_Position = Vector3(0.0f, 0.0f, -30.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 

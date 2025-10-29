@@ -6,19 +6,14 @@
 PS_INPUT main(VS_INPUT input)
 {
     PS_INPUT output = (PS_INPUT) 0;
+ 
     
+    // CPU에서 이미 SubMesh 기준으로 RefBone 월드 변환이 적용되어 있으므로
+    // 별도로 본 행렬 곱할 필요 없음..! 
     float4 posBone = input.Pos;
-    
-    // Rigid: 월드 행렬만 적용
-    //if (gIsRigid == 1)
-    //{
-    //    posBone = mul(posBone, gModelMatricies[0]);
-    //    // posBone = mul(gModelMatricies[0], input.Pos );
-    //}
-    
-    // Model -> World 
-    float4 worldPos = mul(posBone, gWorld); 
-    // float4 worldPos = mul(input.Pos, gWorld);
+
+    // Model -> World
+    float4 worldPos = mul(posBone, gWorld);
     
     // World -> View -> Projection
     output.Pos = mul(worldPos, gView);

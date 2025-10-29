@@ -44,7 +44,7 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
     CreateVertexBuffer(device);
 
     // [5] 머티리얼 / 본 정보 설정
-    // m_MaterialIndex = mesh->mMaterialIndex;
+    m_MaterialIndex = mesh->mMaterialIndex;
     // SetSkeletonInfo(mesh);
 }
 

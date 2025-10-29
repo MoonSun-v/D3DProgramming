@@ -26,7 +26,7 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
         aiProcess_GenUVCoords |          // 텍스처 좌표 생성
         aiProcess_CalcTangentSpace |     // 탄젠트 벡터 생성 
         aiProcess_ConvertToLeftHanded;   // 왼손좌표계 변환 (DX용)
-        // aiProcess_PreTransformVertices;  // 노드의 변환행렬을 적용한 버텍스 생성한다.  *StaticMesh로 처리할때만
+        // aiProcess_PreTransformVertices;  // 노드의 변환행렬을 적용한 버텍스 생성한다.  *StaticMesh로 처리할때만 사용 
 
     const aiScene* scene = importer.ReadFile(path, importFlags);
 
@@ -41,38 +41,127 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     {
         m_Materials[i].InitializeFromAssimpMaterial(device, scene->mMaterials[i], textureBase);
     }
-      
 
     // [ 스켈레톤 생성 ]
     CreateSkeleton(scene);
 
+    
+    // [ 애니메이션 존재 여부 ]
+    bool hasAnimation = (scene->mNumAnimations > 0);
+    // OutputDebugString((L"[hasAnimation] " + std::to_wstring(hasAnimation) + L"\n").c_str());
 
+    // 애니메이션이 있으면 Animation 리스트 채우기
+    //if (hasAnimation)
+    //{
+    //    m_Animations.resize(scene->mNumAnimations);
+
+    //    for (UINT animIdx = 0; animIdx < scene->mNumAnimations; ++animIdx)
+    //    {
+    //        aiAnimation* aiAnim = scene->mAnimations[animIdx];
+    //        Animation& anim = m_Animations[animIdx];
+
+    //        anim.Name = aiAnim->mName.C_Str();
+    //        anim.Duration = static_cast<float>(aiAnim->mDuration / aiAnim->mTicksPerSecond);
+
+    //        // BoneAnimation 채우기
+    //        anim.BoneAnimations.resize(m_Skeleton.size()); // Skeleton의 본 개수만큼 생성
+
+    //        for (UINT c = 0; c < aiAnim->mNumChannels; ++c)
+    //        {
+    //            aiNodeAnim* channel = aiAnim->mChannels[c];
+    //            std::string boneName = channel->mNodeName.C_Str();
+
+    //            // Skeleton에서 이름으로 인덱스 찾기
+    //            auto it = std::find_if(m_Skeleton.begin(), m_Skeleton.end(), [&](const Bone& b) { return b.m_Name == boneName; });
+
+    //            if (it != m_Skeleton.end())
+    //            {
+    //                int boneIndex = static_cast<int>(it - m_Skeleton.begin());
+    //                BoneAnimation& boneAnim = anim.BoneAnimations[boneIndex];
+
+    //                // 위치 키
+    //                for (UINT k = 0; k < channel->mNumPositionKeys; ++k)
+    //                {
+    //                    aiVectorKey& pk = channel->mPositionKeys[k];
+    //                    AnimationKey key;
+    //                    key.Time = static_cast<float>(pk.mTime / aiAnim->mTicksPerSecond);
+    //                    key.Position = Vector3(pk.mValue.x, pk.mValue.y, pk.mValue.z);
+    //                    boneAnim.AnimationKeys.push_back(key);
+    //                }
+
+    //                // 회전 키
+    //                for (UINT k = 0; k < channel->mNumRotationKeys; ++k)
+    //                {
+    //                    aiQuatKey& rk = channel->mRotationKeys[k];
+    //                    AnimationKey& key = boneAnim.AnimationKeys[k]; // 같은 인덱스 사용
+    //                    key.Rotation = Quaternion(rk.mValue.x, rk.mValue.y, rk.mValue.z, rk.mValue.w);
+    //                }
+
+    //                // 스케일 키
+    //                for (UINT k = 0; k < channel->mNumScalingKeys; ++k)
+    //                {
+    //                    aiVectorKey& sk = channel->mScalingKeys[k];
+    //                    AnimationKey& key = boneAnim.AnimationKeys[k]; // 같은 인덱스 사용
+    //                    key.Scaling = Vector3(sk.mValue.x, sk.mValue.y, sk.mValue.z);
+    //                }
+
+    //                // Skeleton의 본에 이 BoneAnimation 연결
+    //                it->m_pBoneAnimation = &boneAnim;
+    //            }
+    //        }
+    //    }
+    //}
+
+    
     // [ 서브메시 로드 ]
     m_Sections.resize(scene->mNumMeshes);
+    OutputDebugString((L"[m_Sections.size()] " + std::to_wstring(m_Sections.size()) + L"\n").c_str());
+
     for (UINT i = 0; i < m_Sections.size(); ++i)
     {
         m_Sections[i].InitializeFromAssimpMesh(device, scene->mMeshes[i]);
         m_Sections[i].m_MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
 
-        m_Sections[i].m_RefBoneIndex = m_Skeleton[i].m_ParentIndex;
-
-
-        // SubMesh 자체 로컬 변환 초기화
-        m_Sections[i].m_WorldTransform = XMMatrixIdentity();
-
-        char buf[256];
-        sprintf_s(buf, " m_MaterialIndex =%d , m_RefBoneIndex=%d \n", m_Sections[i].m_MaterialIndex, m_Sections[i].m_RefBoneIndex);
-        OutputDebugStringA(buf);
+        FindMeshBoneMapping(scene->mRootNode, scene);
     }
 
-    //for (UINT i = 0; i < m_Skeleton.size(); ++i)
-    //{
-    //    char buf[256];
-    //    sprintf_s(buf, "[] %s : ParentIndex=%d , Index=%d\n", m_Skeleton[i].m_Name.c_str(), m_Skeleton[i].m_ParentIndex, m_Skeleton[i].m_Index);
-    //    OutputDebugStringA(buf);
-    //}
-
     return true;
+}
+
+// [ 매시 - 본 연결 ]
+void SkeletalMesh::FindMeshBoneMapping(aiNode* node, const aiScene* scene)
+{
+    // 1. 현재 노드 이름과 일치하는 본 인덱스 찾기
+    int boneIndex = -1;
+    for (int i = 0; i < (int)m_Skeleton.size(); ++i)
+    {
+        if (_stricmp(m_Skeleton[i].m_Name.c_str(), node->mName.C_Str()) == 0)
+        {
+            boneIndex = i;
+            break;
+        }
+    }
+
+    // 2. 이 노드가 가진 Mesh들에 대해 RefBoneIndex 연결
+    for (UINT i = 0; i < node->mNumMeshes; ++i)
+    {
+        UINT meshIndex = node->mMeshes[i];
+        if (meshIndex < m_Sections.size())
+        {
+            m_Sections[meshIndex].m_RefBoneIndex = boneIndex;
+
+            // [ Mesh - Bone 연결 디버깅 ]
+            //char buf[256];
+            //sprintf_s(buf, "[MeshMapping] Mesh[%d] → Bone[%d] (%s)\n", meshIndex, boneIndex, m_Skeleton[boneIndex].m_Name.c_str());
+            //OutputDebugStringA(buf);
+        }
+    }
+
+    // 3. 자식 노드도 재귀적으로 처리
+    for (UINT i = 0; i < node->mNumChildren; ++i)
+    {
+        FindMeshBoneMapping(node->mChildren[i], scene);
+    }
 }
 
 
@@ -82,7 +171,17 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
     for (auto& sub : m_Sections)
     {
         ConstantBuffer cb = globalCB;
-        cb.mWorld = XMMatrixTranspose(m_World * sub.m_WorldTransform);
+
+        int refBone = sub.m_RefBoneIndex;  // OutputDebugString((L"[refBone] " + std::to_wstring(refBone) + L"\n").c_str());
+
+        if (sub.m_RefBoneIndex != -1)
+        {
+            cb.mWorld = XMMatrixTranspose(m_Skeleton[refBone].m_Model * sub.m_WorldTransform);
+        }
+        else
+        {
+            cb.mWorld = XMMatrixTranspose(sub.m_WorldTransform);
+        }
 
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
@@ -92,18 +191,16 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
 
         if (material)
         {
-            // SubMesh 렌더링
-            sub.Render(context, *material, globalCB, pCB, pBoneBuffer, pSampler);
+            sub.Render(context, *material, cb, pCB, pBoneBuffer, pSampler); // SubMesh 렌더링
         }
     }
 }
 
-// 애니메이션 업데이트 
+// [ 업데이트 ]
 void SkeletalMesh::Update(float deltaTime)
 {
     m_AnimationTime += deltaTime;
 
-    // 1. 본 애니메이션 평가
     for (auto& bone : m_Skeleton)
     {
         if (bone.m_pBoneAnimation)
@@ -119,44 +216,20 @@ void SkeletalMesh::Update(float deltaTime)
 
         if (bone.m_ParentIndex != -1)
         {
-            bone.m_Model = XMMatrixMultiply(bone.m_Local, m_Skeleton[bone.m_ParentIndex].m_Model);
+            bone.m_Model = bone.m_Local * m_Skeleton[bone.m_ParentIndex].m_Model; 
         }
         else
         {
             bone.m_Model = bone.m_Local;
         }
+
+        // [ m_Model 디버그 출력 ]
+        //XMFLOAT4X4 m;
+        //XMStoreFloat4x4(&m, bone.m_Model);
+        //char buf[512];
+        //sprintf_s( buf, "%s m_Model:\n" "[%f %f %f]\n", bone.m_Name.c_str(), m._41, m._42, m._43 );
+        //OutputDebugStringA(buf);
     }
-
-    // 2. SubMesh 위치 업데이트
-    for (auto& section : m_Sections)
-    {
-        if (section.m_RefBoneIndex >= 0 && section.m_RefBoneIndex < (int)m_Skeleton.size())
-        {
-            // RefBone 모델 행렬 기준으로 SubMesh 로컬 행렬 곱하기
-            section.m_WorldTransform = m_Skeleton[section.m_RefBoneIndex].m_Model * section.m_WorldTransform;
-        }
-        else
-        {
-            // RefBone 없으면 루트 기준
-            section.m_WorldTransform = m_Skeleton[0].m_Model * section.m_WorldTransform;
-        }
-    }
-}
-
-
-void SkeletalMesh::Clear()
-{
-    // Section Clear  // SubMesh Clear
-    for (auto& sub : m_Sections) sub.Clear();
-    m_Sections.clear();
-
-    // Material Clear
-    for (auto& mat : m_Materials) mat.Clear();
-    m_Materials.clear();
-
-    m_Skeleton.clear();
-    // m_SkeletonPose.Clear();
-    m_Animations.clear();
 }
 
 // [ 스켈레톤 생성 ]
@@ -180,11 +253,11 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
                 transform.a1, transform.b1, transform.c1, transform.d1,
                 transform.a2, transform.b2, transform.c2, transform.d2,
                 transform.a3, transform.b3, transform.c3, transform.d3,
-                transform.a4, transform.b4, transform.c4, transform.d4);
-
-            // bone.m_Model = bone.m_Local;
+                transform.a4, transform.b4, transform.c4, transform.d4
+            );
+        
             // 부모 행렬과 결합해서 월드행렬(모델행렬) 계산
-            bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
+            bone.m_Model = XMMatrixMultiply(parentTransform, bone.m_Local);
 
             bone.m_Index = (int)m_Skeleton.size();
 
@@ -192,7 +265,9 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
             
             // 자식 노드 재귀 
             for (UINT i = 0; i < node->mNumChildren; ++i)
+            {
                 traverse(node->mChildren[i], bone.m_Index, bone.m_Model);
+            }
 
             char buf[256];
             sprintf_s(buf, "%s : ParentIndex=%d , Index=%d\n", bone.m_Name.c_str(), bone.m_ParentIndex, bone.m_Index);
@@ -200,4 +275,17 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
         };
 
     traverse(scene->mRootNode, -1, DirectX::XMMatrixIdentity());
+}
+
+
+void SkeletalMesh::Clear()
+{
+    for (auto& sub : m_Sections) sub.Clear();
+    m_Sections.clear();
+
+    for (auto& mat : m_Materials) mat.Clear();
+    m_Materials.clear();
+
+    m_Skeleton.clear();
+    m_Animations.clear();
 }
