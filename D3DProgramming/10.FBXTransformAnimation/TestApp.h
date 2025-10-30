@@ -34,7 +34,6 @@ public:
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
-	ComPtr<ID3D11Buffer> m_pBoneBuffer;             // 본 전용 상수 버퍼 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
 

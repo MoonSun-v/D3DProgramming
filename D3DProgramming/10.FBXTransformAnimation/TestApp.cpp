@@ -57,7 +57,7 @@ void TestApp::Update()
 		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *   // 스케일
 		XMMatrixRotationRollPitchYaw(rotX, rotY, rotZ) *                 // 입력 회전
 		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
-	m_WorldChar = world; // TODO 
+	m_WorldChar = world; 
 	boxHuman.Update(deltaTime, world);
 }     
 
@@ -76,14 +76,7 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// Skinned용 본 행렬 버퍼 준비 (지금 사용X)
-	BoneMatrixContainer boneCB;
-	boneCB.Clear();
-	
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
-	
-	// [ Mesh 렌더링 ] TODO : 깔끔하게 수정 
+	// [ Mesh 렌더링 ]
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;
@@ -97,11 +90,10 @@ void TestApp::Render()
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
-		cb.gIsRigid = 1.0f;           // Rigid 모델이면 1 
-		// cb.gRefBoneIndex = mesh.RefBoneIndex;     
+		cb.gIsRigid = 1.0f;           // Rigid 모델이면 1   
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
-		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
+		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pSamplerLinear.Get());
 	};
 	RenderMesh(boxHuman, m_WorldChar);
 
@@ -291,19 +283,6 @@ bool TestApp::InitScene()
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
-
-	// 본 행렬용 상수 버퍼
-	D3D11_BUFFER_DESC bdBone = {};
-	bdBone.Usage = D3D11_USAGE_DEFAULT;
-	bdBone.ByteWidth = sizeof(BoneMatrixContainer); // 128 x 4x4 Matrix
-	OutputDebugString((L"[sizeof(BoneMatrixContainer)] " + std::to_wstring(sizeof(BoneMatrixContainer)) + L"\n").c_str());
-	bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bdBone.CPUAccessFlags = 0;
-	//bdBone.MiscFlags = 0;
-	//bdBone.StructureByteStride = 0;
-
-	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneBuffer.GetAddressOf()));
-	
 
 
 	// ---------------------------------------------------------------

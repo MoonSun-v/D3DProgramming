@@ -45,7 +45,6 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
 
     // [5] 머티리얼 / 본 정보 설정
     m_MaterialIndex = mesh->mMaterialIndex;
-    // SetSkeletonInfo(mesh);
 }
 
 // [버텍스 버퍼 생성]
@@ -88,7 +87,6 @@ void SkeletalMeshSection::Render(
     const Material& mat,
     const ConstantBuffer& cb,
     ID3D11Buffer* pConstantBuffer,
-    ID3D11Buffer* pBoneBuffer,
     ID3D11SamplerState* pSampler)    
 {
     // Vertex / Index 바인딩

@@ -33,13 +33,7 @@
     <ClInclude Include="Animation.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="SkeletonInfo.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="Bone.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="BoneMatrixContainer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -60,12 +54,6 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Animation.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SkeletonInfo.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Bone.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

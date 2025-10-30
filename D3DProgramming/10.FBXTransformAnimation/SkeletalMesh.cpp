@@ -166,7 +166,7 @@ void SkeletalMesh::FindMeshBoneMapping(aiNode* node, const aiScene* scene)
 
 
 // [ SubMesh ´ÜÀ§·Î Material Àû¿ë ÈÄ ·»´õ¸µ ]
-void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler)
+void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11SamplerState* pSampler)
 {
     for (auto& sub : m_Sections)
     {
@@ -191,7 +191,7 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
 
         if (material)
         {
-            sub.Render(context, *material, cb, pCB, pBoneBuffer, pSampler); // SubMesh ·»´õ¸µ
+            sub.Render(context, *material, cb, pCB, pSampler); // SubMesh ·»´õ¸µ
         }
     }
 }
