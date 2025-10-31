@@ -255,7 +255,7 @@ bool TestApp::InitScene()
 	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/10.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/11.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 
@@ -277,7 +277,7 @@ bool TestApp::InitScene()
 	// 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/10.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/11.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 
@@ -299,18 +299,15 @@ bool TestApp::InitScene()
 	OutputDebugString((L"[sizeof(BoneMatrixContainer)] " + std::to_wstring(sizeof(BoneMatrixContainer)) + L"\n").c_str());
 	bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bdBone.CPUAccessFlags = 0;
-	//bdBone.MiscFlags = 0;
-	//bdBone.StructureByteStride = 0;
 
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneBuffer.GetAddressOf()));
 	
-
 
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
-
+	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 
 
 	// ---------------------------------------------------------------
