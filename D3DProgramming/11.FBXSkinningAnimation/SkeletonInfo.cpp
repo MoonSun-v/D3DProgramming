@@ -1,7 +1,7 @@
 ﻿#include "SkeletonInfo.h"
 
 
-// 노드 개수 세기 
+// [ 노드 개수 세기 ]
 void SkeletonInfo::CountNode(int& count, const aiNode* pNode)
 {
     if (!pNode)  return;
@@ -15,7 +15,7 @@ void SkeletonInfo::CountNode(int& count, const aiNode* pNode)
 }
 
 
-// aiScene 로부터 Skeleton 생성
+// [ aiScene 로부터 Skeleton 생성 ]
 void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
 {
     if (!pScene || !pScene->mRootNode)

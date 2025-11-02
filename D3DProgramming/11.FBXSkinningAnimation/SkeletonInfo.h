@@ -10,14 +10,20 @@ using namespace DirectX::SimpleMath;
 
 struct BoneInfo
 {
-	Matrix RelativeTransform; // node->mTransformation (converted & transposed)
-	std::string Name;
-	std::string ParentBoneName;
+	std::string Name;			// 본 이름 
+	std::string ParentBoneName;	// 부모 본 이름 
+	Matrix RelativeTransform;	// 부모로부터의 상대적인 변환 
+	int ParentIndex = -1; // Skinned에서 사용 안함 
 
-	int ParentIndex = -1;
+	BoneInfo() = default;
+	BoneInfo(const aiNode* pNode)
+	{
+		Name = std::string(pNode->mName.C_Str());
+		RelativeTransform = Matrix(&pNode->mTransformation.a1).Transpose();
+	}
 };
 
-// 본 전체 정보를 저장하는 구조체
+// BoneInfo를 모은 SkeletonInfo : 본 전체 정보를 저장하는 구조체 
 class SkeletonInfo
 {
 public:
@@ -29,8 +35,7 @@ public:
 
 public:
 	void CreateFromAiScene(const aiScene* pScene);
-	BoneInfo* CreateBoneInfo(const aiScene* pScene, const aiNode* pNode);
-
+	// BoneInfo* CreateBoneInfo(const aiScene* pScene, const aiNode* pNode);
 	BoneInfo* GetBoneInfoByName(const std::string& name);
 	BoneInfo* GetBoneInfoByIndex(int index);
 	int GetBoneIndexByBoneName(const std::string& boneName);

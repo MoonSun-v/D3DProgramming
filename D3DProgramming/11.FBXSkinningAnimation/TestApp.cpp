@@ -77,10 +77,9 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Skinned용 본 행렬 버퍼 준비 (지금 사용X)
-	BoneMatrixContainer boneCB;
-	boneCB.Clear();
-	
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boneCB, 0, 0);
+	//BoneMatrixContainer boneCB;
+	//boneCB.Clear();
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
 	
 	// [ Mesh 렌더링 ] TODO : 깔끔하게 수정 
@@ -97,14 +96,14 @@ void TestApp::Render()
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
-		cb.gIsRigid = 1.0f;           // Rigid 모델이면 1 
-		// cb.gRefBoneIndex = mesh.RefBoneIndex;     
+		// [ Section 단위로 할당 ]
+		// cb.gIsRigid = (mesh.IsRigid()) ? 1.0f : 0.0f; // Rigid 1 / Skinned 0
+		// cb.gRefBoneIndex = (float)mesh.m_RefBoneIndex;   
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
 		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
 	};
 	RenderMesh(boxHuman, m_WorldChar);
-
 	// PrintMatrix(boxHuman.m_World);
 
 	// UI 그리기 
@@ -269,6 +268,8 @@ bool TestApp::InitScene()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // uint4
+		{ "BLENDWEIGHT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // float4
 	};
 	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 

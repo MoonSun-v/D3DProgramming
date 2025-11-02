@@ -15,26 +15,30 @@ cbuffer ConstantBuffer : register(b0)
     matrix gView; // 뷰 변환 행렬 (월드 좌표 → 카메라 좌표)
     matrix gProjection; // 투영 변환 행렬 (카메라 좌표 → 클립 좌표)
 
-    float4 vLightDir; // 광원 방향 벡터 
+    float4 vLightDir;   // 광원 방향 벡터 
     float4 vLightColor; // 광원 색상 
     float4 vOutputColor; // 단색 렌더링용 출력 색상
-    float4 vEyePos; // 카메라 위치
+    float4 vEyePos;      // 카메라 위치
     
     float4 vAmbient; // 머티리얼 Ambient
     float4 vDiffuse; // 머티리얼 DiffuseA
     float4 vSpecular; // 머티리얼 Specular
     
-    float fShininess; // 반짝임 정도
-    float gIsRigid; // 1: Rigid, 0: Skinned
+    float fShininess;  
+    float gIsRigid;     // 1: Rigid, 0: Skinned
     float gRefBoneIndex; // 리지드일 때 참조 본 인덱스
-    float pad1[1]; // 16바이트 정렬
+    float pad1[1];      // 16바이트 정렬
 }
 
 
-// 각 본 변환 행렬 
-cbuffer ModelMatrix : register(b1)
+cbuffer BonePoseMatrix : register(b1)
 {
-    matrix gModelMatricies[128]; 
+    matrix gBonePose[128]; 
+}
+
+cbuffer BoneOffsetMatrix : register(b2)
+{
+    matrix gBoneOffset[128];
 }
 
 
@@ -47,9 +51,8 @@ struct VS_INPUT
     float2 Tex : TEXCOORD0;
     float3 Tangent : TANGENT;
     float3 Binormal : BINORMAL; // CPU에서 미리 지정된 Binormal 추가
-    
-    // uint BoneIndex : BLENDINDICES; // 본 인덱스 
-    // float4 BoneWeights : BLENDWEIGHT0;
+    uint4 BoneIndices : BLENDINDICES; // 4개의 본 인덱스 
+    float4 BlendWeights : BLENDWEIGHT0; // 4개의 블렌딩 가중치 
 };
 
 

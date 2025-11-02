@@ -16,9 +16,12 @@ public:
     std::vector<Material> m_Materials;               // FBX에서 읽은 머티리얼들
     std::vector<Animation> m_Animations;             // 애니메이션 리스트
     std::vector<Bone> m_Skeleton;                    // Bone 인스턴스 데이터
+    std::unique_ptr<SkeletonInfo> m_pSkeletonInfo;
 
     float m_AnimationTime = 0.0f;                    // 현재 애니메이션 시간
     int m_AnimationIndex = 0;                        // 현재 재생 중인 애니메이션 인덱스
+
+    BoneMatrixContainer m_SkeletonPose;              // GPU로 전송할 본 행렬 컨테이너
 
     XMMATRIX m_World;                                // 월드 행렬
     

@@ -15,11 +15,8 @@ struct BoneMatrixContainer
 
     void SetBoneCount(int count)
     {
-        // count가 MaxBones보다 크면 안전하게 잘라냄
-        int limit = count;
-        if (limit > MaxBones)  limit = MaxBones;
-
-        for (int i = 0; i < limit; ++i)
+        if (count > MaxBones) count = MaxBones;
+        for (int i = count; i < MaxBones; ++i)
             m_Model[i] = Matrix::Identity;
     }
 
@@ -28,4 +25,6 @@ struct BoneMatrixContainer
         if (index >= 0 && index < MaxBones)
             m_Model[index] = mat;
     }
+
+    const Matrix& GetMatrix(int index) const { return m_Model[index]; }
 };
