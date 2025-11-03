@@ -33,10 +33,15 @@ public:
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
-	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// 상수 버퍼 
-	ComPtr<ID3D11Buffer> m_pBoneBuffer;             // 본 전용 상수 버퍼 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
+	// 버퍼
+	ComPtr<ID3D11Buffer> m_pConstantBuffer;     // b0 : 상수 버퍼
+	ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
+	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;   // b2 : Bone Offset
+
+	BoneMatrixContainer SkeletonPose;        // CPU 포즈 행렬
+	BoneMatrixContainer BoneOffsetMatrices;  // CPU 본 오프셋 행렬
 
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)

@@ -18,7 +18,7 @@ struct Vertex
     XMFLOAT3 Normal;
     XMFLOAT2 TexCoord;
     XMFLOAT3 Tangent;
-    XMFLOAT3 Binormal; // 제거 
+    XMFLOAT3 Binormal; // 제거 ?
 
     // 영향받는 본 수는 최대 4개로 제한한다.
     int BlendIndices[4] = { 0, 0, 0, 0 }; // 참조하는 본의 인덱스의 범위는 최대 128개로 일단 처리함 
@@ -54,6 +54,14 @@ public:
 
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
 
+    // 포즈, 오프셋 
+    ComPtr<ID3D11Buffer> pBonePoseBuffer;    // b1 (Pose)
+    ComPtr<ID3D11Buffer> pBoneOffsetBuffer;  // b2 (Offset)
+
+    BoneMatrixContainer SkeletonPose;        // CPU 포즈 행렬
+    BoneMatrixContainer BoneOffsetMatrices;  // CPU 본 오프셋 행렬
+
+
 private:
     ComPtr<ID3D11Buffer> m_VertexBuffer;
     ComPtr<ID3D11Buffer> m_IndexBuffer;
@@ -63,13 +71,13 @@ private:
 public:
     // FBX aiMesh -> SubMesh
     void InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh);
-    void Render(ID3D11DeviceContext* context, const Material& mat, const ConstantBuffer& globalCB, ID3D11Buffer* pConstantBuffer, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler);
+    void Render(ID3D11DeviceContext* context, const Material& mat, const ConstantBuffer& globalCB, ID3D11Buffer* pConstantBuffer, ID3D11Buffer* pBonePoseBuffer,
+        ID3D11Buffer* pBoneOffsetBuffer, ID3D11SamplerState* pSampler);
     void Clear();
 
 private:
     void CreateVertexBuffer(ID3D11Device* device);
     void CreateIndexBuffer(ID3D11Device* device);
     void CreateBoneWeightedVertex(const aiMesh* mesh);
-    // void CreateBoneWeightedVertexBuffer(ID3D11Device* device, BoneWeightVertices, ); // device, &m_BoneWeightVertices[0], (UINT)m_BoneWeightVertices.size()
     void SetSkeletonInfo(const aiMesh* mesh);
 };

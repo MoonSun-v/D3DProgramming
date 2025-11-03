@@ -20,7 +20,7 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
         if (mesh->HasTangentsAndBitangents())
         {
             Vertices[i].Tangent = XMFLOAT3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-            // Vertices[i].Binormal = XMFLOAT3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+            Vertices[i].Binormal = XMFLOAT3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
         }
     }
 
@@ -54,7 +54,6 @@ void SkeletalMeshSection::CreateVertexBuffer(ID3D11Device* device)
 {
     if (Vertices.empty()) return;
 
-    // Position / Normal / UV / Tangent / Binormal 버퍼 생성
     D3D11_BUFFER_DESC bd{};
     D3D11_SUBRESOURCE_DATA init{};
 
@@ -94,10 +93,7 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
         if (boneIndex == -1) continue;
 
         // OffsetMatrix는 SkeletonInfo의 BoneOffsetMatrices에 저장
-        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix(
-            boneIndex,
-            Matrix(&pAiBone->mOffsetMatrix.a1).Transpose()
-        );
+        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1).Transpose() );
 
         // 각 버텍스에 본 가중치 적용
         for (UINT j = 0; j < pAiBone->mNumWeights; ++j)
@@ -115,7 +111,6 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 void SkeletalMeshSection::SetSkeletonInfo(const aiMesh* mesh)
 {
     // FBX의 본 이름 / 오프셋 매트릭스 등 SkeletonInfo와 연동할 때 구현
-    // 현재는 단순 참조 인덱스 초기화만 수행
     m_RefBoneIndex = (mesh->mNumBones > 0) ? 0 : -1;
 }
 
@@ -126,7 +121,8 @@ void SkeletalMeshSection::Render(
     const Material& mat,
     const ConstantBuffer& cb,
     ID3D11Buffer* pConstantBuffer,
-    ID3D11Buffer* pBoneBuffer,
+    ID3D11Buffer* pBonePoseBuffer,
+    ID3D11Buffer* pBoneOffsetBuffer,
     ID3D11SamplerState* pSampler)    
 {
     // Vertex / Index 바인딩
@@ -140,9 +136,9 @@ void SkeletalMeshSection::Render(
     context->VSSetConstantBuffers(0, 1, &pConstantBuffer);
     context->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 
-    // 본 오프셋/포즈 버퍼 바인딩
-    context->VSSetConstantBuffers(1, 1, &pBoneBuffer);  // b1 (Pose)
-    context->VSSetConstantBuffers(2, 1, &pBoneBuffer);  // b2 (Offset)
+    // Bone Buffer (전역에서 전달받은 포인터 사용)
+    context->VSSetConstantBuffers(1, 1, &pBonePoseBuffer);   // b1: Pose
+    context->VSSetConstantBuffers(2, 1, &pBoneOffsetBuffer); // b2: Offset
 
     // Material 텍스처 바인딩
     const TextureSRVs& tex = mat.GetTextures();

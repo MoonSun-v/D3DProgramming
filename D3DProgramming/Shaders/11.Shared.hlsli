@@ -55,7 +55,6 @@ struct VS_INPUT
     float4 BlendWeights : BLENDWEIGHT0; // 4개의 블렌딩 가중치 
 };
 
-
 // 픽셀 셰이더 입력 구조체 (정점 셰이더 출력 -> 픽셀 셰이더 입력)
 struct PS_INPUT
 {

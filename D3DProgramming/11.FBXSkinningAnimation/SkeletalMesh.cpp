@@ -169,7 +169,8 @@ void SkeletalMesh::FindMeshBoneMapping(aiNode* node, const aiScene* scene)
 
 
 // [ SubMesh 단위로 Material 적용 후 렌더링 ]
-void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBoneBuffer, ID3D11SamplerState* pSampler)
+void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBonePoseBuffer,
+    ID3D11Buffer* pBoneOffsetBuffer, ID3D11SamplerState* pSampler)
 {
     for (auto& sub : m_Sections)
     {
@@ -196,7 +197,7 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
 
         if (material)
         {
-            sub.Render(context, *material, cb, pCB, pBoneBuffer, pSampler); // SubMesh 렌더링
+            sub.Render(context, *material, cb, pCB, pBonePoseBuffer, pBoneOffsetBuffer, pSampler); // SubMesh 렌더링
         }
     }
 }
@@ -242,17 +243,6 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
             bone.m_Model = bone.m_Local * worldMat; // 조정 : 루트 본만 적용  
         }
 
-        // GPU용 본 행렬 계산
-        m_SkeletonPose.SetBoneCount((int)m_Skeleton.size());
-
-        for (int i = 0; i < (int)m_Skeleton.size(); ++i)
-        {
-            Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(i);
-            Matrix pose = m_Skeleton[i].m_Model;
-            Matrix final = offset * pose;   // Offset * Model
-            m_SkeletonPose.SetMatrix(i, final.Transpose()); 
-        }
-
         // [ m_Model 디버그 출력 ]
         //XMFLOAT4X4 m;
         //XMStoreFloat4x4(&m, bone.m_Model);
@@ -260,6 +250,26 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
         //sprintf_s( buf, "%s m_Model:\n" "[%f %f %f]\n", bone.m_Name.c_str(), m._41, m._42, m._43 );
         //OutputDebugStringA(buf);
     }
+
+    // GPU용 본 행렬 계산
+    m_SkeletonPose.SetBoneCount((int)m_Skeleton.size());
+
+    // CPU에서는 Pose만 넘김 (offset은 따로 버퍼에 있움) 
+    for (int i = 0; i < (int)m_Skeleton.size(); ++i)
+    {
+        Matrix pose = m_Skeleton[i].m_Model;
+        m_SkeletonPose.SetMatrix(i, pose.Transpose());
+    }
+
+    //// GPU용 본 행렬 계산
+    //m_SkeletonPose.SetBoneCount((int)m_Skeleton.size());
+    //for (int i = 0; i < (int)m_Skeleton.size(); ++i)
+    //{
+    //    Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(i);
+    //    Matrix pose = m_Skeleton[i].m_Model;
+    //    Matrix final = offset * pose;   // Offset * Model
+    //    m_SkeletonPose.SetMatrix(i, final.Transpose());
+    //}
 }
 
 // [ 스켈레톤 생성 ]

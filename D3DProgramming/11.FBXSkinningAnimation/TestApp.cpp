@@ -76,12 +76,16 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// Skinned용 본 행렬 버퍼 준비 (지금 사용X)
-	//BoneMatrixContainer boneCB;
-	//boneCB.Clear();
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBoneBuffer.GetAddressOf()); // b1 레지스터
-	
+	// Bone Pose (b1)
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+
+	// Bone Offset (b2) : SkeletonInfo에서 가져와 한 번만 초기화
+	if (boxHuman.m_pSkeletonInfo)
+	{
+		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices, 0, 0);
+		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+	}
 	// [ Mesh 렌더링 ] TODO : 깔끔하게 수정 
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
@@ -101,8 +105,8 @@ void TestApp::Render()
 		// cb.gRefBoneIndex = (float)mesh.m_RefBoneIndex;   
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
-		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBoneBuffer.Get(), m_pSamplerLinear.Get());
-	};
+		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBonePoseBuffer.Get(), m_pBoneOffsetBuffer.Get(), m_pSamplerLinear.Get());
+		};
 	RenderMesh(boxHuman, m_WorldChar);
 	// PrintMatrix(boxHuman.m_World);
 
@@ -287,28 +291,28 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	D3D11_BUFFER_DESC bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBuffer); 
-	OutputDebugString((L"[sizeof(ConstantBuffer)] " + std::to_wstring(sizeof(ConstantBuffer)) + L"\n").c_str());
+	bd.ByteWidth = sizeof(ConstantBuffer);
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
-	// 본 행렬용 상수 버퍼
+	// [ 본 행렬용 상수 버퍼 생성 : b1 (Pose) ]
 	D3D11_BUFFER_DESC bdBone = {};
 	bdBone.Usage = D3D11_USAGE_DEFAULT;
-	bdBone.ByteWidth = sizeof(BoneMatrixContainer); // 128 x 4x4 Matrix
-	OutputDebugString((L"[sizeof(BoneMatrixContainer)] " + std::to_wstring(sizeof(BoneMatrixContainer)) + L"\n").c_str());
+	bdBone.ByteWidth = sizeof(BoneMatrixContainer);
 	bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bdBone.CPUAccessFlags = 0;
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
 
-	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneBuffer.GetAddressOf()));
-	
+	// [ 본 오프셋용 상수 버퍼 생성 : b2 (Offset) ]
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
+
 
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
-	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
+	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 
 
 	// ---------------------------------------------------------------

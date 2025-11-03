@@ -15,19 +15,21 @@ PS_INPUT main(VS_INPUT input)
     }
     else
     {
+         // v * OffsetMatrix * PoseMatrix -> v * AB(먼저계산)
         float4x4 OffsetPose[4];
         OffsetPose[0] = mul(gBoneOffset[input.BoneIndices.x], gBonePose[input.BoneIndices.x]);
         OffsetPose[1] = mul(gBoneOffset[input.BoneIndices.y], gBonePose[input.BoneIndices.y]);
         OffsetPose[2] = mul(gBoneOffset[input.BoneIndices.z], gBonePose[input.BoneIndices.z]);
         OffsetPose[3] = mul(gBoneOffset[input.BoneIndices.w], gBonePose[input.BoneIndices.w]);
 
-        ModelToWorld =
-            OffsetPose[0] * input.BlendWeights.x +
-            OffsetPose[1] * input.BlendWeights.y +
-            OffsetPose[2] * input.BlendWeights.z +
-            OffsetPose[3] * input.BlendWeights.w;
+        // 4개를 가중치 누적합으로 하나로 변경
+        float4x4 WeightedOffsetPose;
+        WeightedOffsetPose = mul(input.BlendWeights.x, OffsetPose[0]);
+        WeightedOffsetPose += mul(input.BlendWeights.y, OffsetPose[1]);
+        WeightedOffsetPose += mul(input.BlendWeights.z, OffsetPose[2]);
+        WeightedOffsetPose += mul(input.BlendWeights.w, OffsetPose[3]);
 
-        ModelToWorld = mul(ModelToWorld, gWorld);
+        Matrix ModelToWorld = mul(WeightedOffsetPose, gWorld); // 포즈변환과 World까지 누적
     }
 
     float4 worldPos = mul(input.Pos, ModelToWorld);
