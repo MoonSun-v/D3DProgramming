@@ -13,7 +13,7 @@ struct BoneInfo
 	std::string Name;			// 본 이름 
 	std::string ParentBoneName;	// 부모 본 이름 
 	Matrix RelativeTransform;	// 부모로부터의 상대적인 변환 
-	int ParentIndex = -1; // Skinned에서 사용 안함 
+	int ParentIndex = -1;	// Skinned에서 사용 안함 
 
 	BoneInfo() = default;
 	BoneInfo(const aiNode* pNode)

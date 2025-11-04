@@ -50,7 +50,7 @@ public:
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, 0.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, -200.0f, 0.0f };
 	Vector3 m_CharScale = { 0.5f, 0.5f, 0.5f };     
 	
 	float rotX = XMConvertToRadians(0.0f);  // 라디안

@@ -101,6 +101,7 @@ void TestApp::Render()
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
+		cb.gIsRigid = 0.0f;
 		// [ Section 단위로 할당 ]
 		// cb.gIsRigid = (mesh.IsRigid()) ? 1.0f : 0.0f; // Rigid 1 / Skinned 0
 		// cb.gRefBoneIndex = (float)mesh.m_RefBoneIndex;   
@@ -314,6 +315,7 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
 
 
 	// ---------------------------------------------------------------
