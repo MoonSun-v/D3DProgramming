@@ -44,22 +44,15 @@ struct Vertex
 class SkeletalMeshSection
 {
 public:
-    std::vector<Vertex> Vertices; // std::vector<BoneWeightVertex> BoneWeightVertices;
+    std::vector<Vertex> Vertices;  // std::vector<Vertex> BoneWeightVertices;
     std::vector<WORD> Indices;  // UNIT 
-
+    
     SkeletonInfo* m_pSkeletonInfo = nullptr;
     
     int m_MaterialIndex = -1;   // 이 서브메시가 참조하는 Material 인덱스
     int m_RefBoneIndex = -1;    // 이 섹션이 종속된 본 인덱스 
 
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
-
-    // 포즈, 오프셋 
-    ComPtr<ID3D11Buffer> pBonePoseBuffer;    // b1 (Pose)
-    ComPtr<ID3D11Buffer> pBoneOffsetBuffer;  // b2 (Offset)
-
-    BoneMatrixContainer SkeletonPose;        // CPU 포즈 행렬
-    BoneMatrixContainer BoneOffsetMatrices;  // CPU 본 오프셋 행렬
 
 
 private:

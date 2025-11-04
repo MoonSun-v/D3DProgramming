@@ -137,7 +137,7 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
         }
     }
 
-    std::cout << "[SkeletonInfo] Bone Count: " << Bones.size() << std::endl;
+    OutputDebugString((L"[SkeletonInfo] Bone Count: " + std::to_wstring(Bones.size()) + L"\n").c_str());
 }
 
 

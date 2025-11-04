@@ -78,15 +78,16 @@ void TestApp::Render()
 
 	// Bone Pose (b1)
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+	// m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
 
 	// Bone Offset (b2) : SkeletonInfo에서 가져와 한 번만 초기화
 	if (boxHuman.m_pSkeletonInfo)
 	{
 		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices, 0, 0);
-		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+		// m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
 	}
-	// [ Mesh 렌더링 ] TODO : 깔끔하게 수정 
+
+	// [ Mesh 렌더링 ] 
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;

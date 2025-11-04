@@ -40,8 +40,8 @@ public:
 	ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;   // b2 : Bone Offset
 
-	BoneMatrixContainer SkeletonPose;        // CPU 포즈 행렬
-	BoneMatrixContainer BoneOffsetMatrices;  // CPU 본 오프셋 행렬
+	// BoneMatrixContainer SkeletonPose;        // CPU 포즈 행렬
+	// BoneMatrixContainer BoneOffsetMatrices;  // CPU 본 오프셋 행렬
 
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
@@ -50,7 +50,7 @@ public:
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, -150.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, 0.0f, 0.0f };
 	Vector3 m_CharScale = { 0.5f, 0.5f, 0.5f };     
 	
 	float rotX = XMConvertToRadians(0.0f);  // 라디안

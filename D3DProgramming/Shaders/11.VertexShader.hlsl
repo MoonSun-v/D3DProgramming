@@ -29,7 +29,7 @@ PS_INPUT main(VS_INPUT input)
         WeightedOffsetPose += mul(input.BlendWeights.z, OffsetPose[2]);
         WeightedOffsetPose += mul(input.BlendWeights.w, OffsetPose[3]);
 
-        Matrix ModelToWorld = mul(WeightedOffsetPose, gWorld); // 포즈변환과 World까지 누적
+        ModelToWorld = mul(WeightedOffsetPose, gWorld); // 포즈변환 + World까지 누적
     }
 
     float4 worldPos = mul(input.Pos, ModelToWorld);
