@@ -45,8 +45,8 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
     CreateVertexBuffer(device);
 
     // [5] 머티리얼 / 본 정보 설정
-    m_MaterialIndex = mesh->mMaterialIndex;
-    SetSkeletonInfo(mesh);
+    // m_MaterialIndex = mesh->mMaterialIndex;
+    // SetSkeletonInfo(mesh);
 }
 
 // [버텍스 버퍼 생성]
@@ -86,14 +86,14 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 {
     if (!m_pSkeletonInfo) return;
 
-    Vertices.resize(mesh->mNumVertices);
-    for (UINT i = 0; i < mesh->mNumVertices; i++)
-    {
-        Vertices[i].Position = Vector3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-        Vertices[i].Normal = Vector3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-        Vertices[i].TexCoord = Vector2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-        Vertices[i].Tangent = Vector3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-    }
+    //Vertices.resize(mesh->mNumVertices);
+    //for (UINT i = 0; i < mesh->mNumVertices; i++)
+    //{
+    //    Vertices[i].Position = Vector3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+    //    Vertices[i].Normal = Vector3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+    //    Vertices[i].TexCoord = Vector2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+    //    Vertices[i].Tangent = Vector3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+    //}
 
     // UINT meshBoneCount = mesh->mNumBones; // 메쉬와 연결된 본 개수
     // BoneReferences.resize(meshBoneCount); // 본 연결 정보 컨테이너 크기 조절 
@@ -102,11 +102,29 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
     for (UINT i = 0; i < mesh->mNumBones; ++i)
     {
         aiBone* pAiBone = mesh->mBones[i];
-        int boneIndex = m_pSkeletonInfo->GetBoneIndexByBoneName(pAiBone->mName.C_Str());
-        if (boneIndex == -1) continue;
+        std::string boneName = pAiBone->mName.C_Str();
+
+        int boneIndex = m_pSkeletonInfo->GetBoneIndexByBoneName(boneName.c_str());
+
+        // [디버그 출력] 본 이름과 매칭 결과 확인
+        if (boneIndex == -1)
+        {
+            char buf[256];
+            sprintf_s(buf, "[Mesh:%s] Bone '%s' -> NOT FOUND in SkeletonInfo\n", mesh->mName.C_Str(), boneName.c_str());
+            OutputDebugStringA(buf);
+        }
+        else
+        {
+            char buf[256];
+            sprintf_s(buf, "[Mesh:%s] Bone '%s' -> Index = %d\n", mesh->mName.C_Str(), boneName.c_str(), boneIndex);
+            OutputDebugStringA(buf);
+        }
+
+
+        if (boneIndex == -1) continue; // 못찾으면 그냥 스킵
 
         // OffsetMatrix는 SkeletonInfo의 BoneOffsetMatrices에 저장
-        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1).Transpose() );
+        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1)/*.Transpose()*/ );
 
         // m_BoneReferences[i].NodeName = pAiBone->mName.C_Str();
         // m_BoneReferences[i].BoneIndex = boneIndex;
@@ -120,14 +138,6 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
             Vertices[vertexId].AddBoneData(boneIndex, weight);
         }
     }
-}
-
-
-// [ 본 관련 정보 세팅 ]
-void SkeletalMeshSection::SetSkeletonInfo(const aiMesh* mesh)
-{
-    // FBX의 본 이름 / 오프셋 매트릭스 등 SkeletonInfo와 연동할 때 구현
-    m_RefBoneIndex = (mesh->mNumBones > 0) ? 0 : -1;
 }
 
 

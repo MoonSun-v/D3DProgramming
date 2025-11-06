@@ -126,51 +126,79 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
     for (UINT i = 0; i < m_Sections.size(); ++i)
     {
-        m_Sections[i].m_pSkeletonInfo = m_pSkeletonInfo.get(); // Skinned 
+        m_Sections[i].m_pSkeletonInfo = m_pSkeletonInfo.get(); // Skinned : 모든 매시가 같은 스켈레톤 공유 
         m_Sections[i].InitializeFromAssimpMesh(device, scene->mMeshes[i]);
-        m_Sections[i].m_MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
+        // m_Sections[i].m_MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
     }
     
-    // FindMeshBoneMapping(scene->mRootNode, scene);
+    // FindMeshBoneMapping(scene);
 
     return true;
 }
 
-// [ 매시 - 본 연결 ]
-//void SkeletalMesh::FindMeshBoneMapping(aiNode* node, const aiScene* scene)
-//{
-//    // 1. 현재 노드 이름과 일치하는 본 인덱스 찾기
-//    int boneIndex = -1;
-//    for (int i = 0; i < (int)m_Skeleton.size(); ++i)
-//    {
-//        if (_stricmp(m_Skeleton[i].m_Name.c_str(), node->mName.C_Str()) == 0)
-//        {
-//            boneIndex = i;
-//            break;
-//        }
-//    }
-//
-//    // 2. 이 노드가 가진 Mesh들에 대해 RefBoneIndex 연결
-//    for (UINT i = 0; i < node->mNumMeshes; ++i)
-//    {
-//        UINT meshIndex = node->mMeshes[i];
-//        if (meshIndex < m_Sections.size())
-//        {
-//            m_Sections[meshIndex].m_RefBoneIndex = boneIndex;
-//
-//            // [ Mesh - Bone 짝궁 디버깅 ]
-//            char buf[256];
-//            sprintf_s(buf, "[MeshMapping] Mesh[%d] → Bone[%d] (%s)\n", meshIndex, boneIndex, m_Skeleton[boneIndex].m_Name.c_str());
-//            OutputDebugStringA(buf);
-//        }
-//    }
-//
-//    // 3. 자식 노드도 재귀적으로 처리
-//    for (UINT i = 0; i < node->mNumChildren; ++i)
-//    {
-//        FindMeshBoneMapping(node->mChildren[i], scene);
-//    }
-//}
+void SkeletalMesh::CreateSkeleton(const aiScene* scene)
+{
+    if (!scene->mRootNode) return;
+
+    m_Skeleton.clear(); 
+
+    std::unordered_set<std::string> boneNameSet;
+    for (UINT meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx)
+    {
+        aiMesh* mesh = scene->mMeshes[meshIdx];
+        for (UINT i = 0; i < mesh->mNumBones; ++i)
+        {
+            boneNameSet.insert(mesh->mBones[i]->mName.C_Str());
+        }
+    }
+
+    std::function<void(aiNode*, int, const Matrix&)> traverse =
+        [&](aiNode* node, int parentIdx, const Matrix parentTransform)
+        {
+            std::string nodeName = node->mName.C_Str();
+
+            bool isRealBone = boneNameSet.count(nodeName) > 0;
+
+            int thisBoneIndex = parentIdx;
+
+            Bone bone;
+
+            if (isRealBone)
+            {
+                bone.m_Name = nodeName;
+                bone.m_ParentIndex = parentIdx;
+
+                aiMatrix4x4 transform = node->mTransformation;
+                bone.m_Local = Matrix(
+                    transform.a1, transform.b1, transform.c1, transform.d1,
+                    transform.a2, transform.b2, transform.c2, transform.d2,
+                    transform.a3, transform.b3, transform.c3, transform.d3,
+                    transform.a4, transform.b4, transform.c4, transform.d4
+                );
+
+                bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
+
+                bone.m_Index = (int)m_Skeleton.size();
+                thisBoneIndex = bone.m_Index;
+
+                m_Skeleton.push_back(bone);
+
+                char buf[256];
+                sprintf_s(buf, "%s : ParentIndex=%d , Index=%d\n", bone.m_Name.c_str(), bone.m_ParentIndex, bone.m_Index);
+                OutputDebugStringA(buf);
+            }
+
+            for (UINT i = 0; i < node->mNumChildren; ++i)
+            {
+                if (isRealBone)
+                    traverse(node->mChildren[i], thisBoneIndex, bone.m_Model);
+                else
+                    traverse(node->mChildren[i], thisBoneIndex, parentTransform);
+            }
+        };
+
+    traverse(scene->mRootNode, -1, DirectX::XMMatrixIdentity());
+}
 
 
 // [ SubMesh 단위로 Material 적용 후 렌더링 ]
@@ -195,7 +223,10 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
         //    cb.mWorld = XMMatrixTranspose(sub.m_WorldTransform);
         //}
 
-        cb.mWorld = XMMatrixTranspose(sub.m_WorldTransform);
+        // cb.mWorld = XMMatrixTranspose(sub.m_WorldTransform);
+
+        int rootBoneIndex = 0; // 루트 본 인덱스 확인
+        cb.mWorld = XMMatrixTranspose(m_Skeleton[rootBoneIndex].m_Model * sub.m_WorldTransform);
 
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
@@ -224,18 +255,21 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
     // SimpleMath::Matrix -> XMMATRIX
     XMMATRIX worldMat = XMLoadFloat4x4(&worldTransform);
 
-    // 본 행렬 초기화
-    // m_SkeletonPose.Clear();
-    // m_SkeletonPose.SetBoneCount((int)m_Skeleton.size());
-
+    // OutputDebugStringA((std::string("m_Skeleton.size() = ") + std::to_string(m_Skeleton.size()) + "\n").c_str());
     // 본 포즈 계산 
     for (auto& bone : m_Skeleton)
     {
+        // if (!bone.m_pBoneAnimation) OutputDebugStringA((bone.m_Name + " has no animation\n").c_str());
+        
         if (bone.m_pBoneAnimation)
         {
             Vector3 pos, scale;
             Quaternion rot;
             bone.m_pBoneAnimation->Evaluate(m_AnimationTime, pos, rot, scale);
+
+            //char buf[256];
+            //sprintf_s(buf, "Bone %s Pos(%.3f, %.3f, %.3f)\n", bone.m_Name.c_str(), pos.x, pos.y, pos.z);
+            //OutputDebugStringA(buf);
 
             bone.m_Local = Matrix::CreateScale(scale) *
                 Matrix::CreateFromQuaternion(rot) *
@@ -248,7 +282,7 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
         }
         else 
         {
-            bone.m_Model = bone.m_Local; // * worldMat; // 조정 : 루트 본만 적용  
+            bone.m_Model = bone.m_Local * worldMat; // 조정 : 루트 본만 적용  
         }
     }
 
@@ -261,130 +295,7 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
         Matrix pose = m_Skeleton[i].m_Model;
         m_SkeletonPose.SetMatrix(i, pose.Transpose());
     }
-
-    // GPU용 본 행렬 계산
-    //m_SkeletonPose.SetBoneCount((int)m_Skeleton.size());
-    //for (int i = 0; i < (int)m_Skeleton.size(); ++i)
-    //{
-    //    Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(i);
-    //    Matrix pose = m_Skeleton[i].m_Model;
-    //    Matrix final = offset * pose;   // Offset * Model
-    //    m_SkeletonPose.SetMatrix(i, final.Transpose());
-    //}
 }
-
-void SkeletalMesh::CreateSkeleton(const aiScene* scene)
-{
-    if (!scene->mRootNode) return;
-
-    m_Skeleton.clear();
-
-    // Bone 구조체 생성 : 노드 순회하며 본 생성
-    std::function<void(aiNode*, int, const Matrix&)> traverse =
-        [&](aiNode* node, int parentIdx, const Matrix parentTransform)
-        {
-            Bone bone;
-            bone.m_Name = node->mName.C_Str();
-            bone.m_ParentIndex = parentIdx;
-
-            // 변환행렬 복사 : 열 -> 행 : 전치된 상태로 들어감 
-            aiMatrix4x4 transform = node->mTransformation;
-            bone.m_Local = Matrix(
-                transform.a1, transform.b1, transform.c1, transform.d1,
-                transform.a2, transform.b2, transform.c2, transform.d2,
-                transform.a3, transform.b3, transform.c3, transform.d3,
-                transform.a4, transform.b4, transform.c4, transform.d4
-            );
-
-            // 부모 행렬과 결합해서 월드행렬(모델행렬) 계산
-            bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
-
-            bone.m_Index = (int)m_Skeleton.size();
-
-            m_Skeleton.push_back(bone);
-
-            // 자식 노드 재귀 
-            for (UINT i = 0; i < node->mNumChildren; ++i)
-            {
-                traverse(node->mChildren[i], bone.m_Index, bone.m_Model);
-            }
-
-            // char buf[256];
-            // sprintf_s(buf, "%s : ParentIndex=%d , Index=%d\n", bone.m_Name.c_str(), bone.m_ParentIndex, bone.m_Index);
-            // OutputDebugStringA(buf);
-        };
-
-    traverse(scene->mRootNode, -1, DirectX::XMMatrixIdentity());
-}
-
-
-//// [ 스켈레톤 생성 ]
-//void SkeletalMesh::CreateSkeleton(const aiScene* scene)
-//{
-//    if (!scene->mRootNode) return;
-//
-//    m_Skeleton.clear(); 
-//
-//    // Mesh에서 사용하는 본 이름 수집
-//    std::unordered_set<std::string> boneNameSet;
-//    for (UINT meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx)
-//    {
-//        aiMesh* mesh = scene->mMeshes[meshIdx];
-//        for (UINT i = 0; i < mesh->mNumBones; ++i)
-//        {
-//            boneNameSet.insert(mesh->mBones[i]->mName.C_Str());
-//        }
-//    }
-//
-//    // Bone 구조체 생성 : 노드 순회하며 본 생성
-//    std::function<void(aiNode*, int, const Matrix&)> traverse =
-//        [&](aiNode* node, int parentIdx, const Matrix parentTransform)
-//        {
-//            std::string nodeName = node->mName.C_Str();
-//
-//            // 노드가 진짜 본이 아니면 스케치만 유지 (child는 계속 탐색)
-//            bool isRealBone = boneNameSet.count(nodeName) > 0;
-//
-//            int thisBoneIndex = parentIdx;
-//
-//            Bone bone;
-//
-//            if (isRealBone)
-//            {
-//                bone.m_Name = nodeName;
-//                bone.m_ParentIndex = parentIdx;
-//
-//                // 변환행렬 복사
-//                aiMatrix4x4 transform = node->mTransformation;
-//                bone.m_Local = Matrix(
-//                    transform.a1, transform.b1, transform.c1, transform.d1,
-//                    transform.a2, transform.b2, transform.c2, transform.d2,
-//                    transform.a3, transform.b3, transform.c3, transform.d3,
-//                    transform.a4, transform.b4, transform.c4, transform.d4
-//                );
-//
-//                bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
-//
-//                bone.m_Index = (int)m_Skeleton.size();
-//                thisBoneIndex = bone.m_Index;
-//
-//                m_Skeleton.push_back(bone);
-//
-//                char buf[256];
-//                sprintf_s(buf, "%s : ParentIndex=%d , Index=%d\n", bone.m_Name.c_str(), bone.m_ParentIndex, bone.m_Index);
-//                OutputDebugStringA(buf);
-//            }
-//
-//            // child 계속 탐색 (bone 여부와 관계없이)
-//            for (UINT i = 0; i < node->mNumChildren; ++i)
-//            {
-//                traverse(node->mChildren[i], thisBoneIndex,
-//                    isRealBone ? bone.m_Model : parentTransform);
-//            }
-//        };
-//
-//    traverse(scene->mRootNode, -1, DirectX::XMMatrixIdentity());
-//}
 
 
 void SkeletalMesh::Clear()

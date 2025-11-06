@@ -39,5 +39,6 @@ public:
 private:
     void CreateSkeleton(const aiScene* scene);
 
+    void FindMeshBoneMapping(const aiScene* scene);
     void FindMeshBoneMapping(aiNode* node, const aiScene* scene);
 };
