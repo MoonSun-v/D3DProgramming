@@ -13,7 +13,6 @@ struct BoneInfo
 	std::string Name;			// 본 이름 
 	std::string ParentBoneName;	// 부모 본 이름 
 	Matrix RelativeTransform;	// 부모로부터의 상대적인 변환 
-	int ParentIndex = -1;	// Skinned에서 사용 안함 
 
 	BoneInfo() = default;
 	BoneInfo(const aiNode* pNode)
@@ -28,10 +27,10 @@ class SkeletonInfo
 {
 public:
 	// GPU에 전달할 본 오프셋 매트릭스 컨테이너
-	BoneMatrixContainer BoneOffsetMatrices; // 본 오프셋 매트릭스 배열
+	BoneMatrixContainer BoneOffsetMatrices;			// 본 오프셋 매트릭스 배열
 	std::vector<BoneInfo> Bones;
-	std::map<std::string, int> BoneMappingTable; // BoneName, BoneIndex
-	std::map<std::string, int> MeshMappingTable; // MeshName, BoneIndex
+	std::map<std::string, int> BoneMappingTable;	// BoneName, BoneIndex
+	std::map<std::string, int> MeshMappingTable;	// MeshName, BoneIndex
 
 public:
 	void CreateFromAiScene(const aiScene* pScene);

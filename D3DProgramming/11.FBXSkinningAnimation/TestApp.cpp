@@ -1,5 +1,4 @@
 #include "TestApp.h"
-#include "ConstantBuffer.h"
 
 #include <string> 
 #include <dxgi1_3.h>
@@ -57,7 +56,8 @@ void TestApp::Update()
 		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *   // 스케일
 		XMMatrixRotationRollPitchYaw(rotX, rotY, rotZ) *                 // 입력 회전
 		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
-	m_WorldChar = world; // TODO 
+	m_WorldChar = world; 
+
 	boxHuman.Update(deltaTime, world);
 }     
 
@@ -76,15 +76,16 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(pConstantBuffer, 0, nullptr, &cb, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, &pConstantBuffer);
-	//m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, &pConstantBuffer);
+	// ConstantBuffer 
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	// Bone Pose (b1)
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose.m_Model, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
 
-	// Bone Offset (b2) : SkeletonInfo에서 가져와 한 번만 초기화
+	// Bone Offset (b2) 
 	if (boxHuman.m_pSkeletonInfo)
 	{
 		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
@@ -94,7 +95,6 @@ void TestApp::Render()
 	// [ Mesh 렌더링 ] 
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
-		ConstantBuffer cb;
 		cb.mWorld = XMMatrixTranspose(XMMatrixIdentity()); // 각 오브젝트 위치  
 		cb.mView = XMMatrixTranspose(m_View);
 		cb.mProjection = XMMatrixTranspose(m_Projection);
@@ -108,9 +108,10 @@ void TestApp::Render()
 		cb.gIsRigid = 0.0f;
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
-		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBonePoseBuffer.Get(), m_pBoneOffsetBuffer.Get(), m_pSamplerLinear.Get());
-		};
+		mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
+	};
 	RenderMesh(boxHuman, m_WorldChar);
+
 
 	// UI 그리기 
 	Render_ImGui();
@@ -268,9 +269,9 @@ bool TestApp::InitScene()
 	//---------------------------------------------------------------
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // POSITION : float3 (12바이트)
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },  // NORMAL   : float3 (12바이트, 오프셋 12)
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // TEXCOORD : float2 (8바이트, 오프셋 24)
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },	// POSITION : float3 (12바이트)
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },	// NORMAL   : float3 (12바이트, 오프셋 12)
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },		// TEXCOORD : float2 (8바이트, 오프셋 24)
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // uint4
@@ -297,7 +298,7 @@ bool TestApp::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
-	// [ 본 행렬용 상수 버퍼 생성 : b1 (Pose) ]
+	// [ 본 행렬용 상수 버퍼 : b1 (Pose) ]
 	D3D11_BUFFER_DESC bdBone = {};
 	bdBone.Usage = D3D11_USAGE_DEFAULT;
 	bdBone.ByteWidth = sizeof(BoneMatrixContainer);
@@ -305,16 +306,14 @@ bool TestApp::InitScene()
 	bdBone.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
 
-	// [ 본 오프셋용 상수 버퍼 생성 : b2 (Offset) ]
+	// [ 본 오프셋용 상수 버퍼 : b2 (Offset) ]
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/BoxHuman.fbx");
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-	// boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
 
 
 	// ---------------------------------------------------------------
@@ -329,7 +328,6 @@ bool TestApp::InitScene()
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
-
 
 
 	// ---------------------------------------------------------------

@@ -64,8 +64,7 @@ private:
 public:
     // FBX aiMesh -> SubMesh
     void InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh);
-    void Render(ID3D11DeviceContext* context, const Material& mat, const ConstantBuffer& globalCB, ID3D11Buffer* pConstantBuffer, ID3D11Buffer* pBonePoseBuffer,
-        ID3D11Buffer* pBoneOffsetBuffer, ID3D11SamplerState* pSampler);
+    void Render(ID3D11DeviceContext* context, const Material& mat, ID3D11SamplerState* pSampler);
     void Clear();
 
 private:

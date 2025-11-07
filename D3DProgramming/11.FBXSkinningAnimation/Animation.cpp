@@ -20,6 +20,7 @@ Matrix BoneAnimation::Evaluate(float time) const
     // 1. 현재 시간(time)에 해당하는 키 구간 찾기
     size_t i = 0;
     while (i + 1 < AnimationKeys.size() && time >= AnimationKeys[i + 1].Time) ++i;
+
     // time이 마지막 키보다 큰 경우 마지막 두 키를 사용
     if (i + 1 >= AnimationKeys.size()) i = AnimationKeys.size() - 2;
 
@@ -92,8 +93,7 @@ void BoneAnimation::Evaluate(float time, Vector3& outPos, Quaternion& outRot, Ve
 Matrix Animation::GetBoneTransform(int boneIndex, float time) const
 {
     // 유효하지 않은 본 인덱스인 경우 단위 행렬 반환
-    if (boneIndex < 0 || boneIndex >= (int)BoneAnimations.size())
-        return Matrix::Identity;
+    if (boneIndex < 0 || boneIndex >= (int)BoneAnimations.size())  return Matrix::Identity;
 
     // 해당 본 애니메이션
     return BoneAnimations[boneIndex].Evaluate(time);

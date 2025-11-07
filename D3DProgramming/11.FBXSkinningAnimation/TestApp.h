@@ -2,6 +2,7 @@
 #include "../Common/GameApp.h"
 #include "../Common/D3DDevice.h"
 #include "SkeletalMesh.h"
+#include "ConstantBuffer.h"
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
@@ -40,6 +41,8 @@ public:
 	ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;   // b2 : Bone Offset
 
+	ConstantBuffer cb;
+
 	// [ 셰이더에 전달할 데이터 ]
 	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
 	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
@@ -47,7 +50,7 @@ public:
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, 0.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, -100.0f, 0.0f };
 	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };     
 	
 	float rotX = XMConvertToRadians(0.0f);  // 라디안

@@ -4,8 +4,8 @@
 // vector 사용안하고, 배열 사용.
 struct BoneMatrixContainer
 {
-    static constexpr int MaxBones = 128;  // GPU 상수 버퍼 최대 크기
-    Matrix m_Model[128];             // 각 본의 최종 행렬
+    static constexpr int MaxBones = 128;    // GPU 상수 버퍼 최대 크기
+    Matrix m_Model[128];                    // 각 본의 최종 행렬
 
     void Clear()
     {

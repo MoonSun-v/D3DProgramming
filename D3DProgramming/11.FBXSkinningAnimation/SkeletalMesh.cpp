@@ -35,8 +35,7 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
     if (!scene) return false;
 
-	// 텍스처 기본 경로
-    std::wstring textureBase = fs::path(path).parent_path().wstring();
+    std::wstring textureBase = fs::path(path).parent_path().wstring(); // 텍스처 기본 경로
 
     // [ 머티리얼 로드 ]
     m_Materials.resize(scene->mNumMaterials);
@@ -52,11 +51,11 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     // [ 본 트리 생성 ]
     CreateSkeleton(scene);
 
-    // [ 애니메이션 로드 ]
+    // [ 애니메이션 ]
     bool hasAnimation = (scene->mNumAnimations > 0);
     OutputDebugString((L"[hasAnimation] " + std::to_wstring(hasAnimation) + L"\n").c_str());
 
-    if (hasAnimation) // 애니메이션이 있으면 Animation 리스트 채우기
+    if (hasAnimation) // 애니메이션 있으면 Animation 리스트 채우기
     {
         m_Animations.resize(scene->mNumAnimations);
 
@@ -171,7 +170,6 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
                     transform.a4, transform.b4, transform.c4, transform.d4
                 );
 
-                // bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
                 bone.m_Model = bone.m_Local; // 바인드 포즈에서는 누적 X 
 
                 bone.m_Index = (int)m_Skeleton.size();
@@ -201,15 +199,10 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
 }
 
 
-void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& globalCB, ID3D11Buffer* pCB, ID3D11Buffer* pBonePoseBuffer,
-    ID3D11Buffer* pBoneOffsetBuffer, ID3D11SamplerState* pSampler)
+void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler)
 {
     for (auto& sub : m_Sections)
     {
-        ConstantBuffer cb = globalCB;
-
-        // cb.mWorld = XMMatrixIdentity();
-
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
         {
@@ -218,7 +211,7 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
 
         if (material)
         {
-            sub.Render(context, *material, cb, pCB, pBonePoseBuffer, pBoneOffsetBuffer, pSampler); // SubMesh 렌더링
+            sub.Render(context, *material, pSampler); 
         }
     }
 }
@@ -235,8 +228,7 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
         m_AnimationTime = fmod(m_AnimationTime, anim.Duration);
     }
 
-    // SimpleMath::Matrix -> XMMATRIX
-    XMMATRIX worldMat = XMLoadFloat4x4(&worldTransform);
+    XMMATRIX worldMat = XMLoadFloat4x4(&worldTransform); // SimpleMath::Matrix -> XMMATRIX
 
     // 본 포즈 계산 
     for (auto& bone : m_Skeleton)
@@ -258,7 +250,7 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
         }
         else 
         {
-            bone.m_Model = bone.m_Local *worldMat; // 조정 : 루트 본만 적용  
+            bone.m_Model = bone.m_Local * worldMat; // 조정 : 루트 본만 적용  
         }
     }
 
@@ -270,19 +262,6 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
     {
         Matrix pose = m_Skeleton[i].m_Model;
         m_SkeletonPose.SetMatrix(i, pose.Transpose());
-    }
-
-    for (int i = 0; i < 10; ++i)
-    {
-        Matrix model = m_Skeleton[i].m_Model;
-        Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(i);
-
-        char buf[512];
-        sprintf_s(buf,
-            "[BONE %02d] %-25s | ModelPos(%.2f, %.2f, %.2f) | OffsetPos(%.2f, %.2f, %.2f) \n",
-            i, m_Skeleton[i].m_Name.c_str(),
-            model._41, model._42, model._43, offset._41, offset._42, offset._43);
-        OutputDebugStringA(buf);
     }
 }
 

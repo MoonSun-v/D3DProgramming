@@ -5,9 +5,6 @@
 
 using namespace DirectX;
 
-// [0] pelvis : ParentIndex = -1
-// [1] spine : ParentIndex = 0
-
 class Bone
 {
 public:

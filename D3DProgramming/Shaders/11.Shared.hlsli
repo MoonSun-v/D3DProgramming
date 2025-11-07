@@ -26,8 +26,7 @@ cbuffer ConstantBuffer : register(b0)
     
     float fShininess;  
     float gIsRigid;     // 1: Rigid, 0: Skinned
-    float gRefBoneIndex; // 리지드일 때 참조 본 인덱스
-    float pad1[1];      // 16바이트 정렬
+    float pad1[2];      // 16바이트 정렬
 }
 
 
