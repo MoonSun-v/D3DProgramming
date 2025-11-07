@@ -102,15 +102,11 @@ void TestApp::Render()
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
 		cb.gIsRigid = 0.0f;
-		// [ Section 단위로 할당 ]
-		// cb.gIsRigid = (mesh.IsRigid()) ? 1.0f : 0.0f; // Rigid 1 / Skinned 0
-		// cb.gRefBoneIndex = (float)mesh.m_RefBoneIndex;   
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
 		mesh.Render(m_D3DDevice.GetDeviceContext(), cb, m_pConstantBuffer.Get(), m_pBonePoseBuffer.Get(), m_pBoneOffsetBuffer.Get(), m_pSamplerLinear.Get());
 		};
 	RenderMesh(boxHuman, m_WorldChar);
-	// PrintMatrix(boxHuman.m_World);
 
 	// UI 그리기 
 	Render_ImGui();

@@ -86,18 +86,6 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 {
     if (!m_pSkeletonInfo) return;
 
-    //Vertices.resize(mesh->mNumVertices);
-    //for (UINT i = 0; i < mesh->mNumVertices; i++)
-    //{
-    //    Vertices[i].Position = Vector3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-    //    Vertices[i].Normal = Vector3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-    //    Vertices[i].TexCoord = Vector2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-    //    Vertices[i].Tangent = Vector3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-    //}
-
-    // UINT meshBoneCount = mesh->mNumBones; // 메쉬와 연결된 본 개수
-    // BoneReferences.resize(meshBoneCount); // 본 연결 정보 컨테이너 크기 조절 
-
     // 본 데이터 적용 
     for (UINT i = 0; i < mesh->mNumBones; ++i)
     {
@@ -124,10 +112,8 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
         if (boneIndex == -1) continue; // 못찾으면 그냥 스킵
 
         // OffsetMatrix는 SkeletonInfo의 BoneOffsetMatrices에 저장
-        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1)/*.Transpose()*/ );
-
-        // m_BoneReferences[i].NodeName = pAiBone->mName.C_Str();
-        // m_BoneReferences[i].BoneIndex = boneIndex;
+        // m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1));
+        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1).Transpose());
 
         // 각 버텍스에 본 가중치 적용
         for (UINT j = 0; j < pAiBone->mNumWeights; ++j)
@@ -137,9 +123,13 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 
             Vertices[vertexId].AddBoneData(boneIndex, weight);
         }
+
+        //Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(0);
+        //char buf[256];
+        //sprintf_s(buf, "offset[0]: (%.3f, %.3f, %.3f)\n", offset._41, offset._42, offset._43);
+        //OutputDebugStringA(buf);
     }
 }
-
 
 // [ SubMesh 단위로 렌더링 ]
 void SkeletalMeshSection::Render(
@@ -163,8 +153,8 @@ void SkeletalMeshSection::Render(
     context->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 
     // Bone Buffer (전역에서 전달받은 포인터 사용)
-    context->VSSetConstantBuffers(1, 1, &pBonePoseBuffer);   // b1: Pose
-    context->VSSetConstantBuffers(2, 1, &pBoneOffsetBuffer); // b2: Offset
+    // context->VSSetConstantBuffers(1, 1, &pBonePoseBuffer);   // b1: Pose
+    // context->VSSetConstantBuffers(2, 1, &pBoneOffsetBuffer); // b2: Offset
 
     // Material 텍스처 바인딩
     const TextureSRVs& tex = mat.GetTextures();
