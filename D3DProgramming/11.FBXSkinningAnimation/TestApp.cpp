@@ -76,22 +76,26 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
+	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(pConstantBuffer, 0, nullptr, &cb, 0, 0);
+	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+	//m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, &pConstantBuffer);
+
 	// Bone Pose (b1)
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose, 0, 0);
-	// m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose.m_Model, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
 
 	// Bone Offset (b2) : SkeletonInfo에서 가져와 한 번만 초기화
 	if (boxHuman.m_pSkeletonInfo)
 	{
-		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices, 0, 0);
-		// m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
+		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
 	}
 
 	// [ Mesh 렌더링 ] 
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
 	{
 		ConstantBuffer cb;
-		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치  
+		cb.mWorld = XMMatrixTranspose(XMMatrixIdentity()); // 각 오브젝트 위치  
 		cb.mView = XMMatrixTranspose(m_View);
 		cb.mProjection = XMMatrixTranspose(m_Projection);
 		cb.vLightDir = m_LightDir;
@@ -110,7 +114,6 @@ void TestApp::Render()
 
 	// UI 그리기 
 	Render_ImGui();
-
 
 	// 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
 	m_D3DDevice.EndFrame(); 

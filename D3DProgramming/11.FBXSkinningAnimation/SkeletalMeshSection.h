@@ -72,5 +72,4 @@ private:
     void CreateVertexBuffer(ID3D11Device* device);
     void CreateIndexBuffer(ID3D11Device* device);
     void CreateBoneWeightedVertex(const aiMesh* mesh);
-    void SetSkeletonInfo(const aiMesh* mesh);
 };

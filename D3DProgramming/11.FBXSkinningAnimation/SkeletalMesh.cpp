@@ -70,8 +70,6 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
             // BoneAnimation 채우기
             anim.BoneAnimations.resize(m_Skeleton.size()); // Skeleton의 본 개수만큼 생성
-            // const auto& bones = m_pSkeletonInfo->Bones;
-            // anim.BoneAnimations.resize(bones.size());
 
             for (UINT c = 0; c < aiAnim->mNumChannels; ++c)
             {
@@ -85,9 +83,6 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
                 {
                     int boneIndex = static_cast<int>(it - m_Skeleton.begin());
                     BoneAnimation& boneAnim = anim.BoneAnimations[boneIndex];
-
-                    UINT maxKeys = ((( channel->mNumPositionKeys) > (channel->mNumRotationKeys)) ? ( channel->mNumPositionKeys) : (channel->mNumRotationKeys));
-                    boneAnim.AnimationKeys.resize(maxKeys); // 안전하게 resize
 
                     // 위치 키
                     for (UINT k = 0; k < channel->mNumPositionKeys; ++k)
@@ -176,7 +171,8 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
                     transform.a4, transform.b4, transform.c4, transform.d4
                 );
 
-                bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
+                // bone.m_Model = XMMatrixMultiply(bone.m_Local, parentTransform);
+                bone.m_Model = bone.m_Local; // 바인드 포즈에서는 누적 X 
 
                 bone.m_Index = (int)m_Skeleton.size();
                 thisBoneIndex = bone.m_Index;
@@ -212,7 +208,7 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, const ConstantBuffer& gl
     {
         ConstantBuffer cb = globalCB;
 
-        cb.mWorld = XMMatrixIdentity();
+        // cb.mWorld = XMMatrixIdentity();
 
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Materials.size())
@@ -242,8 +238,6 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
     // SimpleMath::Matrix -> XMMATRIX
     XMMATRIX worldMat = XMLoadFloat4x4(&worldTransform);
 
-    // OutputDebugStringA((std::string("m_Skeleton.size() = ") + std::to_string(m_Skeleton.size()) + "\n").c_str());
-    
     // 본 포즈 계산 
     for (auto& bone : m_Skeleton)
     {
@@ -258,63 +252,36 @@ void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
                 Matrix::CreateTranslation(pos);
         }
 
-        //if (bone.m_ParentIndex != -1)
-        //{
-        //    bone.m_Model = bone.m_Local * m_Skeleton[bone.m_ParentIndex].m_Model;
-        //}
-        //else 
-        //{
-        //    bone.m_Model = bone.m_Local * worldMat; // 조정 : 루트 본만 적용  
-        //}
-
         if (bone.m_ParentIndex != -1)
         {
-            bone.m_Model = m_Skeleton[bone.m_ParentIndex].m_Model * bone.m_Local;
+            bone.m_Model = bone.m_Local * m_Skeleton[bone.m_ParentIndex].m_Model;
         }
-        else
+        else 
         {
-            bone.m_Model = bone.m_Local; // * worldMat; // 조정 : 루트 본만 적용  
+            bone.m_Model = bone.m_Local *worldMat; // 조정 : 루트 본만 적용  
         }
     }
 
     // GPU용 본 행렬 계산
     m_SkeletonPose.SetBoneCount((int)m_Skeleton.size());
 
-    // CPU에서는 Pose만 넘김 (offset은 따로) 
+    // CPU에서는 Pose만 넘김 (offset은 GPU에서 연산) 
     for (int i = 0; i < (int)m_Skeleton.size(); ++i)
     {
         Matrix pose = m_Skeleton[i].m_Model;
         m_SkeletonPose.SetMatrix(i, pose.Transpose());
     }
 
-    //for (auto& bone : m_Skeleton)
-    //{
-    //    XMFLOAT4X4 localMat, modelMat;
-    //    XMStoreFloat4x4(&localMat, bone.m_Local);
-    //    XMStoreFloat4x4(&modelMat, bone.m_Model);
-
-    //    char buf[512];
-    //    sprintf_s(buf, "%s: LocalPos=(%.3f, %.3f, %.3f), ModelPos=(%.3f, %.3f, %.3f)\n",
-    //        bone.m_Name.c_str(),
-    //        localMat._41, localMat._42, localMat._43, modelMat._41, modelMat._42, modelMat._43);
-    //    OutputDebugStringA(buf);
-    //}
-
     for (int i = 0; i < 10; ++i)
     {
         Matrix model = m_Skeleton[i].m_Model;
         Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(i);
 
-        Matrix finalMatA = offset * model; // HLSL 쪽이 gBoneOffset * gBonePose 이므로 이쪽이 실제 사용
-        Matrix finalMatB = model * offset; // 순서 비교용
-
         char buf[512];
         sprintf_s(buf,
-            "[BONE %02d] %-25s | ModelPos(%.2f, %.2f, %.2f) | OffsetPos(%.2f, %.2f, %.2f) | FinalA._41=%.2f, FinalB._41=%.2f\n",
+            "[BONE %02d] %-25s | ModelPos(%.2f, %.2f, %.2f) | OffsetPos(%.2f, %.2f, %.2f) \n",
             i, m_Skeleton[i].m_Name.c_str(),
-            model._41, model._42, model._43,
-            offset._41, offset._42, offset._43,
-            finalMatA._41, finalMatB._41);
+            model._41, model._42, model._43, offset._41, offset._42, offset._43);
         OutputDebugStringA(buf);
     }
 }

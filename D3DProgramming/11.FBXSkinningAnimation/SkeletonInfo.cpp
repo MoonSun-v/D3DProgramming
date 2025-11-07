@@ -239,7 +239,7 @@ void SkeletonInfo::CreateFromAiScene(const aiScene* pScene)
                 offset.a4, offset.b4, offset.c4, offset.d4
             );
 
-            if (boneIndex < BoneMatrixContainer::MaxBones)
+            if (boneIndex < BoneMatrixContainer::MaxBones) 
                 BoneOffsetMatrices.SetMatrix(boneIndex, offsetMat.Transpose());
         }
     }

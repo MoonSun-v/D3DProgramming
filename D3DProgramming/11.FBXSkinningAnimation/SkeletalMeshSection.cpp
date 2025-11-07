@@ -108,12 +108,12 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
             OutputDebugStringA(buf);
         }
 
-
         if (boneIndex == -1) continue; // 못찾으면 그냥 스킵
 
         // OffsetMatrix는 SkeletonInfo의 BoneOffsetMatrices에 저장
-        // m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1));
-        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix( boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1).Transpose());
+        // 스켈레톤 전체용 OffsetMatrix 수집에서 Transpose() 함 
+        m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix(boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1)); 
+        // m_pSkeletonInfo->BoneOffsetMatrices.SetMatrix(boneIndex, Matrix(&pAiBone->mOffsetMatrix.a1).Transpose());
 
         // 각 버텍스에 본 가중치 적용
         for (UINT j = 0; j < pAiBone->mNumWeights; ++j)
@@ -123,11 +123,6 @@ void SkeletalMeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 
             Vertices[vertexId].AddBoneData(boneIndex, weight);
         }
-
-        //Matrix offset = m_pSkeletonInfo->BoneOffsetMatrices.GetMatrix(0);
-        //char buf[256];
-        //sprintf_s(buf, "offset[0]: (%.3f, %.3f, %.3f)\n", offset._41, offset._42, offset._43);
-        //OutputDebugStringA(buf);
     }
 }
 
