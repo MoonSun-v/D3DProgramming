@@ -40,6 +40,43 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         DiffuseColor = XMFLOAT4(1, 1, 1, 1);
     }
 
+    // [ Specular Color + Shininess 읽기 ]
+    aiColor4D aiSpecular(1.0f, 1.0f, 1.0f, 1.0f);
+    float shininess = 32.0f;           // 기본값 
+    float shininessStrength = 1.0f;    // 보정값
+
+    // Specular 색상
+    if (AI_SUCCESS == aiGetMaterialColor(material, AI_MATKEY_COLOR_SPECULAR, &aiSpecular))
+    {
+        SpecularColor = XMFLOAT4(aiSpecular.r, aiSpecular.g, aiSpecular.b, aiSpecular.a);
+    }
+    else
+    {
+        SpecularColor = XMFLOAT4(1, 1, 1, 1);
+    }
+
+    // Shininess (하이라이트 크기)
+    if (AI_SUCCESS != aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess))
+    {
+        shininess = 32.0f;
+    }
+
+    // Shininess Strength (하이라이트 강도)
+    if (AI_SUCCESS == aiGetMaterialFloat(material, AI_MATKEY_SHININESS_STRENGTH, &shininessStrength))
+    {
+        shininess *= shininessStrength;
+    }
+
+    // 디버그 출력
+    OutputDebugString((L"[Material Specular] Color: " +
+        std::to_wstring(aiSpecular.r) + L"," +
+        std::to_wstring(aiSpecular.g) + L"," +
+        std::to_wstring(aiSpecular.b) +
+        L" Shininess: " + std::to_wstring(shininess) + L"\n").c_str());
+
+    // 저장
+    Shininess = shininess;
+
     // [2] Diffuse 텍스처 로드
     aiString texPath;
     if (AI_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath))
@@ -118,12 +155,13 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
 }
 
 
-// [ 1x1 기본 텍스처 생성 ] 
+// [ 1x1 기본 텍스처 생성 ] TODO : GUI로 조정 가능하도록 하면 좋을듯 
 void Material::CreateDefaultTextures(ID3D11Device* device)
 {
     if (s_defaultTextures.DiffuseSRV) return; // 이미 생성됨
 
     unsigned char white[] = { 255,255,255,255 };
+    unsigned char gray[] = { 128,128,128,255 };
     unsigned char black[] = { 0,0,0,255 };
     unsigned char normal[] = { 128,128,255,255 };
 
@@ -161,7 +199,7 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
 
     Create1x1Tex(white, s_defaultTextures.DiffuseSRV);
     Create1x1Tex(normal, s_defaultTextures.NormalSRV);
-    Create1x1Tex(black, s_defaultTextures.SpecularSRV);
+    Create1x1Tex(white, s_defaultTextures.SpecularSRV);
     Create1x1Tex(black, s_defaultTextures.EmissiveSRV);
     Create1x1Tex(white, s_defaultTextures.OpacitySRV);
 }
