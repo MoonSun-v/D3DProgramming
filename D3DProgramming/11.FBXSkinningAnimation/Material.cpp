@@ -25,34 +25,92 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         CreateDefaultTextures(device); 
     }
 
-    // 텍스처 타입별로 로드, 실패 시 fallback
-    auto LoadTex = [&](aiTextureType type, ComPtr<ID3D11ShaderResourceView>& out, std::wstring& outPath, ComPtr<ID3D11ShaderResourceView> fallback)
+    // [ Diffuse Color 읽기 ]
+    aiColor4D aiDiffuse(1.0f, 1.0f, 1.0f, 1.0f);
+    if (AI_SUCCESS == aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &aiDiffuse))
     {
-        aiString texPath;
-        if (material->GetTexture(type, 0, &texPath) == AI_SUCCESS)
+        DiffuseColor = XMFLOAT4(aiDiffuse.r, aiDiffuse.g, aiDiffuse.b, aiDiffuse.a);
+        OutputDebugString((L"[Material Color] DiffuseColor: " +
+            std::to_wstring(aiDiffuse.r) + L"," +
+            std::to_wstring(aiDiffuse.g) + L"," +
+            std::to_wstring(aiDiffuse.b) + L"\n").c_str());
+    }
+    else
+    {
+        DiffuseColor = XMFLOAT4(1, 1, 1, 1);
+    }
+
+    // [2] Diffuse 텍스처 로드
+    aiString texPath;
+    if (AI_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath))
+    {
+        // 텍스처 경로가 있을 경우
+        fs::path fileName = fs::path(texPath.C_Str()).filename();
+        FilePathDiffuse = (fs::path(textureBasePath) / fileName).wstring();
+
+        if (FAILED(CreateTextureFromFile(device, FilePathDiffuse.c_str(), m_textures.DiffuseSRV.GetAddressOf())))
         {
-            // 파일 경로 조합
-            fs::path fileName = fs::path(texPath.C_Str()).filename();
-            outPath = (fs::path(textureBasePath) / fileName).wstring();
+            m_textures.DiffuseSRV = s_defaultTextures.DiffuseSRV;
+            OutputDebugString(L"[Material] Diffuse texture load failed. Using default.\n");
+        }
+    }
+    else
+    {
+        // 텍스처 없음 → DiffuseColor로 1x1 텍스처 생성
+        unsigned char color[4] = {
+            (unsigned char)(DiffuseColor.x * 255),
+            (unsigned char)(DiffuseColor.y * 255),
+            (unsigned char)(DiffuseColor.z * 255),
+            (unsigned char)(DiffuseColor.w * 255)
+        };
 
-            OutputDebugString((L"[Texture Load] " + outPath + L"\n").c_str());
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = desc.Height = 1;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-            // 텍스처 로드
-            if (FAILED(CreateTextureFromFile(device, outPath.c_str(), out.GetAddressOf())))
+        D3D11_SUBRESOURCE_DATA init{};
+        init.pSysMem = color;
+        init.SysMemPitch = 4;
+
+        ComPtr<ID3D11Texture2D> tex;
+        device->CreateTexture2D(&desc, &init, &tex);
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        srvDesc.Format = desc.Format;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+
+        device->CreateShaderResourceView(tex.Get(), &srvDesc, &m_textures.DiffuseSRV);
+
+        OutputDebugString(L"[Material] DiffuseColor -> Created 1x1 color texture.\n");
+    }
+
+    // [3] 나머지 텍스처 로드 (변경 없음)
+    auto LoadTex = [&](aiTextureType type, ComPtr<ID3D11ShaderResourceView>& out, std::wstring& outPath, ComPtr<ID3D11ShaderResourceView> fallback)
+        {
+            aiString texPath;
+            if (material->GetTexture(type, 0, &texPath) == AI_SUCCESS)
             {
-                out = fallback; // 실패 시 기본 텍스처 사용
-                OutputDebugString((L"[Texture Load] failed. default textur" + outPath + L"\n").c_str());
+                fs::path fileName = fs::path(texPath.C_Str()).filename();
+                outPath = (fs::path(textureBasePath) / fileName).wstring();
+
+                if (FAILED(CreateTextureFromFile(device, outPath.c_str(), out.GetAddressOf())))
+                    out = fallback;
             }
-        }
-        else
-        {
-            out = fallback; 
-            OutputDebugString((L"[Texture Load] default texture" + outPath + L"\n").c_str());
-        }
-    };
+            else
+            {
+                out = fallback;
+            }
+        };
 
     // 각 텍스처 로드
-    LoadTex(aiTextureType_DIFFUSE, m_textures.DiffuseSRV, FilePathDiffuse, s_defaultTextures.DiffuseSRV);
+    // LoadTex(aiTextureType_DIFFUSE, m_textures.DiffuseSRV, FilePathDiffuse, s_defaultTextures.DiffuseSRV);
     LoadTex(aiTextureType_NORMALS, m_textures.NormalSRV, FilePathNormal, s_defaultTextures.NormalSRV);
     LoadTex(aiTextureType_SPECULAR, m_textures.SpecularSRV, FilePathSpecular, s_defaultTextures.SpecularSRV);
     LoadTex(aiTextureType_EMISSIVE, m_textures.EmissiveSRV, FilePathEmissive, s_defaultTextures.EmissiveSRV);
