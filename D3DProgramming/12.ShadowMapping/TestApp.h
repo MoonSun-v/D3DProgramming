@@ -36,6 +36,9 @@ public:
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
+	// Shadow
+	ComPtr<ID3D11VertexShader> m_pShadowVertexShader; // 그림자용 VS 
+
 	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;     // b0 : 상수 버퍼
 	ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
@@ -43,10 +46,23 @@ public:
 
 	ConstantBuffer cb;
 
+	// Shadow Map 
+	D3D11_VIEWPORT						m_ShadowViewport;   
+	ComPtr<ID3D11Texture2D>				m_pShadowMap;       
+	ComPtr<ID3D11DepthStencilView>		m_pShadowMapDSV;    // 깊이값 기록을 설정하기 위한 객체 
+	ComPtr<ID3D11ShaderResourceView>	m_pShadowMapSRV;    // 셰이더에서 깊이 버퍼를 슬롯에 설정하고 사용하기 위한 객체 
+	ComPtr<ID3D11SamplerState>			m_pSamplerComparison; // Comparison Sampler
+	ComPtr<ID3D11Buffer> m_pShadowCB;			// Shadow 버퍼
+
+
 	// [ 셰이더에 전달할 데이터 ]
-	Matrix                m_World;					// 월드 행렬		(모델 → 월드)
-	Matrix                m_View;					// 뷰 행렬		(월드 → 카메라)
-	Matrix                m_Projection;				// 프로젝션 행렬 (카메라 → NDC)		
+	Matrix                m_World;					// 모델		-> 월드
+	Matrix                m_View;					// 월드		-> 카메라
+	Matrix                m_Projection;				// 카메라	-> NDC
+
+	// Shadow			
+	Matrix                m_ShadowView;					
+	Matrix                m_ShadowProjection;
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;
@@ -57,11 +73,9 @@ public:
 	float rotY = XMConvertToRadians(0.0f); 
 	float rotZ = XMConvertToRadians(0.0f); 
 
-	void PrintMatrix(const Matrix& mat);
-
 	// [ 배경색 ]
-	Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
-	// Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f); // Light Sky 
+	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
+	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f); // Light Sky 
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.3f, 1.0f); // Navy
 
 
@@ -89,6 +103,8 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
+
+	void RenderShadowMap();
 
 public:
 	bool InitScene();		

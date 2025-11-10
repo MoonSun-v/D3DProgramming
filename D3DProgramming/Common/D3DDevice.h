@@ -15,6 +15,8 @@ private:
 	ComPtr<ID3D11RenderTargetView> m_RenderTargetView;
 	ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
 
+	D3D11_VIEWPORT viewport;
+
 public:
 	// Getter
 	ID3D11Device* GetDevice() const { return m_Device.Get(); }
@@ -23,6 +25,7 @@ public:
 	ID3D11RenderTargetView* GetRenderTargetView() const { return m_RenderTargetView.Get(); }
 	ID3D11DepthStencilView* GetDepthStencilView() const { return m_DepthStencilView.Get(); }
 
+	const D3D11_VIEWPORT& GetViewport() const { return viewport; }
 
 public:
 	bool Initialize(HWND hWnd, UINT width, UINT height);

@@ -1,7 +1,6 @@
 #pragma once
 #include "../Common/Helper.h"
 
-__declspec(align(16))
 struct ConstantBuffer
 {
 	Matrix mWorld;			// 월드 변환 행렬 : 64bytes
@@ -21,4 +20,12 @@ struct ConstantBuffer
 	float   fShininess = 40.0f;   // 반짝임 정도
 	float	gIsRigid = 1;         // 1: Rigid, 0: Skinned
 	float	pad1[2];			  // 16바이트 정렬
+};
+
+// ShadowMap생성 Pass에서 사용ㅎ 
+struct ShadowConstantBuffer
+{
+	Matrix mWorld;          // 모델 -> 월드
+	Matrix mLightView;      // 광원 시점 View
+	Matrix mLightProjection;// 광원 시점 Projection
 };

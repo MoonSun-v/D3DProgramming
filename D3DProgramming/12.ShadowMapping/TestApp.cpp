@@ -58,13 +58,40 @@ void TestApp::Update()
 		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
 	m_WorldChar = world; 
 
+	//// 투영 행렬 (Perspective or Orthographic)
+	//if (m_bDebugShadow)
+	//{
+	//	m_ShadowProjection = XMMatrixPerspectiveFovLH(
+	//		XM_PIDIV4,
+	//		m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height,
+	//		0.1f,
+	//		1000.0f
+	//	);
+	//}
+
+	//// Shadow 카메라 위치 계산
+	//m_ShadowLootAt = pCamera->GetWorldPosition() + pCamera->GetForward() * m_ShadowForwardDistFromCamera;
+	//m_ShadowPos = m_ShadowLootAt + (-m_Light.Direction * m_ShadowUpDistFromLootAt);
+
+	//// View 행렬 계산
+	//m_ShadowView = XMMatrixLookAtLH(
+	//	m_ShadowPos,        // 카메라 위치
+	//	m_ShadowLootAt,     // 바라볼 위치
+	//	Vector3(0.0f, 1.0f, 0.0f)  // Up Vector
+	//);
+
 	boxHuman.Update(deltaTime, world);
 }     
 
 
 // ★ [ 렌더링 ] 
+// PixelShader에서 ShadowMap SRV와 Comparison Sampler를 사용해서 그림자 샘플링
+// 
 void TestApp::Render()
 {
+	// ShadowMap 렌더링
+	RenderShadowMap();
+
 	// 화면 초기화
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
@@ -75,6 +102,7 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetSamplers(2, 1, m_pSamplerComparison.GetAddressOf()); 
 
 	// ConstantBuffer 
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -91,6 +119,9 @@ void TestApp::Render()
 		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
 		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
 	}
+
+	// ShadowMap SRV 바인딩
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(1, 1, m_pShadowMapSRV.GetAddressOf());
 
 	// [ Mesh 렌더링 ] 
 	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
@@ -119,6 +150,42 @@ void TestApp::Render()
 	// 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
 	m_D3DDevice.EndFrame(); 
 }
+
+
+// [ Multi Pass Rendering ] 
+// 1.DepthOnly : Shadow Pass -> Depth 생성 (Depth만 렌더링, PS 필요X)
+// 2.Render    : Main Pass -> SRV 샘플링 -> shadowFactor 계산 -> directLighting 곱
+
+void TestApp::RenderShadowMap()
+{
+	// 1) 렌더 타겟을 ShadowMap DSV로 설정
+	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
+
+	// 2) Shadow Viewport 설정
+	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_ShadowViewport);
+
+	// 3) 상수버퍼 세팅
+	ShadowConstantBuffer shadowCB;
+	shadowCB.mWorld = XMMatrixTranspose(m_WorldChar); // 모델 월드
+	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
+	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pShadowCB.GetAddressOf());
+
+	// 4) VertexShader만 설정 (픽셀 셰이더는 Depth만 출력하므로 필요 없음)
+	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVertexShader.Get(), nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+
+	// 5) 메시 렌더링
+	boxHuman.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+
+	// 6) 원래 뷰포트/렌더타겟으로 복귀 (메인 Pass)
+	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
+	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
+	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
+}
+
+
 
 
 // ★ [ ImGui ] - UI 프레임 준비 및 렌더링
@@ -316,10 +383,67 @@ bool TestApp::InitScene()
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 
 
+
+	// ---------------------------------------------------------------
+	// Shadow Map 생성 
+	// ---------------------------------------------------------------
+	
+	// Shadow Map 뷰포트 설정
+	m_ShadowViewport.TopLeftX = 0.0f;
+	m_ShadowViewport.TopLeftY = 0.0f;
+	m_ShadowViewport.Width = 8192.0f; // 원하는 해상도
+	m_ShadowViewport.Height = 8192.0f;
+	m_ShadowViewport.MinDepth = 0.0f;
+	m_ShadowViewport.MaxDepth = 1.0f;
+
+	// Shadow Map Texture
+	D3D11_TEXTURE2D_DESC texDesc = {};
+	texDesc.Width = (UINT)m_ShadowViewport.Width; // 해상도 8192*8192 추천 
+	texDesc.Height = (UINT)m_ShadowViewport.Height;
+	texDesc.MipLevels = 1;
+	texDesc.ArraySize = 1;
+	texDesc.Usage = D3D11_USAGE_DEFAULT;
+	texDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE; // 깊이값 기록 용도, 셰이더에서 텍스처 슬롯에 설정 활용도
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	HR_T(m_D3DDevice.GetDevice()->CreateTexture2D(&texDesc, nullptr, m_pShadowMap.GetAddressOf()));
+
+	// DSV(depth stencil view) 생성
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	HR_T(m_D3DDevice.GetDevice()->CreateDepthStencilView(m_pShadowMap.Get(), &dsvDesc, m_pShadowMapDSV.GetAddressOf()));
+
+	// SRV(shader resource view) 생성
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	HR_T(m_D3DDevice.GetDevice()->CreateShaderResourceView(m_pShadowMap.Get(), &srvDesc, m_pShadowMapSRV.GetAddressOf()));
+
+	// Comparison Sampler 생성
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampDesc, m_pSamplerComparison.GetAddressOf()));
+
+	// Shadow 상수버퍼 생성
+	D3D11_BUFFER_DESC bdShadow = {};
+	bdShadow.Usage = D3D11_USAGE_DEFAULT;
+	bdShadow.ByteWidth = sizeof(ShadowConstantBuffer);
+	bdShadow.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdShadow.CPUAccessFlags = 0;
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdShadow, nullptr, m_pShadowCB.GetAddressOf()));
+
+
 	// ---------------------------------------------------------------
 	// 샘플러 생성
 	// ---------------------------------------------------------------
-	D3D11_SAMPLER_DESC sampDesc = {};
+	// D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -391,24 +515,6 @@ void TestApp::UninitImGUI()
 	ImGui_ImplDX11_Shutdown();	// DX11용 ImGui 렌더러 정리
 	ImGui_ImplWin32_Shutdown(); // Win32 플랫폼용 ImGui 정리
 	ImGui::DestroyContext();	// ImGui 컨텍스트 삭제
-}
-
-
-void TestApp::PrintMatrix(const Matrix& mat)
-{
-	char buf[512];
-	sprintf_s(buf,
-		"Matrix:\n"
-		"[%f %f %f %f]\n"
-		"[%f %f %f %f]\n"
-		"[%f %f %f %f]\n"
-		"[%f %f %f %f]\n",
-		mat._11, mat._12, mat._13, mat._14,
-		mat._21, mat._22, mat._23, mat._24,
-		mat._31, mat._32, mat._33, mat._34,
-		mat._41, mat._42, mat._43, mat._44);
-
-	OutputDebugStringA(buf);
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

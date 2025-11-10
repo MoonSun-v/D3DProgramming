@@ -113,7 +113,7 @@ bool D3DDevice::Initialize(HWND hWnd, UINT width, UINT height)
     // ------------------------------------------------------
     // [ Viewport 설정 ]
     // ------------------------------------------------------
-    D3D11_VIEWPORT viewport = {};
+    // D3D11_VIEWPORT viewport = {};
     viewport.TopLeftX = 0;                          // 뷰포트 시작 X
     viewport.TopLeftY = 0;                          // 뷰포트 시작 Y
     viewport.Width = (float)width;                  // 뷰포트 너비
