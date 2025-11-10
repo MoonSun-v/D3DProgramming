@@ -86,7 +86,7 @@ public:
 	// 머터리얼 조절용
 	XMFLOAT4 m_MaterialAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	XMFLOAT4 m_MaterialSpecular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	float    m_Shininess = 280.0f;
+	float    m_Shininess = 10.0f;
 
 	// 블린-퐁 조명용
 	XMFLOAT4 m_LightAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);

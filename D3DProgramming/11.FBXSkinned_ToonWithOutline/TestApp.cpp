@@ -86,6 +86,7 @@ void TestApp::Render()
 	cb.vDiffuse = m_LightDiffuse;
 	cb.vSpecular = m_MaterialSpecular;
 	cb.fShininess = m_Shininess;
+	cb.gIsRigid = 0.0f;
 
 	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
@@ -108,8 +109,8 @@ void TestApp::Render()
 
 		// 외곽선 버퍼 업데이트
 		OutlineBuffer outline{};
-		outline.OutlineThickness = 0.015f;               // 외곽선 두께
-		outline.OutlineColor = XMFLOAT4(0, 0, 0, 1);     // 외곽선 색상 (검정)
+		outline.OutlineThickness = 0.8f;               // 외곽선 두께
+		outline.OutlineColor = XMFLOAT4(1, 1, 1, 1);     // 외곽선 색상 (검정)
 		context->UpdateSubresource(m_pOutlineBuffer.Get(), 0, nullptr, &outline, 0, 0);
 		context->VSSetConstantBuffers(3, 1, m_pOutlineBuffer.GetAddressOf());
 

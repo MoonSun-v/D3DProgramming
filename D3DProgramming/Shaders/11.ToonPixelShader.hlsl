@@ -39,13 +39,13 @@ float4 main(PS_INPUT input) : SV_Target
     // 4. Toon Diffuse
     float NdotL = saturate(dot(worldNorm, L));
     float2 rampUV = float2(NdotL, 0.5);
-    float4 rampColor = txRamp.Sample(samClamp, rampUV);
+    float4 rampColor = txRamp.Sample(samLinear, rampUV);
     float4 toonDiffuse = rampColor * texDiffColor * vLightColor;
 
     // 5. Toon Specular
     float specIntensity = pow(saturate(dot(R, V)), fShininess);
     float2 specUV = float2(specIntensity, 0.5);
-    float4 specRampColor = txSpecularRamp.Sample(samClamp, specUV);
+    float4 specRampColor = txSpecularRamp.Sample(samLinear, specUV);
     float4 toonSpecular = specRampColor * texSpecColor * vSpecular * vLightColor;
 
     // 6. Ambient + Emissive
