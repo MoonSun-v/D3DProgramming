@@ -146,6 +146,30 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
             }
         };
 
+
+    // Toon Ramp 텍스처 수동 로드 (전체 씬 공통으로 쓸 수도 있음)
+    std::wstring toonRampPath = L"../Resource/RampTexture.png";
+    std::wstring specularRampPath = L"../Resource/SpecularRampTexture.png";
+
+    if (fs::exists(toonRampPath))
+    {
+        CreateTextureFromFile(device, toonRampPath.c_str(), m_textures.ToonRampSRV.GetAddressOf());
+    }
+    else
+    {
+        m_textures.ToonRampSRV = s_defaultTextures.ToonRampSRV;
+    }
+
+    if (fs::exists(specularRampPath))
+    {
+        CreateTextureFromFile(device, specularRampPath.c_str(), m_textures.SpecularRampSRV.GetAddressOf());
+    }
+    else
+    {
+        m_textures.SpecularRampSRV = s_defaultTextures.SpecularRampSRV;
+    }
+
+
     // 각 텍스처 로드
     // LoadTex(aiTextureType_DIFFUSE, m_textures.DiffuseSRV, FilePathDiffuse, s_defaultTextures.DiffuseSRV);
     LoadTex(aiTextureType_NORMALS, m_textures.NormalSRV, FilePathNormal, s_defaultTextures.NormalSRV);
@@ -202,6 +226,10 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     Create1x1Tex(white, s_defaultTextures.SpecularSRV);
     Create1x1Tex(black, s_defaultTextures.EmissiveSRV);
     Create1x1Tex(white, s_defaultTextures.OpacitySRV);
+
+    // 추가: 기본 램프 텍스처 (흰색 1x1)
+    Create1x1Tex(white, s_defaultTextures.ToonRampSRV);
+    Create1x1Tex(white, s_defaultTextures.SpecularRampSRV);
 }
 
 const TextureSRVs& Material::GetDefaultTextures()

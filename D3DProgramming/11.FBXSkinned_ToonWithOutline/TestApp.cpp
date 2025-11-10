@@ -69,49 +69,62 @@ void TestApp::Render()
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
 
-	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout.Get());
-	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	auto* context = m_D3DDevice.GetDeviceContext();
 
-	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
-	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
-	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	// 공통 셋업
+	context->IASetInputLayout(m_pInputLayout.Get());
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// ConstantBuffer 
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	// 상수 버퍼 업데이트
+	cb.mView = XMMatrixTranspose(m_View);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
+	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
+	cb.vLightDir = m_LightDir;
+	cb.vLightColor = m_LightColor;
+	cb.vAmbient = m_MaterialAmbient;
+	cb.vDiffuse = m_LightDiffuse;
+	cb.vSpecular = m_MaterialSpecular;
+	cb.fShininess = m_Shininess;
 
-	// Bone Pose (b1)
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose.m_Model, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	// Bone Offset (b2) 
+	// 본 행렬 버퍼
+	context->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose.m_Model, 0, 0);
+	context->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
 	if (boxHuman.m_pSkeletonInfo)
 	{
-		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
-		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+		context->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
+		context->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
 	}
 
-	// [ Mesh 렌더링 ] 
-	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
+	// [ PASS 0 : 외곽선 ]
 	{
-		cb.mWorld = XMMatrixTranspose(XMMatrixIdentity()); // 각 오브젝트 위치  
-		cb.mView = XMMatrixTranspose(m_View);
-		cb.mProjection = XMMatrixTranspose(m_Projection);
-		cb.vLightDir = m_LightDir;
-		cb.vLightColor = m_LightColor;
-		cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-		cb.vAmbient = m_MaterialAmbient;
-		cb.vDiffuse = m_LightDiffuse;
-		cb.vSpecular = m_MaterialSpecular;
-		cb.fShininess = m_Shininess;
-		cb.gIsRigid = 0.0f;
+		context->RSSetState(m_pRS_CullFront.Get()); // 앞면 제거 → 뒷면만 렌더링
+		context->VSSetShader(m_pOutlineVS.Get(), nullptr, 0);
+		context->PSSetShader(m_pOutlinePS.Get(), nullptr, 0);
 
-		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
-		mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
-	};
-	RenderMesh(boxHuman, m_WorldChar);
+		// 외곽선 버퍼 업데이트
+		OutlineBuffer outline{};
+		outline.OutlineThickness = 0.015f;               // 외곽선 두께
+		outline.OutlineColor = XMFLOAT4(0, 0, 0, 1);     // 외곽선 색상 (검정)
+		context->UpdateSubresource(m_pOutlineBuffer.Get(), 0, nullptr, &outline, 0, 0);
+		context->VSSetConstantBuffers(3, 1, m_pOutlineBuffer.GetAddressOf());
 
+		// 메쉬 렌더
+		boxHuman.Render(context, m_pSamplerLinear.Get());
+	}
+
+	// [ PASS 1 : Toon 본체 ]
+	{
+		context->RSSetState(m_pRS_CullBack.Get()); // 뒷면 제거 (기본)
+		context->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+		context->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+		boxHuman.Render(context, m_pSamplerLinear.Get());
+	}
 
 	// UI 그리기 
 	Render_ImGui();
@@ -260,8 +273,12 @@ bool TestApp::InitScene()
 	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> vertexShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/11.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/11.ToonVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
+
+	ComPtr<ID3DBlob> outlineVSBuf;
+	CompileShaderFromFile(L"../Shaders/11.OutlineVertexShader.hlsl", "OutlineVS", "vs_4_0", outlineVSBuf.GetAddressOf());
+	m_D3DDevice.GetDevice()->CreateVertexShader(outlineVSBuf->GetBufferPointer(), outlineVSBuf->GetBufferSize(), nullptr, m_pOutlineVS.GetAddressOf());
 
 
 	// ---------------------------------------------------------------
@@ -284,9 +301,13 @@ bool TestApp::InitScene()
 	// 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/11.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/11.ToonPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
+	// [Outline용 셰이더 추가 로드]
+	ComPtr<ID3DBlob> outlinePSBuf;
+	CompileShaderFromFile(L"../Shaders/11.OutlinePixelShader.hlsl", "OutlinePS", "ps_4_0", outlinePSBuf.GetAddressOf());
+	m_D3DDevice.GetDevice()->CreatePixelShader(outlinePSBuf->GetBufferPointer(), outlinePSBuf->GetBufferSize(), nullptr, m_pOutlinePS.GetAddressOf());
 
 	// ---------------------------------------------------------------
 	// 상수 버퍼(Constant Buffer) 생성
@@ -309,6 +330,14 @@ bool TestApp::InitScene()
 	// [ 본 오프셋용 상수 버퍼 : b2 (Offset) ]
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
 
+	// 아웃라인용 상수 버퍼 
+	D3D11_BUFFER_DESC bdOutline = {};
+	bdOutline.Usage = D3D11_USAGE_DEFAULT;
+	bdOutline.ByteWidth = sizeof(OutlineBuffer);
+	bdOutline.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdOutline.CPUAccessFlags = 0;
+	m_D3DDevice.GetDevice()->CreateBuffer(&bdOutline, nullptr, m_pOutlineBuffer.GetAddressOf());
+
 
 	// ---------------------------------------------------------------
 	// 리소스 로드 
@@ -329,6 +358,18 @@ bool TestApp::InitScene()
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
+	// ---------------------------------------------------------------
+// [ 추가 ] 외곽선용 RasterizerState (Front Face Cull)
+// ---------------------------------------------------------------
+	D3D11_RASTERIZER_DESC rsDesc{};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.CullMode = D3D11_CULL_FRONT; // <- 앞면 제거, 뒷면만 렌더링
+	rsDesc.DepthClipEnable = TRUE;
+	m_D3DDevice.GetDevice()->CreateRasterizerState(&rsDesc, m_pRS_CullFront.GetAddressOf());
+
+	// 본체용 RasterizerState (기존 백페이스 제거)
+	rsDesc.CullMode = D3D11_CULL_BACK;
+	m_D3DDevice.GetDevice()->CreateRasterizerState(&rsDesc, m_pRS_CullBack.GetAddressOf());
 
 	// ---------------------------------------------------------------
 	// 행렬(World, View, Projection) 설정

@@ -22,3 +22,11 @@ struct ConstantBuffer
 	float	gIsRigid = 1;         // 1: Rigid, 0: Skinned
 	float	pad1[2];			  // 16바이트 정렬
 };
+
+
+struct OutlineBuffer
+{
+	XMFLOAT4 OutlineColor;
+	float OutlineThickness;
+	XMFLOAT3 pad; // 16바이트 정렬
+};

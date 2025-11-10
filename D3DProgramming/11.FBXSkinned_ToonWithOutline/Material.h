@@ -17,6 +17,10 @@ struct TextureSRVs
     ComPtr<ID3D11ShaderResourceView> SpecularSRV;
     ComPtr<ID3D11ShaderResourceView> EmissiveSRV;
     ComPtr<ID3D11ShaderResourceView> OpacitySRV;
+
+    // 추가: Toon 전용 Ramp 텍스처
+    ComPtr<ID3D11ShaderResourceView> ToonRampSRV;
+    ComPtr<ID3D11ShaderResourceView> SpecularRampSRV;
 };
 
 class Material

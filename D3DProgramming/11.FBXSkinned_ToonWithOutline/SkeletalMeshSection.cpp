@@ -118,17 +118,19 @@ void SkeletalMeshSection::Render(ID3D11DeviceContext* context, const Material& m
     context->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
     context->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0); // DXGI_FORMAT_R32_UINT
 
-    // Material 텍스처 바인딩
+    // Material 텍스처 바인딩 (Ramp 포함)
     const TextureSRVs& tex = mat.GetTextures();
-    ID3D11ShaderResourceView* srvs[5] =
+    ID3D11ShaderResourceView* srvs[7] =
     {
         tex.DiffuseSRV.Get(),
         tex.NormalSRV.Get(),
         tex.SpecularSRV.Get(),
         tex.EmissiveSRV.Get(),
-        tex.OpacitySRV.Get()
+        tex.OpacitySRV.Get(),
+        tex.ToonRampSRV.Get(),
+        tex.SpecularRampSRV.Get()
     };
-    context->PSSetShaderResources(0, 5, srvs);
+    context->PSSetShaderResources(0, 7, srvs);
     context->PSSetSamplers(0, 1, &pSampler);
 
     // 그리기

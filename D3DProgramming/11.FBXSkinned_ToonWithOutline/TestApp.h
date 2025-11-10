@@ -36,10 +36,18 @@ public:
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
+	ComPtr<ID3D11VertexShader> m_pOutlineVS;		// 정점 셰이더
+	ComPtr<ID3D11PixelShader> m_pOutlinePS;		// 픽셀 셰이더
+
+	ComPtr<ID3D11RasterizerState> m_pRS_CullFront; // 앞면 컬링
+	ComPtr<ID3D11RasterizerState> m_pRS_CullBack;  // 뒷면 컬링
+
 	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;     // b0 : 상수 버퍼
 	ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;   // b2 : Bone Offset
+
+	ComPtr<ID3D11Buffer> m_pOutlineBuffer;
 
 	ConstantBuffer cb;
 
