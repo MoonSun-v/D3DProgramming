@@ -23,7 +23,7 @@ public:
 	TestApp();
 	~TestApp();
 
-	SkeletalMesh boxHuman;
+	SkeletalMesh boxHuman, Plane;
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -66,14 +66,20 @@ public:
 	Vector3 m_ShadowPos;      // Shadow 카메라 위치
 	Vector3 m_ShadowLootAt;   // Shadow 카메라가 바라보는 위치
 
-	// [ 오브젝트 ]
+
+	// [ 오브젝트 : 캐릭터 ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, -100.0f, 0.0f };
+	float m_CharPos[3] = { 0.0f, 0.0f, 0.0f };
 	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };     
 	
 	float rotX = XMConvertToRadians(0.0f);  // 라디안
 	float rotY = XMConvertToRadians(0.0f); 
 	float rotZ = XMConvertToRadians(0.0f); 
+
+	// [ 오브젝트 : 바닥 ]
+	Matrix m_WorldPlane;
+	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
+
 
 	// [ 배경색 ]
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black

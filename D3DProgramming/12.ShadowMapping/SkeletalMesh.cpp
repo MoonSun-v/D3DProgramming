@@ -44,12 +44,30 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
         m_Materials[i].InitializeFromAssimpMaterial(device, scene->mMaterials[i], textureBase);
     }
 
-    // [ 스켈레톤 정보 생성 ]
-    m_pSkeletonInfo = std::make_unique<SkeletonInfo>();
-    m_pSkeletonInfo->CreateFromAiScene(scene);
+    bool hasBones = false;
+    for (UINT meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx)
+    {
+        if (scene->mMeshes[meshIdx]->HasBones())
+        {
+            hasBones = true;
+            break;
+        }
+    }
 
-    // [ 본 트리 생성 ]
-    CreateSkeleton(scene);
+    if (hasBones) 
+    {
+        // [ 스켈레톤 정보 생성 ]
+        m_pSkeletonInfo = std::make_unique<SkeletonInfo>();
+        m_pSkeletonInfo->CreateFromAiScene(scene);
+
+        // [ 본 트리 생성 ]
+        CreateSkeleton(scene);
+    }
+    else
+    {
+        m_pSkeletonInfo = nullptr; // StaticMesh
+    }
+
 
     // [ 애니메이션 ]
     bool hasAnimation = (scene->mNumAnimations > 0);
@@ -122,7 +140,9 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
     for (UINT i = 0; i < m_Sections.size(); ++i)
     {
-        m_Sections[i].m_pSkeletonInfo = m_pSkeletonInfo.get(); // Skinned : 모든 매시가 같은 스켈레톤 공유 
+        // Skinned이면 skeleton 공유, static이면 nullptr
+        // TODO : static이면 submesh mull 처리 해야함 
+        m_Sections[i].m_pSkeletonInfo = m_pSkeletonInfo.get(); 
         m_Sections[i].InitializeFromAssimpMesh(device, scene->mMeshes[i]);
         m_Sections[i].m_MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
     }
@@ -133,6 +153,12 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 void SkeletalMesh::CreateSkeleton(const aiScene* scene)
 {
     if (!scene->mRootNode) return;
+
+    bool hasBones = false;
+    for (UINT meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx)
+        if (scene->mMeshes[meshIdx]->HasBones()) { hasBones = true; break; }
+
+    if (!hasBones) return; // StaticMesh인 경우 건너뜀
 
     m_Skeleton.clear(); 
 
@@ -215,6 +241,8 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSam
 
 void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
 {
+    
+    if (m_Skeleton.empty()) return; // 본이 없으면(StaticMesh) 업데이트할 게 없음
     if (m_Animations.empty()) return;
 
     Animation& anim = m_Animations[m_AnimationIndex];

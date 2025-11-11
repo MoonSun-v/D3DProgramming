@@ -8,7 +8,6 @@
 #include "SkeletonInfo.h"
 #include "Bone.h"
 
-
 class SkeletalMesh
 {
 public:

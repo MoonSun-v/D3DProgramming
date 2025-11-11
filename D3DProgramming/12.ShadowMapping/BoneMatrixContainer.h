@@ -15,6 +15,7 @@ struct BoneMatrixContainer
 
     void SetBoneCount(int count)
     {
+        // BoneCount = count;
         if (count > MaxBones) count = MaxBones;
         for (int i = count; i < MaxBones; ++i)
             m_Model[i] = Matrix::Identity;

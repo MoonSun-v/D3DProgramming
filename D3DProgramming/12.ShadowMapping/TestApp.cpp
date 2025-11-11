@@ -133,9 +133,9 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(1, 1, m_pShadowMapSRV.GetAddressOf());
 
 	// [ Mesh 렌더링 ] 
-	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world)
+	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world, float isRigid)
 	{
-		cb.mWorld = XMMatrixTranspose(XMMatrixIdentity()); // 각 오브젝트 위치  
+		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치  
 		cb.mView = XMMatrixTranspose(m_View);
 		cb.mProjection = XMMatrixTranspose(m_Projection);
 		cb.vLightDir = m_LightDir;
@@ -145,13 +145,13 @@ void TestApp::Render()
 		cb.vDiffuse = m_LightDiffuse;
 		cb.vSpecular = m_MaterialSpecular;
 		cb.fShininess = m_Shininess;
-		cb.gIsRigid = 0.0f;
+		cb.gIsRigid = isRigid;
 
 		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
 		mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
 	};
-	RenderMesh(boxHuman, m_WorldChar);
-
+	
+	RenderMesh(boxHuman, m_WorldChar, 0.0f);
 
 	// UI 그리기 
 	Render_ImGui();
@@ -188,6 +188,7 @@ void TestApp::RenderShadowMap()
 
 	// 5) 메시 렌더링
 	boxHuman.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
 	// 6) 원래 뷰포트/렌더타겟으로 되돌리기 (메인 Pass)
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -400,6 +401,7 @@ bool TestApp::InitScene()
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 
 
 	// ---------------------------------------------------------------
