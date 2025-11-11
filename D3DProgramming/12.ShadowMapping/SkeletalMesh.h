@@ -24,6 +24,8 @@ public:
 
     XMMATRIX m_World;                                // 월드 행렬
     
+    ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
+    ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;   // b2 : Bone Offset
 
 public:
     SkeletalMesh();
@@ -37,6 +39,5 @@ public:
 private:
     void CreateSkeleton(const aiScene* scene);
 
-    void FindMeshBoneMapping(const aiScene* scene);
     void FindMeshBoneMapping(aiNode* node, const aiScene* scene);
 };

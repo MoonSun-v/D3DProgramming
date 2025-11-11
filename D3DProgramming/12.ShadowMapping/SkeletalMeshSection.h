@@ -11,6 +11,7 @@
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
+
 // [ 정점(Vertex) 구조 ]
 struct Vertex
 {
@@ -21,7 +22,7 @@ struct Vertex
     XMFLOAT3 Binormal; // 제거 ?
 
     // 영향받는 본 수는 최대 4개로 제한한다.
-    int BlendIndices[4] = { 0, 0, 0, 0 }; // 참조하는 본의 인덱스의 범위는 최대 128개로 일단 처리함 
+    int BlendIndices[4] = { 0, 0, 0, 0 };               // 참조하는 본의 인덱스의 범위는 최대 128개로 일단 처리함 
     float BlendWeights[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; // 가중치 총합은 1이 되어야 한다 
 
     void AddBoneData(int boneIndex, float weight)
@@ -44,8 +45,8 @@ struct Vertex
 class SkeletalMeshSection
 {
 public:
-    std::vector<Vertex> Vertices;  // std::vector<Vertex> BoneWeightVertices;
-    std::vector<WORD> Indices;  // UNIT 
+    std::vector<Vertex> Vertices;   // std::vector<Vertex> BoneWeightVertices;
+    std::vector<WORD> Indices;      // UNIT 
     
     SkeletonInfo* m_pSkeletonInfo = nullptr;
     

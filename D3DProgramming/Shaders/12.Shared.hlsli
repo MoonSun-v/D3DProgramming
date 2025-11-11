@@ -26,7 +26,7 @@ cbuffer ConstantBuffer : register(b0)
     float4 vSpecular; // 머티리얼 Specular
     
     float fShininess;  
-    float gIsRigid;     // 1: Rigid, 0: Skinned
+    int gIsRigid;     // 1: Rigid, 0: Skinned
     float pad1[2];      // 16바이트 정렬
 }
 

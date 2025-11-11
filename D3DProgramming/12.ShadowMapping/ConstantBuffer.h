@@ -18,7 +18,7 @@ struct ConstantBuffer
 	Vector4 vSpecular;		// 머티리얼 Specular
 
 	float   fShininess = 40.0f;   // 반짝임 정도
-	float	gIsRigid = 1;         // 1: Rigid, 0: Skinned
+	int		gIsRigid = 1;         // 1: Rigid, 0: Skinned
 	float	pad1[2];			  // 16바이트 정렬
 };
 

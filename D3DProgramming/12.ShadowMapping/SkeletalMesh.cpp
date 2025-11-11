@@ -1,5 +1,6 @@
 #include "SkeletalMesh.h"
 #include "Bone.h"
+#include "../Common/D3DDevice.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -18,6 +19,18 @@ SkeletalMesh::SkeletalMesh()
 // [ FBX 파일 로드 ] 
 bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 {
+    // [ 본 행렬용 상수 버퍼 : b1 (Pose) ]
+    D3D11_BUFFER_DESC bdBone = {};
+    bdBone.Usage = D3D11_USAGE_DEFAULT;
+    bdBone.ByteWidth = sizeof(BoneMatrixContainer);
+    bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bdBone.CPUAccessFlags = 0;
+    HR_T(device->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
+
+    // [ 본 오프셋용 상수 버퍼 : b2 (Offset) ]
+    HR_T(device->CreateBuffer(&bdBone, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
+
+
     Assimp::Importer importer; // 기본 임포트 옵션
 
     unsigned int importFlags =
@@ -37,13 +50,6 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
     std::wstring textureBase = fs::path(path).parent_path().wstring(); // 텍스처 기본 경로
 
-    // [ 머티리얼 로드 ]
-    m_Materials.resize(scene->mNumMaterials);
-    for (UINT i = 0; i < scene->mNumMaterials; ++i)
-    {
-        m_Materials[i].InitializeFromAssimpMaterial(device, scene->mMaterials[i], textureBase);
-    }
-
     bool hasBones = false;
     for (UINT meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx)
     {
@@ -52,6 +58,16 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
             hasBones = true;
             break;
         }
+    }
+
+    if (!hasBones)
+        importFlags |= aiProcess_PreTransformVertices;
+
+    // [ 머티리얼 로드 ]
+    m_Materials.resize(scene->mNumMaterials);
+    for (UINT i = 0; i < scene->mNumMaterials; ++i)
+    {
+        m_Materials[i].InitializeFromAssimpMaterial(device, scene->mMaterials[i], textureBase);
     }
 
     if (hasBones) 
@@ -141,7 +157,7 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     for (UINT i = 0; i < m_Sections.size(); ++i)
     {
         // Skinned이면 skeleton 공유, static이면 nullptr
-        // TODO : static이면 submesh mull 처리 해야함 
+        // TODO : static이면 submesh null 처리 해야함 
         m_Sections[i].m_pSkeletonInfo = m_pSkeletonInfo.get(); 
         m_Sections[i].InitializeFromAssimpMesh(device, scene->mMeshes[i]);
         m_Sections[i].m_MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
@@ -223,6 +239,17 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
 
 void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler)
 {
+    // Bone Pose (b1)
+    context->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, m_SkeletonPose.m_Model, 0, 0);
+    context->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+
+    // Bone Offset (b2) 
+    if (m_pSkeletonInfo)
+    {
+        context->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
+        context->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+    }
+
     for (auto& sub : m_Sections)
     {
         Material* material = nullptr;
@@ -241,8 +268,12 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSam
 
 void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
 {
-    
-    if (m_Skeleton.empty()) return; // 본이 없으면(StaticMesh) 업데이트할 게 없음
+    if (m_Skeleton.empty()) // 본이 없으면(StaticMesh) 업데이트할 게 없음
+    {
+        m_World = worldTransform;
+        return; 
+    }
+
     if (m_Animations.empty()) return;
 
     Animation& anim = m_Animations[m_AnimationIndex];

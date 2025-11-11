@@ -23,7 +23,7 @@ public:
 	TestApp();
 	~TestApp();
 
-	SkeletalMesh boxHuman, Plane;
+	SkeletalMesh Human, Vampire, Plane;
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -39,9 +39,9 @@ public:
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
 	// 버퍼
-	ComPtr<ID3D11Buffer> m_pConstantBuffer;     // b0 : 상수 버퍼
-	ComPtr<ID3D11Buffer> m_pBonePoseBuffer;     // b1 : Bone Pose
-	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;   // b2 : Bone Offset
+	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// b0 : 상수 버퍼
+	//ComPtr<ID3D11Buffer> m_pBonePoseBuffer;		// b1 : Bone Pose
+	//ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer;		// b2 : Bone Offset
 
 	ConstantBuffer cb;
 
@@ -67,23 +67,29 @@ public:
 	Vector3 m_ShadowLootAt;   // Shadow 카메라가 바라보는 위치
 
 
-	// [ 오브젝트 : 캐릭터 ]
-	Matrix m_WorldChar;
-	float m_CharPos[3] = { 0.0f, 0.0f, 0.0f };
+	// [ 오브젝트 : Human ]
+	Matrix m_WorldHuman;
+	float m_CharPos[3] = { -60.0f, 0.0f, 0.0f };
 	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };     
 	
 	float rotX = XMConvertToRadians(0.0f);  // 라디안
 	float rotY = XMConvertToRadians(0.0f); 
 	float rotZ = XMConvertToRadians(0.0f); 
 
+
+	// [ 오브젝트 : 좀비 ]
+	Matrix m_WorldVampire;
+	float m_VampirePos[3] = { 0.0f, 0.0f, 0.0f };
+
+
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
-	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
+	float m_PlanePos[3] = { 50.0f, -10.0f, 0.0f };
 
 
 	// [ 배경색 ]
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
-	Vector4 m_ClearColor = Vector4(0.80f, 0.92f, 1.0f, 1.0f); // Light Sky 
+	Vector4 m_ClearColor = Vector4(0.8f, 0.92f, 1.0f, 1.0f); // Light Sky 
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.3f, 1.0f); // Navy
 
 
@@ -111,7 +117,7 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
-
+	void RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid);
 	void RenderShadowMap();
 
 public:

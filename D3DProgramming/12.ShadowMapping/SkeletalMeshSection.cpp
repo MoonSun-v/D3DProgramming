@@ -8,6 +8,7 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
 {
 	// [ 버텍스 데이터 추출 ]
     Vertices.resize(mesh->mNumVertices);
+    bool isSkinned = mesh->HasBones() && m_pSkeletonInfo != nullptr;
     for (UINT i = 0; i < mesh->mNumVertices; ++i)
     {
         Vertices[i].Position = XMFLOAT3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
@@ -22,10 +23,18 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
             Vertices[i].Tangent = XMFLOAT3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
             Vertices[i].Binormal = XMFLOAT3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
         }
+
+        // 본이 없을 때는 AddBoneData()를 아예 호출하지 않음
+        if (!isSkinned)
+        {
+            Vertices[i].BlendWeights[0] = 1.0f; // 단일 가중치 
+            Vertices[i].BlendIndices[0] = 0; 
+        }
+
     }
 
     // [ 본 가중치 데이터 생성 ]
-    CreateBoneWeightedVertex(mesh);
+    if (isSkinned) CreateBoneWeightedVertex(mesh);
 
     // [ 인덱스 데이터 추출 ]
     for (UINT i = 0; i < mesh->mNumFaces; ++i)

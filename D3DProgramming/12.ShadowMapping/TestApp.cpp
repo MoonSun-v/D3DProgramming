@@ -27,7 +27,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(0.0f, 0.0f, -500.0f);
+	m_Camera.m_Position = Vector3(0.0f, 80.0f, -500.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 
@@ -56,7 +56,13 @@ void TestApp::Update()
 		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *   // 스케일
 		XMMatrixRotationRollPitchYaw(rotX, rotY, rotZ) *                 // 입력 회전
 		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
-	m_WorldChar = world; 
+	m_WorldHuman = world; 
+
+	m_WorldVampire = XMMatrixTranslation(m_VampirePos[0], m_VampirePos[1], m_VampirePos[2]);
+
+	// m_WorldPlane = XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
+
+	
 
 	// 투영 행렬 (Perspective or Orthographic)
 	//if (m_bDebugShadow)
@@ -89,7 +95,9 @@ void TestApp::Update()
 		Vector3(0.0f, 1.0f, 0.0f) // Up
 	);
 
-	boxHuman.Update(deltaTime, world);
+	Human.Update(deltaTime, world);
+	Vampire.Update(deltaTime, m_WorldVampire);
+	// Plane.Update(deltaTime, m_WorldPlane);
 }     
 
 
@@ -99,7 +107,7 @@ void TestApp::Update()
 void TestApp::Render()
 {
 	// ShadowMap 렌더링
-	RenderShadowMap();
+	// RenderShadowMap();
 
 	// 화면 초기화
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
@@ -113,51 +121,50 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(2, 1, m_pSamplerComparison.GetAddressOf()); 
 
-	// ConstantBuffer 
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	// Bone Pose (b1)
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &boxHuman.m_SkeletonPose.m_Model, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
-
-	// Bone Offset (b2) 
-	if (boxHuman.m_pSkeletonInfo)
-	{
-		m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &boxHuman.m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
-		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
-	}
-
 	// ShadowMap SRV 바인딩
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(1, 1, m_pShadowMapSRV.GetAddressOf());
 
-	// [ Mesh 렌더링 ] 
-	auto RenderMesh = [&](SkeletalMesh& mesh, const Matrix& world, float isRigid)
-	{
-		cb.mWorld = XMMatrixTranspose(world); // 각 오브젝트 위치  
-		cb.mView = XMMatrixTranspose(m_View);
-		cb.mProjection = XMMatrixTranspose(m_Projection);
-		cb.vLightDir = m_LightDir;
-		cb.vLightColor = m_LightColor;
-		cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-		cb.vAmbient = m_MaterialAmbient;
-		cb.vDiffuse = m_LightDiffuse;
-		cb.vSpecular = m_MaterialSpecular;
-		cb.fShininess = m_Shininess;
-		cb.gIsRigid = isRigid;
-
-		// SkeletalMesh 내부 Render에서 SubMesh 단위 렌더링과 Material 바인딩 처리
-		mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
-	};
-	
-	RenderMesh(boxHuman, m_WorldChar, 0.0f);
+	// [ Mesh 렌더링 ]
+	RenderMesh(Human, m_WorldHuman, 0);
+	RenderMesh(Vampire, m_WorldVampire, 0);
+	// RenderMesh(Plane, m_WorldPlane, 1);
 
 	// UI 그리기 
 	Render_ImGui();
 
 	// 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
 	m_D3DDevice.EndFrame(); 
+}
+
+void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
+{
+	cb.mWorld = XMMatrixTranspose(world);
+	cb.mView = XMMatrixTranspose(m_View);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
+	cb.vLightDir = m_LightDir;
+	cb.vLightColor = m_LightColor;
+	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
+	cb.vAmbient = m_MaterialAmbient;
+	cb.vDiffuse = m_LightDiffuse;
+	cb.vSpecular = m_MaterialSpecular;
+	cb.fShininess = m_Shininess;
+	cb.gIsRigid = isRigid;
+
+	// GPU 업로드
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	if (isRigid == 1)
+	{
+		// StaticMesh일 경우: 이전 본 버퍼(b1, b2) 언바인딩
+		ID3D11Buffer* nullCB[1] = { nullptr };
+		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, nullCB);
+		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, nullCB);
+	}
+
+	// SkeletalMesh에서 b1, b2 업데이트
+	mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
 }
 
 
@@ -175,7 +182,7 @@ void TestApp::RenderShadowMap()
 
 	// 3) 상수버퍼 세팅 ShadowCB (b3)
 	ShadowConstantBuffer shadowCB;
-	shadowCB.mWorld = XMMatrixTranspose(m_WorldChar); // 모델 월드
+	shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman); // Human 기준 TODO : 수정 필요 !!! 
 	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
 	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
@@ -187,8 +194,8 @@ void TestApp::RenderShadowMap()
 	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
 	// 5) 메시 렌더링
-	boxHuman.Render(m_D3DDevice.GetDeviceContext(), nullptr);
-	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+	Human.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+	Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
 	// 6) 원래 뷰포트/렌더타겟으로 되돌리기 (메인 Pass)
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -385,23 +392,13 @@ bool TestApp::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
-	// [ 본 행렬용 상수 버퍼 : b1 (Pose) ]
-	D3D11_BUFFER_DESC bdBone = {};
-	bdBone.Usage = D3D11_USAGE_DEFAULT;
-	bdBone.ByteWidth = sizeof(BoneMatrixContainer);
-	bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bdBone.CPUAccessFlags = 0;
-	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
-
-	// [ 본 오프셋용 상수 버퍼 : b2 (Offset) ]
-	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdBone, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
-
 
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
+	Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
+	// Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
 
 
 	// ---------------------------------------------------------------
@@ -502,7 +499,9 @@ void TestApp::UninitScene()
 	m_pInputLayout.Reset();
 
 	// Mesh, Material 해제
-	boxHuman.Clear();
+	Human.Clear();
+	Vampire.Clear();
+	Plane.Clear();
 
 	// 기본 텍스처 해제
 	Material::DestroyDefaultTextures();

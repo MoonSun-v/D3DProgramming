@@ -9,7 +9,7 @@ PS_INPUT main(VS_INPUT input)
 
     float4x4 ModelToWorld;
 
-    if (gIsRigid > 0.5f)
+    if (gIsRigid == 1)
     {
         ModelToWorld = gWorld;
     }
