@@ -15,7 +15,7 @@ float3 DecodeNormal(float3 N)
 
 float4 main(PS_INPUT input) : SV_Target
 {
-// 1. 텍스처 샘플링
+    // 1. 텍스처 샘플링
     float4 texDiffColor = txDiffuse.Sample(samLinear, input.Tex);
     float4 texNormColor = txNormal.Sample(samLinear, input.Tex);
     float4 texSpecColor = txSpecular.Sample(samLinear, input.Tex);

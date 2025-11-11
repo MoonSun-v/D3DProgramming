@@ -1,6 +1,7 @@
 
-Texture2D txDiffuse : register(t0);
 SamplerState samLinear : register(s0);
+
+Texture2D txDiffuse : register(t0);
 Texture2D txNormal : register(t1);
 Texture2D txSpecular : register(t2);
 Texture2D txEmissive : register(t3);
@@ -39,6 +40,29 @@ cbuffer BoneOffsetMatrix : register(b2)
 {
     matrix gBoneOffset[128];
 }
+
+cbuffer ShadowCB : register(b3)
+{
+    matrix mWorld;              // 모델 -> 월드
+    matrix mLightView;          // 월드 -> 라이트 뷰
+    matrix mLightProjection;    // 라이트 뷰 -> 클립
+};
+
+
+// [ Shadow ]
+struct VS_SHADOW_INPUT
+{
+    float4 Pos : POSITION;
+
+    // 스키닝용
+    uint4 BoneIndices : BLENDINDICES;
+    float4 BlendWeights : BLENDWEIGHT0;
+};
+
+struct VS_SHADOW_OUTPUT
+{
+    float4 PosH : SV_POSITION; // Depth 용
+};
 
 
 // 정점 입력 구조체

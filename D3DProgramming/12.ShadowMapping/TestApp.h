@@ -31,13 +31,12 @@ private:
 public:
 
 	// [ 렌더링 파이프라인 객체 ]
-	ComPtr<ID3D11VertexShader> m_pVertexShader;		// 정점 셰이더
-	ComPtr<ID3D11PixelShader> m_pPixelShader;		// 픽셀 셰이더
-	ComPtr<ID3D11InputLayout> m_pInputLayout;		// 입력 레이아웃
+	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass
+	ComPtr<ID3D11VertexShader> m_pShadowVS;			// ShadowPass
+	ComPtr<ID3D11PixelShader> m_pPixelShader;		
+	ComPtr<ID3D11InputLayout> m_pInputLayout;		// MainPass
+	ComPtr<ID3D11InputLayout> m_pShadowInputLayout; // ShadowPass)
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
-
-	// Shadow
-	ComPtr<ID3D11VertexShader> m_pShadowVertexShader; // 그림자용 VS 
 
 	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;     // b0 : 상수 버퍼
@@ -63,6 +62,9 @@ public:
 	// Shadow			
 	Matrix                m_ShadowView;					
 	Matrix                m_ShadowProjection;
+
+	Vector3 m_ShadowPos;      // Shadow 카메라 위치
+	Vector3 m_ShadowLootAt;   // Shadow 카메라가 바라보는 위치
 
 	// [ 오브젝트 ]
 	Matrix m_WorldChar;

@@ -1,0 +1,38 @@
+#include "12.Shared.hlsli"
+
+//--------------------------------------------------------------------------------------
+// Shadow Vertex Shader
+//--------------------------------------------------------------------------------------
+VS_SHADOW_OUTPUT ShadowVS(VS_SHADOW_INPUT input)
+{
+    VS_SHADOW_OUTPUT output = (VS_SHADOW_OUTPUT) 0;
+
+    float4x4 ModelToWorld;
+
+    if (gIsRigid > 0.5f)
+    {
+        ModelToWorld = gWorld;
+    }
+    else
+    {
+        float4x4 OffsetPose[4];
+        OffsetPose[0] = mul(gBoneOffset[input.BoneIndices.x], gBonePose[input.BoneIndices.x]);
+        OffsetPose[1] = mul(gBoneOffset[input.BoneIndices.y], gBonePose[input.BoneIndices.y]);
+        OffsetPose[2] = mul(gBoneOffset[input.BoneIndices.z], gBonePose[input.BoneIndices.z]);
+        OffsetPose[3] = mul(gBoneOffset[input.BoneIndices.w], gBonePose[input.BoneIndices.w]);
+        
+        float4x4 WeightedOffsetPose;
+        WeightedOffsetPose = mul(input.BlendWeights.x, OffsetPose[0]);
+        WeightedOffsetPose += mul(input.BlendWeights.y, OffsetPose[1]);
+        WeightedOffsetPose += mul(input.BlendWeights.z, OffsetPose[2]);
+        WeightedOffsetPose += mul(input.BlendWeights.w, OffsetPose[3]);
+
+        ModelToWorld = mul(WeightedOffsetPose, gWorld); // 포즈변환 + World까지 누적
+    }
+
+    float4 worldPos = mul(input.Pos, ModelToWorld);
+    float4 lightViewPos = mul(worldPos, mLightView);
+    output.PosH = mul(lightViewPos, mLightProjection);
+    
+    return output;
+}

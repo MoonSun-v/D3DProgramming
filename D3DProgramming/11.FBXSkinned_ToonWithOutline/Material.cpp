@@ -147,7 +147,7 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         };
 
 
-    // Toon Ramp 텍스처 수동 로드 (전체 씬 공통으로 쓸 수도 있음)
+    // Toon Ramp 텍스처 수동 로드 
     std::wstring toonRampPath = L"../Resource/RampTexture.png";
     std::wstring specularRampPath = L"../Resource/SpecularRampTexture.png";
 
@@ -171,7 +171,6 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
 
 
     // 각 텍스처 로드
-    // LoadTex(aiTextureType_DIFFUSE, m_textures.DiffuseSRV, FilePathDiffuse, s_defaultTextures.DiffuseSRV);
     LoadTex(aiTextureType_NORMALS, m_textures.NormalSRV, FilePathNormal, s_defaultTextures.NormalSRV);
     LoadTex(aiTextureType_SPECULAR, m_textures.SpecularSRV, FilePathSpecular, s_defaultTextures.SpecularSRV);
     LoadTex(aiTextureType_EMISSIVE, m_textures.EmissiveSRV, FilePathEmissive, s_defaultTextures.EmissiveSRV);

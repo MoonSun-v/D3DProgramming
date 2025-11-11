@@ -58,7 +58,7 @@ void TestApp::Update()
 		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
 	m_WorldChar = world; 
 
-	//// 투영 행렬 (Perspective or Orthographic)
+	// 투영 행렬 (Perspective or Orthographic)
 	//if (m_bDebugShadow)
 	//{
 	//	m_ShadowProjection = XMMatrixPerspectiveFovLH(
@@ -69,16 +69,25 @@ void TestApp::Update()
 	//	);
 	//}
 
-	//// Shadow 카메라 위치 계산
-	//m_ShadowLootAt = pCamera->GetWorldPosition() + pCamera->GetForward() * m_ShadowForwardDistFromCamera;
-	//m_ShadowPos = m_ShadowLootAt + (-m_Light.Direction * m_ShadowUpDistFromLootAt);
+	// Shadow 카메라 위치 (기본적으로 Light 방향을 따라 그림자 찍는 위치)
+	Vector3 shadowForwardDist = { 0.0f, 0.0f, 50.0f }; // 원하는 카메라 앞 거리
+	Vector3 shadowUpDist = { 0.0f, 50.0f, 0.0f };		// Light 위쪽 높이
 
-	//// View 행렬 계산
-	//m_ShadowView = XMMatrixLookAtLH(
-	//	m_ShadowPos,        // 카메라 위치
-	//	m_ShadowLootAt,     // 바라볼 위치
-	//	Vector3(0.0f, 1.0f, 0.0f)  // Up Vector
-	//);
+	Vector3 cameraPos = { m_CameraPos[0], m_CameraPos[1], m_CameraPos[2] };
+	Vector3 forward = { 0.0f, 0.0f, 1.0f }; // 카메라 Forward (임시)
+
+	Vector3 shadowLookAt = cameraPos + forward * shadowForwardDist.z;
+	Vector3 shadowPos = shadowLookAt - Vector3(m_LightDir.x, m_LightDir.y, m_LightDir.z) * shadowUpDist.y;
+
+	m_ShadowLootAt = shadowLookAt;
+	m_ShadowPos = shadowPos;
+
+	// Shadow View 행렬
+	m_ShadowView = XMMatrixLookAtLH(
+		m_ShadowPos,      // 카메라 위치
+		m_ShadowLootAt,   // 바라볼 위치
+		Vector3(0.0f, 1.0f, 0.0f) // Up
+	);
 
 	boxHuman.Update(deltaTime, world);
 }     
@@ -164,27 +173,27 @@ void TestApp::RenderShadowMap()
 	// 2) Shadow Viewport 설정
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_ShadowViewport);
 
-	// 3) 상수버퍼 세팅
+	// 3) 상수버퍼 세팅 ShadowCB (b3)
 	ShadowConstantBuffer shadowCB;
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldChar); // 모델 월드
 	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
 	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pShadowCB.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
 
 	// 4) VertexShader만 설정 (픽셀 셰이더는 Depth만 출력하므로 필요 없음)
-	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVertexShader.Get(), nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pShadowInputLayout.Get());
+	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
 	// 5) 메시 렌더링
 	boxHuman.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
-	// 6) 원래 뷰포트/렌더타겟으로 복귀 (메인 Pass)
+	// 6) 원래 뷰포트/렌더타겟으로 되돌리기 (메인 Pass)
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
 	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
 	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
 }
-
 
 
 
@@ -322,7 +331,6 @@ bool TestApp::InitScene()
 	HRESULT hr = 0;                       // DirectX 함수 결과값
 	ID3D10Blob* errorMessage = nullptr;   // 셰이더 컴파일 에러 메시지 버퍼	
 
-
 	// ---------------------------------------------------------------
 	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
@@ -330,6 +338,9 @@ bool TestApp::InitScene()
 	HR_T(CompileShaderFromFile(L"../Shaders/12.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
+	ComPtr<ID3DBlob> ShadowVSBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/12.ShadowVertexShader.hlsl", "ShadowVS", "vs_4_0", ShadowVSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), NULL, m_pShadowVS.GetAddressOf()));
 
 	// ---------------------------------------------------------------
 	// 입력 레이아웃(Input Layout) 생성
@@ -345,6 +356,14 @@ bool TestApp::InitScene()
 		{ "BLENDWEIGHT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // float4
 	};
 	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
+
+	D3D11_INPUT_ELEMENT_DESC shadowLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(shadowLayout, ARRAYSIZE(shadowLayout), ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), m_pShadowInputLayout.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------
@@ -381,7 +400,6 @@ bool TestApp::InitScene()
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	boxHuman.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-
 
 
 	// ---------------------------------------------------------------

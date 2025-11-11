@@ -27,7 +27,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(0.0f, 0.0f, -500.0f);
+	m_Camera.m_Position = Vector3(50.0f, 0.0f, -350.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 
@@ -77,6 +77,7 @@ void TestApp::Render()
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// 상수 버퍼 업데이트
+	cb.mWorld = XMMatrixTranspose(XMMatrixIdentity()); // 각 오브젝트 위치
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
 	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
@@ -103,14 +104,14 @@ void TestApp::Render()
 
 	// [ PASS 0 : 외곽선 ]
 	{
-		context->RSSetState(m_pRS_CullFront.Get()); // 앞면 제거 → 뒷면만 렌더링
+		context->RSSetState(m_pRS_CullFront.Get()); // 앞면 제거 -> 뒷면만 렌더링
 		context->VSSetShader(m_pOutlineVS.Get(), nullptr, 0);
 		context->PSSetShader(m_pOutlinePS.Get(), nullptr, 0);
 
 		// 외곽선 버퍼 업데이트
 		OutlineBuffer outline{};
-		outline.OutlineThickness = 0.8f;               // 외곽선 두께
-		outline.OutlineColor = XMFLOAT4(1, 1, 1, 1);     // 외곽선 색상 (검정)
+		outline.OutlineThickness = 1.0f;               // 외곽선 두께
+		outline.OutlineColor = XMFLOAT4(1, 1, 1, 1);     // 외곽선 색상 (흰색)
 		context->UpdateSubresource(m_pOutlineBuffer.Get(), 0, nullptr, &outline, 0, 0);
 		context->VSSetConstantBuffers(3, 1, m_pOutlineBuffer.GetAddressOf());
 
@@ -197,9 +198,9 @@ void TestApp::Render_ImGui()
 	ImGui::DragFloat3("Light Dir", (float*)&m_LightDir, 0.01f, -1.0f, 1.0f);
 
 	// 주변광 / 난반사 / 정반사 계수
-	ImGui::ColorEdit3("Ambient Light", (float*)&m_LightAmbient);
-	ImGui::ColorEdit3("Diffuse Light", (float*)&m_LightDiffuse);
-	ImGui::DragFloat("Shininess (alpha)", &m_Shininess, 10.0f, 5.0f, 1000.0f);
+	//ImGui::ColorEdit3("Ambient Light", (float*)&m_LightAmbient);
+	//ImGui::ColorEdit3("Diffuse Light", (float*)&m_LightDiffuse);
+	ImGui::DragFloat("Shininess (alpha)", &m_Shininess, 10.0f, 5.0f, 50.0f);
 
 	ImGui::Separator();
 	ImGui::Text("");
