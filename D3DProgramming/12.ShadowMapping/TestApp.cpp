@@ -86,7 +86,6 @@ void TestApp::Update()
 
 
 	// [ 오브젝트 업데이트 ]
-
 	Human.Update(deltaTime, world);
 	Vampire.Update(deltaTime, m_WorldVampire);
 	Plane.Update(deltaTime, m_WorldPlane);
@@ -194,19 +193,19 @@ void TestApp::RenderShadowMap()
 	// Human
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(5, 1, m_pShadowCB.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
 	Human.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
 	// Vampire
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldVampire);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(5, 1, m_pShadowCB.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
 	Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
 	// Plane
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldPlane);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(5, 1, m_pShadowCB.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
 	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
 	// 5) 메인 Pass 렌더타겟/뷰포트 복원
@@ -410,7 +409,7 @@ bool TestApp::InitScene()
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
+	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/AttackRetopo.fbx");
 	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 
 

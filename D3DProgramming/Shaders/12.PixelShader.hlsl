@@ -61,24 +61,16 @@ float4 main(PS_INPUT input) : SV_Target
     float4 emissive = texEmissive;
 
     
-    // [ Shadow 처리 ] : 광원NDC 좌표계에서의 좌표는 계산해주지 않으므로 계산한다.
-    // float shadow = CalcShadow(input.WorldPos);
-    
-    float4 lightPos = mul(float4(input.WorldPos, 1.0f), mLightView);
-    lightPos = mul(lightPos, mLightProjection);
-
-    float currentShadowDepth = lightPos.z / lightPos.w; // 픽셀까지의 깊이 
-    float2 uv = lightPos.xy / lightPos.w;               // 광원NDC 좌표계에서의 x(-1 ~ +1), y(-1 ~ +1)
-
-    
-    // [ PCF 사용 ]
+    // [ Shadow 처리 : PCF 사용 ] : 광원NDC 좌표계에서의 좌표는 계산해주지 않으므로 계산한다.
+    float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
+    float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
     
     // NDC -> Texture 좌표계 변환
-    uv.y = -uv.y;
-    uv = uv * 0.5f + 0.5f;
+    uv.y = -uv.y;           // y는 반대 
+    uv = uv * 0.5f + 0.5f;  // -1 에서 1을 0~1로 변환
 
     float shadowFactor = 1.0f;
-    const float depthBias = 0.001f;
+    const float depthBias = 0.005f;
     float texelSize = 1.0 / 8192.0; // ShadowMapSize = 8192.0; // ShadowMap 해상도
 
     if (uv.x >= 0.0f && uv.x <= 1.0f && uv.y >= 0.0f && uv.y <= 1.0f)
@@ -96,9 +88,18 @@ float4 main(PS_INPUT input) : SV_Target
         for (int i = 0; i < 9; i++)
         {
             float2 sampleUV = uv + offsets[i] * texelSize;
-            shadowFactor += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth - depthBias);
+            shadowFactor += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth + depthBias);
         }
         shadowFactor /= 9.0f; // 평균값
+    }
+    else
+    {
+        float sampleShadowDepth = txShadowMap.Sample(samLinear, uv).r;
+				// currentShadowDepth가 크면 더 뒤쪽에 있으므로 직접광이 차단된다.
+        if (currentShadowDepth > sampleShadowDepth + depthBias)
+        {
+            shadowFactor = 0.0f;
+        }
     }
 
     // 그림자 적용 (diffuse + specular)

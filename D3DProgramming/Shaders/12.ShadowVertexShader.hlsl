@@ -6,9 +6,9 @@
 
 // 라이트 시점에서 깊이만 찍는다. 
 
-VS_SHADOW_OUTPUT ShadowVS(VS_SHADOW_INPUT input)
+PS_INPUT ShadowVS(VS_SHADOW_INPUT input)
 {
-    VS_SHADOW_OUTPUT output = (VS_SHADOW_OUTPUT) 0;
+    PS_INPUT output = (PS_INPUT) 0;
 
     float4x4 ModelToWorld;
 
@@ -35,7 +35,7 @@ VS_SHADOW_OUTPUT ShadowVS(VS_SHADOW_INPUT input)
 
     float4 worldPos = mul(input.Pos, ModelToWorld);
     float4 lightViewPos = mul(worldPos, mLightView); // 라이트가 보는 시점 
-    output.PosH = mul(lightViewPos, mLightProjection);
+    output.Pos = mul(lightViewPos, mLightProjection);
     
     return output;
-}
+} 

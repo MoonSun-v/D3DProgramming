@@ -43,5 +43,8 @@ PS_INPUT main(VS_INPUT input)
 
     output.Tex = input.Tex;
     
+    output.PositionShadow = mul(float4(output.WorldPos, 1.0f), mLightView);
+    output.PositionShadow = mul(output.PositionShadow, mLightProjection);
+    
     return output;
 }

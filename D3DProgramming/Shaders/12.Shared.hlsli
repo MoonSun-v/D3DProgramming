@@ -90,4 +90,5 @@ struct PS_INPUT
     float3 WorldPos : TEXCOORD1;    // 월드 공간 위치 전달
     float3 Tangent : TEXCOORD2;     // 월드 공간 Tangent
     float3 Binormal : TEXCOORD3;
+    float4 PositionShadow : TEXCOORD4;
 };

@@ -48,10 +48,10 @@ public:
 	// Shadow Map 
 	D3D11_VIEWPORT						m_ShadowViewport;   
 	ComPtr<ID3D11Texture2D>				m_pShadowMap;       
-	ComPtr<ID3D11DepthStencilView>		m_pShadowMapDSV;    // 깊이값 기록을 설정하기 위한 객체 
-	ComPtr<ID3D11ShaderResourceView>	m_pShadowMapSRV;    // 셰이더에서 깊이 버퍼를 슬롯에 설정하고 사용하기 위한 객체 
-	ComPtr<ID3D11SamplerState>			m_pSamplerComparison; // Comparison Sampler
-	ComPtr<ID3D11Buffer> m_pShadowCB;			// Shadow 버퍼
+	ComPtr<ID3D11DepthStencilView>		m_pShadowMapDSV;		// 깊이값 기록을 설정하기 위한 객체 
+	ComPtr<ID3D11ShaderResourceView>	m_pShadowMapSRV;		// 셰이더에서 깊이 버퍼를 슬롯에 설정하고 사용하기 위한 객체 
+	ComPtr<ID3D11SamplerState>			m_pSamplerComparison;	// Comparison Sampler
+	ComPtr<ID3D11Buffer>				m_pShadowCB;			// Shadow 버퍼
 
 
 	// [ 셰이더에 전달할 데이터 ]
