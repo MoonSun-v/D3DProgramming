@@ -60,44 +60,36 @@ void TestApp::Update()
 
 	m_WorldVampire = XMMatrixTranslation(m_VampirePos[0], m_VampirePos[1], m_VampirePos[2]);
 
-	// m_WorldPlane = XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
+	m_WorldPlane =
+		XMMatrixScaling(m_PlaneScale.x, m_PlaneScale.y, m_PlaneScale.z) *
+		XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
 
 	
+	// ---------------------------------------------
+	// [ Shadow 카메라 위치 계산 (원근 투영) ]
+	// ---------------------------------------------
+	
+	// [ ShadowLookAt ]
+	float shadowDistance = 200.0f; // 카메라 앞쪽 거리
+	Vector3 shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * shadowDistance;
 
-	// 투영 행렬 (Perspective or Orthographic)
-	//if (m_bDebugShadow)
-	//{
-	//	m_ShadowProjection = XMMatrixPerspectiveFovLH(
-	//		XM_PIDIV4,
-	//		m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height,
-	//		0.1f,
-	//		1000.0f
-	//	);
-	//}
+	// [ ShadowPos ] 라이트 방향을 기준으로 카메라 위치 계산 
+	float shadowBackOffset = 80.0f;  // 라이트가 어느 정도 떨어진 곳에서 바라보게
+	Vector3 lightDir = XMVector3Normalize(Vector3(m_LightDir.x, m_LightDir.y, m_LightDir.z));
+	Vector3 shadowPos = shadowLookAt - lightDir * shadowBackOffset;
 
-	// Shadow 카메라 위치 (기본적으로 Light 방향을 따라 그림자 찍는 위치)
-	Vector3 shadowForwardDist = { 0.0f, 0.0f, 50.0f }; // 원하는 카메라 앞 거리
-	Vector3 shadowUpDist = { 0.0f, 50.0f, 0.0f };		// Light 위쪽 높이
+	// [ Shadow View ]
+	m_ShadowView = XMMatrixLookAtLH( shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f) );
 
-	Vector3 cameraPos = { m_CameraPos[0], m_CameraPos[1], m_CameraPos[2] };
-	Vector3 forward = { 0.0f, 0.0f, 1.0f }; // 카메라 Forward (임시)
+	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
+	m_ShadowProjection = XMMatrixPerspectiveFovLH( XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 1.0f, 500.f );
 
-	Vector3 shadowLookAt = cameraPos + forward * shadowForwardDist.z;
-	Vector3 shadowPos = shadowLookAt - Vector3(m_LightDir.x, m_LightDir.y, m_LightDir.z) * shadowUpDist.y;
 
-	m_ShadowLootAt = shadowLookAt;
-	m_ShadowPos = shadowPos;
-
-	// Shadow View 행렬
-	m_ShadowView = XMMatrixLookAtLH(
-		m_ShadowPos,      // 카메라 위치
-		m_ShadowLootAt,   // 바라볼 위치
-		Vector3(0.0f, 1.0f, 0.0f) // Up
-	);
+	// [ 오브젝트 업데이트 ]
 
 	Human.Update(deltaTime, world);
 	Vampire.Update(deltaTime, m_WorldVampire);
-	// Plane.Update(deltaTime, m_WorldPlane);
+	Plane.Update(deltaTime, m_WorldPlane);
 }     
 
 
@@ -106,8 +98,13 @@ void TestApp::Update()
 // 
 void TestApp::Render()
 {
+	// 1. ShadowMap 렌더링 (DepthOnlyPass)
+	// PS에서 ShadowMap SRV를 null로 언바인딩
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, nullSRV);
+
 	// ShadowMap 렌더링
-	// RenderShadowMap();
+	RenderShadowMap();
 
 	// 화면 초기화
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
@@ -119,15 +116,15 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetSamplers(2, 1, m_pSamplerComparison.GetAddressOf()); 
+	m_D3DDevice.GetDeviceContext()->PSSetSamplers(1, 1, m_pSamplerComparison.GetAddressOf()); 
 
 	// ShadowMap SRV 바인딩
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(1, 1, m_pShadowMapSRV.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
 
 	// [ Mesh 렌더링 ]
 	RenderMesh(Human, m_WorldHuman, 0);
 	RenderMesh(Vampire, m_WorldVampire, 0);
-	// RenderMesh(Plane, m_WorldPlane, 1);
+	RenderMesh(Plane, m_WorldPlane, 1);
 
 	// UI 그리기 
 	Render_ImGui();
@@ -174,34 +171,50 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 
 void TestApp::RenderShadowMap()
 {
-	// 1) 렌더 타겟을 ShadowMap DSV로 설정
+	// 1) ShadowMap DSV로 렌더 타겟 설정
 	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
 
-	// 2) Shadow Viewport 설정
+	// 2) Shadow 뷰포트 설정
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_ShadowViewport);
 
-	// 3) 상수버퍼 세팅 ShadowCB (b3)
+	// 3) Shadow 상수버퍼 
 	ShadowConstantBuffer shadowCB;
-	shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman); // Human 기준 TODO : 수정 필요 !!! 
 	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
 	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
 
-	// 4) VertexShader만 설정 (픽셀 셰이더는 Depth만 출력하므로 필요 없음)
+	// 4) VertexShader만 설정 (Depth만 필요)
 	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pShadowInputLayout.Get());
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
-	// 5) 메시 렌더링
+	
+	// ------------------------------
+	// 각 메시 Depth 렌더링 : ShadowMap에 기록 
+	// ------------------------------
+	// Human
+	shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman);
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(5, 1, m_pShadowCB.GetAddressOf());
 	Human.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+
+	// Vampire
+	shadowCB.mWorld = XMMatrixTranspose(m_WorldVampire);
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(5, 1, m_pShadowCB.GetAddressOf());
 	Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr);
 
-	// 6) 원래 뷰포트/렌더타겟으로 되돌리기 (메인 Pass)
+	// Plane
+	shadowCB.mWorld = XMMatrixTranspose(m_WorldPlane);
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(5, 1, m_pShadowCB.GetAddressOf());
+	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+
+	// 5) 메인 Pass 렌더타겟/뷰포트 복원
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
 	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
 	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
 }
+
 
 
 
@@ -367,9 +380,9 @@ bool TestApp::InitScene()
 
 	D3D11_INPUT_ELEMENT_DESC shadowLayout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(shadowLayout, ARRAYSIZE(shadowLayout), ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), m_pShadowInputLayout.GetAddressOf()));
 
@@ -398,7 +411,7 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
-	// Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/zeldaPosed001.fbx");
+	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 
 
 	// ---------------------------------------------------------------
@@ -408,12 +421,12 @@ bool TestApp::InitScene()
 	// Shadow Map 뷰포트 설정
 	m_ShadowViewport.TopLeftX = 0.0f;
 	m_ShadowViewport.TopLeftY = 0.0f;
-	m_ShadowViewport.Width = 8192.0f; // 원하는 해상도
+	m_ShadowViewport.Width = 8192.0f; // 해상도
 	m_ShadowViewport.Height = 8192.0f;
 	m_ShadowViewport.MinDepth = 0.0f;
 	m_ShadowViewport.MaxDepth = 1.0f;
 
-	// Shadow Map Texture
+	// Shadow Map Texture 생성 
 	D3D11_TEXTURE2D_DESC texDesc = {};
 	texDesc.Width = (UINT)m_ShadowViewport.Width; // 해상도 8192*8192 추천 
 	texDesc.Height = (UINT)m_ShadowViewport.Height;
@@ -442,6 +455,7 @@ bool TestApp::InitScene()
 	// Comparison Sampler 생성
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	//sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;

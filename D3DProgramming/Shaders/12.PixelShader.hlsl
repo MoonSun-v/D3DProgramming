@@ -4,6 +4,8 @@
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
+// 최종 색 계산 + 그림자 샘플링 
+
 float3 EncodeNormal(float3 N)
 {
     return N * 0.5 + 0.5;
@@ -58,6 +60,50 @@ float4 main(PS_INPUT input) : SV_Target
     // 7. Emissive : 자체 발광!
     float4 emissive = texEmissive;
 
+    
+    // [ Shadow 처리 ] : 광원NDC 좌표계에서의 좌표는 계산해주지 않으므로 계산한다.
+    // float shadow = CalcShadow(input.WorldPos);
+    
+    float4 lightPos = mul(float4(input.WorldPos, 1.0f), mLightView);
+    lightPos = mul(lightPos, mLightProjection);
+
+    float currentShadowDepth = lightPos.z / lightPos.w; // 픽셀까지의 깊이 
+    float2 uv = lightPos.xy / lightPos.w;               // 광원NDC 좌표계에서의 x(-1 ~ +1), y(-1 ~ +1)
+
+    
+    // [ PCF 사용 ]
+    
+    // NDC -> Texture 좌표계 변환
+    uv.y = -uv.y;
+    uv = uv * 0.5f + 0.5f;
+
+    float shadowFactor = 1.0f;
+    const float depthBias = 0.001f;
+    float texelSize = 1.0 / 8192.0; // ShadowMapSize = 8192.0; // ShadowMap 해상도
+
+    if (uv.x >= 0.0f && uv.x <= 1.0f && uv.y >= 0.0f && uv.y <= 1.0f)
+    {
+        // 3x3 오프셋
+        float2 offsets[9] =
+        {
+            float2(-1, -1), float2(0, -1), float2(1, -1),
+                float2(-1, 0), float2(0, 0), float2(1, 0),
+                float2(-1, 1), float2(0, 1), float2(1, 1)
+        };
+
+        shadowFactor = 0.0f;
+            [unroll]
+        for (int i = 0; i < 9; i++)
+        {
+            float2 sampleUV = uv + offsets[i] * texelSize;
+            shadowFactor += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth - depthBias);
+        }
+        shadowFactor /= 9.0f; // 평균값
+    }
+
+    // 그림자 적용 (diffuse + specular)
+    diffuse *= shadowFactor;
+    specular *= shadowFactor;
     
     // 8. 최종 색상 합산
     float4 finalColor = saturate(diffuse + ambient + specular + emissive);

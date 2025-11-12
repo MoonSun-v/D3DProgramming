@@ -63,10 +63,12 @@ public:
 	Matrix                m_ShadowView;					
 	Matrix                m_ShadowProjection;
 
-	Vector3 m_ShadowPos;      // Shadow 카메라 위치
-	Vector3 m_ShadowLootAt;   // Shadow 카메라가 바라보는 위치
+	// [ Main Camera ]
+	float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
+	float m_CameraNear = 0.1f;
+	float m_CameraFar = 2000.0f;
 
-
+		 
 	// [ 오브젝트 : Human ]
 	Matrix m_WorldHuman;
 	float m_CharPos[3] = { -60.0f, 0.0f, 0.0f };
@@ -84,8 +86,10 @@ public:
 
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
-	float m_PlanePos[3] = { 50.0f, -10.0f, 0.0f };
+	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
+	Vector3 m_PlaneScale = { 400.0f, 10.0f, 400.0f };
 
+	bool m_bDebugShadow = true; // 그림자 디버그 모드
 
 	// [ 배경색 ]
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
@@ -95,13 +99,10 @@ public:
 
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // 라이트 색상
-	XMFLOAT4 m_LightDir = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);	  // 라이트 방향
+	XMFLOAT4 m_LightDir = XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);  // 라이트 방향
 
 
-	// [ Camera 설정 값 ]
-	float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
-	float m_CameraNear = 0.1f;
-	float m_CameraFar = 2000.0f;
+
 
 	// 머터리얼 조절용
 	XMFLOAT4 m_MaterialAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);

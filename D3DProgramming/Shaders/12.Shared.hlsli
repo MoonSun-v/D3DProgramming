@@ -1,11 +1,13 @@
 
 SamplerState samLinear : register(s0);
+SamplerComparisonState samShadow : register(s1); // Depth 비교용 샘플러
 
 Texture2D txDiffuse : register(t0);
 Texture2D txNormal : register(t1);
 Texture2D txSpecular : register(t2);
 Texture2D txEmissive : register(t3);
 Texture2D txOpacity : register(t4);
+Texture2D txShadowMap : register(t5); // Shadow Map 텍스처
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
