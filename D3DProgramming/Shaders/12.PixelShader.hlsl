@@ -66,8 +66,8 @@ float4 main(PS_INPUT input) : SV_Target
     float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
     
     // NDC -> Texture 좌표계 변환
-    uv.y = -uv.y;           // y는 반대 
-    uv = uv * 0.5f + 0.5f;  // -1 에서 1을 0~1로 변환
+    uv.y = -uv.y; // y는 반대 
+    uv = uv * 0.5f + 0.5f; // -1 에서 1을 0~1로 변환
 
     float shadowFactor = 1.0f;
     const float depthBias = 0.005f;
@@ -82,24 +82,15 @@ float4 main(PS_INPUT input) : SV_Target
                 float2(-1, 0), float2(0, 0), float2(1, 0),
                 float2(-1, 1), float2(0, 1), float2(1, 1)
         };
-
-        shadowFactor = 0.0f;
-            [unroll]
+         
+        shadowFactor = 0.0f; // 초기화 
+        [unroll]
         for (int i = 0; i < 9; i++)
         {
             float2 sampleUV = uv + offsets[i] * texelSize;
-            shadowFactor += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth + depthBias);
+            shadowFactor += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth - depthBias);
         }
         shadowFactor /= 9.0f; // 평균값
-    }
-    else
-    {
-        float sampleShadowDepth = txShadowMap.Sample(samLinear, uv).r;
-				// currentShadowDepth가 크면 더 뒤쪽에 있으므로 직접광이 차단된다.
-        if (currentShadowDepth > sampleShadowDepth + depthBias)
-        {
-            shadowFactor = 0.0f;
-        }
     }
 
     // 그림자 적용 (diffuse + specular)

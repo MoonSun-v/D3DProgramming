@@ -237,7 +237,7 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
 }
 
 
-void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler)
+void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler, int isRigid)
 {
     // Bone Pose (b1)
     context->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, m_SkeletonPose.m_Model, 0, 0);

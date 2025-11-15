@@ -70,23 +70,23 @@ void TestApp::Update()
 	// ---------------------------------------------
 	
 	// [ ShadowLookAt ]
-	float shadowDistance = 200.0f; // 카메라 앞쪽 거리
+	float shadowDistance = 100.0f; // 카메라 앞쪽 거리
 	Vector3 shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * shadowDistance;
 
 	// [ ShadowPos ] 라이트 방향을 기준으로 카메라 위치 계산 
-	float shadowBackOffset = 80.0f;  // 라이트가 어느 정도 떨어진 곳에서 바라보게
+	float shadowBackOffset = 1000.0f;  // 라이트가 어느 정도 떨어진 곳에서 바라보게
 	Vector3 lightDir = XMVector3Normalize(Vector3(m_LightDir.x, m_LightDir.y, m_LightDir.z));
-	Vector3 shadowPos = shadowLookAt - lightDir * shadowBackOffset;
+	Vector3 shadowPos = m_Camera.m_Position + (-lightDir * shadowBackOffset);
 
 	// [ Shadow View ]
 	m_ShadowView = XMMatrixLookAtLH( shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f) );
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH( XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 1.0f, 500.f );
+	m_ShadowProjection = XMMatrixPerspectiveFovLH( XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 400.0f, 2000.f );
 
 
 	// [ 오브젝트 업데이트 ]
-	Human.Update(deltaTime, world);
+	Human.Update(deltaTime, m_WorldHuman);
 	Vampire.Update(deltaTime, m_WorldVampire);
 	Plane.Update(deltaTime, m_WorldPlane);
 }     
@@ -151,16 +151,16 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
+	// StaticMesh일 경우: 이전 본 버퍼(b1, b2) 언바인딩
 	if (isRigid == 1)
 	{
-		// StaticMesh일 경우: 이전 본 버퍼(b1, b2) 언바인딩
 		ID3D11Buffer* nullCB[1] = { nullptr };
 		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, nullCB);
 		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, nullCB);
 	}
 
-	// SkeletalMesh에서 b1, b2 업데이트
-	mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
+	// SkeletalMesh에서 b1, b2 업데이트 (Skinned mesh만)
+	mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), isRigid);
 }
 
 
@@ -170,6 +170,13 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 
 void TestApp::RenderShadowMap()
 {
+	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView(
+		m_pShadowMapDSV.Get(),
+		D3D11_CLEAR_DEPTH,
+		1.0f,
+		0
+	);
+
 	// 1) ShadowMap DSV로 렌더 타겟 설정
 	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
 
@@ -194,19 +201,19 @@ void TestApp::RenderShadowMap()
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	Human.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+	Human.Render(m_D3DDevice.GetDeviceContext(), nullptr, 0);
 
 	// Vampire
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldVampire);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+	Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr, 0);
 
 	// Plane
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldPlane);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr);
+	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr, 1);
 
 	// 5) 메인 Pass 렌더타겟/뷰포트 복원
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -409,7 +416,7 @@ bool TestApp::InitScene()
 	// 리소스 로드 
 	// ---------------------------------------------------------------
 	Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/AttackRetopo.fbx");
+	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Situps.fbx");
 	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 
 

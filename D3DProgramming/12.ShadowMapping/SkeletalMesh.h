@@ -32,7 +32,7 @@ public:
 
     // [ FBX 파일로부터 SkeletalMesh 로드 ]
     bool LoadFromFBX(ID3D11Device* device, const std::string& path);
-    void Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler);
+    void Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler, int isRigid);
     void Clear();
     void Update(float deltaTime, const Matrix& worldTransform);
 
