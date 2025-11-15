@@ -23,7 +23,7 @@ public:
 	TestApp();
 	~TestApp();
 
-	SkeletalMesh Human, Vampire, Plane;
+	SkeletalMesh Human, Vampire, Plane, cube;
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -37,6 +37,7 @@ public:
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		// MainPass
 	ComPtr<ID3D11InputLayout> m_pShadowInputLayout; // ShadowPass)
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
+	ComPtr<ID3D11RasterizerState> m_pRasterizerState;
 
 	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// b0 : 상수 버퍼
@@ -90,6 +91,13 @@ public:
 	Vector3 m_PlaneScale = { 400.0f, 10.0f, 400.0f };
 
 	bool m_bDebugShadow = true; // 그림자 디버그 모드
+
+
+	// [ 오브젝트 : 큐브 ]
+	Matrix m_WorldCube;
+	float m_CubePos[3] = { 60.0f, 60.0f, 0.0f };
+	Vector3 m_CubeScale = { 10.0f, 10.0f, 10.0f };
+
 
 	// [ 배경색 ]
 	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black

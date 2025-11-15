@@ -61,11 +61,6 @@ struct VS_SHADOW_INPUT
     float4 BlendWeights : BLENDWEIGHT0;
 };
 
-struct VS_SHADOW_OUTPUT
-{
-    float4 PosH : SV_POSITION; // Depth 용
-};
-
 
 // 정점 입력 구조체
 // GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑

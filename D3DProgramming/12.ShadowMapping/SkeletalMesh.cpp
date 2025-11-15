@@ -239,16 +239,19 @@ void SkeletalMesh::CreateSkeleton(const aiScene* scene)
 
 void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler, int isRigid)
 {
-    // Bone Pose (b1)
-    context->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, m_SkeletonPose.m_Model, 0, 0);
-    context->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
-
-    // Bone Offset (b2) 
-    if (m_pSkeletonInfo)
+    if(isRigid == 0)
     {
-        context->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
-        context->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
-    }
+        // Bone Pose (b1)
+        context->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, m_SkeletonPose.m_Model, 0, 0);
+        context->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+
+        // Bone Offset (b2) 
+        if (m_pSkeletonInfo)
+        {
+            context->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
+            context->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+        }
+	}
 
     for (auto& sub : m_Sections)
     {

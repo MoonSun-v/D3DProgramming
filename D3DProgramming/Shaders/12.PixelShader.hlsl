@@ -60,7 +60,7 @@ float4 main(PS_INPUT input) : SV_Target
     // 7. Emissive : 자체 발광!
     float4 emissive = texEmissive;
 
-    
+
     // [ Shadow 처리 : PCF 사용 ] : 광원NDC 좌표계에서의 좌표는 계산해주지 않으므로 계산한다.
     float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
     float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
@@ -84,7 +84,7 @@ float4 main(PS_INPUT input) : SV_Target
         };
          
         shadowFactor = 0.0f; // 초기화 
-        [unroll]
+
         for (int i = 0; i < 9; i++)
         {
             float2 sampleUV = uv + offsets[i] * texelSize;

@@ -64,17 +64,20 @@ void TestApp::Update()
 		XMMatrixScaling(m_PlaneScale.x, m_PlaneScale.y, m_PlaneScale.z) *
 		XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
 
+	m_WorldCube =
+		XMMatrixScaling(m_CubeScale.x, m_CubeScale.y, m_CubeScale.z) *
+		XMMatrixTranslation(m_CubePos[0], m_CubePos[1], m_CubePos[2]);
 	
 	// ---------------------------------------------
 	// [ Shadow 카메라 위치 계산 (원근 투영) ]
 	// ---------------------------------------------
 	
 	// [ ShadowLookAt ]
-	float shadowDistance = 100.0f; // 카메라 앞쪽 거리
+	float shadowDistance = 1.0f; // 카메라 앞쪽 거리
 	Vector3 shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * shadowDistance;
 
 	// [ ShadowPos ] 라이트 방향을 기준으로 카메라 위치 계산 
-	float shadowBackOffset = 1000.0f;  // 라이트가 어느 정도 떨어진 곳에서 바라보게
+    float shadowBackOffset = 1000.0f;  // 라이트가 어느 정도 떨어진 곳에서 바라보게
 	Vector3 lightDir = XMVector3Normalize(Vector3(m_LightDir.x, m_LightDir.y, m_LightDir.z));
 	Vector3 shadowPos = m_Camera.m_Position + (-lightDir * shadowBackOffset);
 
@@ -82,13 +85,14 @@ void TestApp::Update()
 	m_ShadowView = XMMatrixLookAtLH( shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f) );
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH( XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 400.0f, 2000.f );
-
+	// m_ShadowProjection = XMMatrixPerspectiveFovLH( XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 10.0f, 3000.f );
+	m_ShadowProjection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 400.0f, 3000.f);
 
 	// [ 오브젝트 업데이트 ]
 	Human.Update(deltaTime, m_WorldHuman);
 	Vampire.Update(deltaTime, m_WorldVampire);
 	Plane.Update(deltaTime, m_WorldPlane);
+	cube.Update(deltaTime, m_WorldCube);
 }     
 
 
@@ -124,6 +128,7 @@ void TestApp::Render()
 	RenderMesh(Human, m_WorldHuman, 0);
 	RenderMesh(Vampire, m_WorldVampire, 0);
 	RenderMesh(Plane, m_WorldPlane, 1);
+	RenderMesh(cube, m_WorldCube, 1);
 
 	// UI 그리기 
 	Render_ImGui();
@@ -159,7 +164,7 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, nullCB);
 	}
 
-	// SkeletalMesh에서 b1, b2 업데이트 (Skinned mesh만)
+	// SkeletalMesh에서 b1, b2 업데이트 
 	mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), isRigid);
 }
 
@@ -190,6 +195,7 @@ void TestApp::RenderShadowMap()
 
 	// 4) VertexShader만 설정 (Depth만 필요)
 	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pShadowInputLayout.Get());
+	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
@@ -201,19 +207,26 @@ void TestApp::RenderShadowMap()
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	Human.Render(m_D3DDevice.GetDeviceContext(), nullptr, 0);
+	Human.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerComparison.Get(), 0);
 
 	// Vampire
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldVampire);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr, 0);
+	Vampire.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerComparison.Get(), 0);
 
 	// Plane
 	shadowCB.mWorld = XMMatrixTranspose(m_WorldPlane);
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr, 1);
+	Plane.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerComparison.Get(), 1);
+
+	// Cube
+	shadowCB.mWorld = XMMatrixTranspose(m_WorldCube);
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
+	cube.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerComparison.Get(), 1);
+
 
 	// 5) 메인 Pass 렌더타겟/뷰포트 복원
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -386,9 +399,12 @@ bool TestApp::InitScene()
 
 	D3D11_INPUT_ELEMENT_DESC shadowLayout[] =
 	{
+		//{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		//{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		//{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(shadowLayout, ARRAYSIZE(shadowLayout), ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), m_pShadowInputLayout.GetAddressOf()));
 
@@ -418,6 +434,7 @@ bool TestApp::InitScene()
 	Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Situps.fbx");
 	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
+	cube.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 
 
 	// ---------------------------------------------------------------
@@ -476,6 +493,14 @@ bool TestApp::InitScene()
 	bdShadow.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdShadow, nullptr, m_pShadowCB.GetAddressOf()));
 
+	//// 래스터라이저
+	//D3D11_RASTERIZER_DESC rasterizerDesc = {};
+	//rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+	//rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	//rasterizerDesc.DepthClipEnable = true;
+	//rasterizerDesc.FrontCounterClockwise = true;
+	//
+	//HR_T(m_D3DDevice.GetDevice()->CreateRasterizerState(&rasterizerDesc, m_pRasterizerState.GetAddressOf()));
 
 	// ---------------------------------------------------------------
 	// 샘플러 생성

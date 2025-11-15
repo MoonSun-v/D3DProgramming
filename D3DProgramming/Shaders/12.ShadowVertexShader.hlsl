@@ -32,17 +32,6 @@ PS_INPUT ShadowVS(VS_SHADOW_INPUT input)
 
         ModelToWorld = mul(WeightedOffsetPose, gWorld); // 포즈변환 + World까지 누적
     }
-
-    //float4 worldPos = mul(input.Pos, ModelToWorld);
-
-    //float4 posH = mul(worldPos, mLightView);
-    //posH = mul(posH, mLightProjection);
-
-    //posH.xyz /= posH.w;
-    //posH.z = posH.z * 0.5f + 0.5f;
-    //posH.xyz *= posH.w;
-
-    //output.Pos = posH;
     
     float4 worldPos = mul(input.Pos, ModelToWorld);
     float4 lightViewPos = mul(worldPos, mLightView); // 라이트가 보는 시점 
