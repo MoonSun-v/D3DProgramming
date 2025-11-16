@@ -157,7 +157,6 @@ bool SkeletalMesh::LoadFromFBX(ID3D11Device* device, const std::string& path)
     for (UINT i = 0; i < m_Sections.size(); ++i)
     {
         // Skinned이면 skeleton 공유, static이면 nullptr
-        // TODO : static이면 submesh null 처리 해야함 
         m_Sections[i].m_pSkeletonInfo = m_pSkeletonInfo.get(); 
         m_Sections[i].InitializeFromAssimpMesh(device, scene->mMeshes[i]);
         m_Sections[i].m_MaterialIndex = scene->mMeshes[i]->mMaterialIndex;

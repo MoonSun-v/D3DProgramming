@@ -51,12 +51,11 @@ void TestApp::Update()
 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
-	// [ 오브젝트 ]
-	Matrix world =
+	// [ 오브젝트 ] 
+	m_WorldHuman =
 		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *   // 스케일
 		XMMatrixRotationRollPitchYaw(rotX, rotY, rotZ) *                 // 입력 회전
-		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);  // 위치
-	m_WorldHuman = world; 
+		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);   // 위치
 
 	m_WorldVampire = XMMatrixTranslation(m_VampirePos[0], m_VampirePos[1], m_VampirePos[2]);
 
@@ -98,26 +97,21 @@ void TestApp::Update()
 	m_ShadowView = XMMatrixLookAtLH(shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	// m_ShadowProjection = XMMatrixPerspectiveFovLH( XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 10.0f, 3000.f );
 	m_ShadowProjection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 400.0f, 3000.f);
 
 }     
 
 
-// ★ [ 렌더링 ] 
-// PixelShader에서 ShadowMap SRV와 Comparison Sampler를 사용해서 그림자 샘플링
-// 
 void TestApp::Render()
 {
-	// 1. ShadowMap 렌더링 (DepthOnlyPass)
-	// PS에서 ShadowMap SRV를 null로 언바인딩
+	// [ DepthOnly Pass 렌더링 (ShadowMap) ] : PixelShader가 ShadowMap 읽지 않도록 SRV 언바인딩
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, nullSRV);
 
-	// ShadowMap 렌더링
 	RenderShadowMap();
 
-	// 화면 초기화
+
+	// [ Main Pass 렌더링 ]
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
 
@@ -126,11 +120,13 @@ void TestApp::Render()
 
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(1, 1, m_pSamplerComparison.GetAddressOf()); 
 
 	// ShadowMap SRV 바인딩
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
+
 
 	// [ Mesh 렌더링 ]
 	RenderMesh(Plane, m_WorldPlane, 1);
@@ -139,13 +135,13 @@ void TestApp::Render()
 	RenderMesh(cube, m_WorldCube, 1);
 	RenderMesh(Tree, m_WorldTree, 1);
 
-
-	// UI 그리기 
+	// [ UI ]
 	Render_ImGui();
 
-	// 스왑체인 교체 (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
+	// [ 스왑체인 교체 ] (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
 	m_D3DDevice.EndFrame(); 
 }
+
 
 void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 {
@@ -161,7 +157,7 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 	cb.fShininess = m_Shininess;
 	cb.gIsRigid = isRigid;
 
-	// GPU 업로드
+	// b0
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
@@ -185,34 +181,29 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 
 void TestApp::RenderShadowMap()
 {
-	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView(
-		m_pShadowMapDSV.Get(),
-		D3D11_CLEAR_DEPTH,
-		1.0f,
-		0
-	);
+	// ShadowMap 초기화 
+	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView( m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0 );
 
-	// 1) ShadowMap DSV로 렌더 타겟 설정
+	// ShadowMap DSV로 렌더 타겟 설정
 	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
 
-	// 2) Shadow 뷰포트 설정
+	// Shadow 뷰포트 설정
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_ShadowViewport);
 
-	// 3) Shadow 상수버퍼 
+	// b3 : Shadow 상수버퍼 
 	ShadowConstantBuffer shadowCB;
 	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
 	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
 
-	// ShadowCB = b3 그대로 유지
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
 
-	// ShadowPass에서도 MainPass와 동일한 b0 필요(중요!)
-	//    gWorld, gIsRigid 정보를 전달해야 ShadowVS가 정상 동작함.
+	// ShadowPass에서도 MainPass의 b0 필요 : gWorld, gIsRigid 
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	// 4) VertexShader만 설정 (Depth만 필요)
+	// Shadow Vertex Shader만 사용 (PS X : Depth만 필요)
 	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pShadowInputLayout.Get());
 	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
@@ -223,12 +214,12 @@ void TestApp::RenderShadowMap()
 	
 	auto RenderShadowObject = [&](SkeletalMesh& mesh, const Matrix& world, int isRigid)
 		{
-			// ★ ShadowPass에서도 b0 갱신 필요!
+			// b0
 			cb.mWorld = XMMatrixTranspose(world);
 			cb.gIsRigid = isRigid;
 			m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-			// ShadowCB world 갱신 (b3)
+			// b3 (ShadowCB world 갱신)
 			shadowCB.mWorld = XMMatrixTranspose(world);
 			m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 
@@ -242,48 +233,14 @@ void TestApp::RenderShadowMap()
 	RenderShadowObject(cube, m_WorldCube, 1);
 	RenderShadowObject(Tree, m_WorldTree, 1);
 
-	//// Plane
-	//shadowCB.mWorld = XMMatrixTranspose(m_WorldPlane);
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	//Plane.Render(m_D3DDevice.GetDeviceContext(), nullptr, 1);
-
-	//// Human
-	//shadowCB.mWorld = XMMatrixTranspose(m_WorldHuman);
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	//Human.Render(m_D3DDevice.GetDeviceContext(), nullptr, 0);
-
-	//// Vampire
-	//shadowCB.mWorld = XMMatrixTranspose(m_WorldVampire);
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	//Vampire.Render(m_D3DDevice.GetDeviceContext(), nullptr, 0);
-
-	//// Cube
-	//shadowCB.mWorld = XMMatrixTranspose(m_WorldCube);
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	//cube.Render(m_D3DDevice.GetDeviceContext(), nullptr, 1);
-
-	//// Tree
-	//shadowCB.mWorld = XMMatrixTranspose(m_WorldTree);
-	//m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-	//m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-	//Tree.Render(m_D3DDevice.GetDeviceContext(), nullptr, 1);
-	
-
-	// 5) 메인 Pass 렌더타겟/뷰포트 복원
+	// 메인 Pass 렌더타겟/뷰포트 복원
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
 	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
 	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
 }
 
 
-
-
-
-// ★ [ Scene 초기화 ] 
+// [ Scene 초기화 ] 
 bool TestApp::InitScene()
 {
 	HRESULT hr = 0;                       // DirectX 함수 결과값
@@ -317,9 +274,6 @@ bool TestApp::InitScene()
 
 	D3D11_INPUT_ELEMENT_DESC shadowLayout[] =
 	{
-		//{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		//{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		//{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -396,7 +350,6 @@ bool TestApp::InitScene()
 	// Comparison Sampler 생성
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-	//sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
