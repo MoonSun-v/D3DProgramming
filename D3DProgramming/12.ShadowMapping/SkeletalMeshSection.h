@@ -19,7 +19,7 @@ struct Vertex
     XMFLOAT3 Normal;
     XMFLOAT2 TexCoord;
     XMFLOAT3 Tangent;
-    XMFLOAT3 Binormal; // 제거 ?
+    XMFLOAT3 Binormal; 
 
     // 영향받는 본 수는 최대 4개로 제한한다.
     int BlendIndices[4] = { 0, 0, 0, 0 };               // 참조하는 본의 인덱스의 범위는 최대 128개로 일단 처리함 
@@ -56,7 +56,7 @@ public:
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
 
 
-private:
+public:
     ComPtr<ID3D11Buffer> m_VertexBuffer;
     ComPtr<ID3D11Buffer> m_IndexBuffer;
 

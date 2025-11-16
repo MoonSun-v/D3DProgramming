@@ -268,6 +268,33 @@ void SkeletalMesh::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSam
     }
 }
 
+void SkeletalMesh::RenderShadow(ID3D11DeviceContext* context, int isRigid)
+{
+    if (isRigid == 0)
+    {
+        // Bone Pose (b1)
+        context->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, m_SkeletonPose.m_Model, 0, 0);
+        context->VSSetConstantBuffers(1, 1, m_pBonePoseBuffer.GetAddressOf());
+
+        // Bone Offset (b2)
+        if (m_pSkeletonInfo)
+        {
+            context->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
+            context->VSSetConstantBuffers(2, 1, m_pBoneOffsetBuffer.GetAddressOf());
+        }
+    }
+
+    for (auto& sub : m_Sections)
+    {
+        UINT stride = sizeof(Vertex);
+        UINT offset = 0;
+        context->IASetVertexBuffers(0, 1, sub.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+        context->IASetIndexBuffer(sub.m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+        context->DrawIndexed(sub.m_IndexCount, 0, 0);
+    }
+}
+
 
 void SkeletalMesh::Update(float deltaTime, const Matrix& worldTransform)
 {

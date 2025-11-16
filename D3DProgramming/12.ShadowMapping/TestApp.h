@@ -23,7 +23,7 @@ public:
 	TestApp();
 	~TestApp();
 
-	SkeletalMesh Human, Vampire, Plane, cube;
+	SkeletalMesh Human, Vampire, Plane, cube, Tree;
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -97,6 +97,12 @@ public:
 	Matrix m_WorldCube;
 	float m_CubePos[3] = { 60.0f, 60.0f, 0.0f };
 	Vector3 m_CubeScale = { 10.0f, 10.0f, 10.0f };
+
+
+	// [ 오브젝트 : 트리 ]
+	Matrix m_WorldTree;
+	float m_TreePos[3] = { 140.0f, 0.0f, -80.0f };
+	Vector3 m_TreeScale = { 50.0f, 50.0f, 50.0f };
 
 
 	// [ 배경색 ]
