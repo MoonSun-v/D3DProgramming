@@ -34,14 +34,14 @@ public:
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass
 	ComPtr<ID3D11VertexShader> m_pShadowVS;			// ShadowPass
 	ComPtr<ID3D11PixelShader> m_pPixelShader;		
-	ComPtr<ID3D11InputLayout> m_pInputLayout;		// MainPass
-	ComPtr<ID3D11InputLayout> m_pShadowInputLayout; // ShadowPass
+	ComPtr<ID3D11PixelShader> m_pShadowPS;
+	ComPtr<ID3D11InputLayout> m_pInputLayout;		
+	ComPtr<ID3D11InputLayout> m_pShadowInputLayout; 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
-	ComPtr<ID3D11RasterizerState> m_pRasterizerState;
+	// ComPtr<ID3D11RasterizerState> m_pRasterizerState;
 
 	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// b0 : 상수 버퍼
-
 
 	ConstantBuffer cb;
 
@@ -71,7 +71,7 @@ public:
 		 
 	// [ 오브젝트 : Human ]
 	Matrix m_WorldHuman;
-	float m_CharPos[3] = { -60.0f, 1.0f, 0.0f };
+	float m_CharPos[3] = { -80.0f, 1.0f, 0.0f };
 	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };     
 	
 	float rotX = XMConvertToRadians(0.0f);  // 라디안
@@ -81,7 +81,7 @@ public:
 
 	// [ 오브젝트 : 좀비 ]
 	Matrix m_WorldVampire;
-	float m_VampirePos[3] = { 0.0f, 1.0f, 0.0f };
+	float m_VampirePos[3] = { -20.0f, 1.0f, 0.0f };
 
 
 	// [ 오브젝트 : 바닥 ]
@@ -94,13 +94,13 @@ public:
 
 	// [ 오브젝트 : 큐브 ]
 	Matrix m_WorldCube;
-	float m_CubePos[3] = { 80.0f, 60.0f, 0.0f };
+	float m_CubePos[3] = { 60.0f, 60.0f, 0.0f };
 	Vector3 m_CubeScale = { 10.0f, 10.0f, 10.0f };
 
 
 	// [ 오브젝트 : 트리 ]
 	Matrix m_WorldTree;
-	float m_TreePos[3] = { 200.0f, 0.0f, -80.0f };
+	float m_TreePos[3] = { 170.0f, 0.0f, -80.0f };
 	Vector3 m_TreeScale = { 50.0f, 50.0f, 50.0f };
 
 

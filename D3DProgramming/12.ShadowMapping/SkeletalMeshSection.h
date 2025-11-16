@@ -55,6 +55,9 @@ public:
 
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
 
+    //  Material SRV ¹è¿­
+    ID3D11ShaderResourceView* m_SRVs[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+
 
 public:
     ComPtr<ID3D11Buffer> m_VertexBuffer;
@@ -66,6 +69,7 @@ public:
     // FBX aiMesh -> SubMesh
     void InitializeFromAssimpMesh(ID3D11Device* device, const aiMesh* mesh);
     void Render(ID3D11DeviceContext* context, const Material& mat, ID3D11SamplerState* pSampler);
+    void RenderShadow(ID3D11DeviceContext* context, int isRigid);
     void Clear();
 
 private:

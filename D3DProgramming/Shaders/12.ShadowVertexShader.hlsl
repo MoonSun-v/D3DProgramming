@@ -37,5 +37,7 @@ PS_INPUT ShadowVS(VS_SHADOW_INPUT input)
     float4 lightViewPos = mul(worldPos, mLightView); // 라이트가 보는 시점 
     output.Pos = mul(lightViewPos, mLightProjection);
     
+    output.Tex = input.Tex; // Opacity texture
+    
     return output;
 } 

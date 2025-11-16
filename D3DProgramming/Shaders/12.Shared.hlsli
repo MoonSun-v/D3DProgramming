@@ -55,10 +55,17 @@ cbuffer ShadowCB : register(b3)
 struct VS_SHADOW_INPUT
 {
     float4 Pos : POSITION;
-
+    float2 Tex : TEXCOORD0;
+    
     // 스키닝용
     uint4 BoneIndices : BLENDINDICES;
     float4 BlendWeights : BLENDWEIGHT0;
+};
+
+struct VS_SHADOW_OUTPUT
+{
+    float4 Pos : SV_POSITION;
+    float2 Tex : TEXCOORD0; // PS로 전달
 };
 
 

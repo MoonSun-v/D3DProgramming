@@ -27,7 +27,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(0.0f, 80.0f, -500.0f);
+	m_Camera.m_Position = Vector3(40.0f, 80.0f, -600.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 
@@ -205,9 +205,13 @@ void TestApp::RenderShadowMap()
 	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
-	m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+	// m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);		// 투명도 적용 X (Pixel Shader 미사용)
+	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pShadowPS.Get(), nullptr, 0); // 투명도 적용 
 
-	
+	// Sampler 바인딩
+	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+
 	// ------------------------------
 	// 각 메시 Depth 렌더링 : ShadowMap에 기록 
 	// ------------------------------
@@ -232,6 +236,7 @@ void TestApp::RenderShadowMap()
 	RenderShadowObject(Vampire, m_WorldVampire, 0);
 	RenderShadowObject(cube, m_WorldCube, 1);
 	RenderShadowObject(Tree, m_WorldTree, 1);
+
 
 	// 메인 Pass 렌더타겟/뷰포트 복원
 	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -275,6 +280,7 @@ bool TestApp::InitScene()
 	D3D11_INPUT_ELEMENT_DESC shadowLayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
 		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -287,6 +293,10 @@ bool TestApp::InitScene()
 	ComPtr<ID3DBlob> pixelShaderBuffer; 
 	HR_T(CompileShaderFromFile(L"../Shaders/12.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
+
+	ComPtr<ID3DBlob> ShadowPSBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/12.ShadowPixelShader.hlsl", "ShadowPS", "ps_4_0", ShadowPSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(ShadowPSBuffer->GetBufferPointer(), ShadowPSBuffer->GetBufferSize(), NULL, m_pShadowPS.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------
@@ -373,9 +383,7 @@ bool TestApp::InitScene()
 	//
 	//HR_T(m_D3DDevice.GetDevice()->CreateRasterizerState(&rasterizerDesc, m_pRasterizerState.GetAddressOf()));
 
-	// ---------------------------------------------------------------
-	// 샘플러 생성
-	// ---------------------------------------------------------------
+	
 	// D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -432,7 +440,7 @@ void TestApp::Render_ImGui()
 	// [ Object Transform ]
 	// -----------------------------
 	ImGui::Text(" ");
-	ImGui::Text("[ Object Transform ]");
+	ImGui::Text("[ Human Object Transform ]");
 
 	// 위치
 	ImGui::Text("Position (XYZ)");
@@ -542,11 +550,20 @@ void TestApp::UninitScene()
 	m_pVertexShader.Reset();
 	m_pPixelShader.Reset();
 	m_pInputLayout.Reset();
+	m_pShadowVS.Reset();
+	m_pShadowPS.Reset();
+	m_pShadowInputLayout.Reset();
+	m_pShadowCB.Reset();
+	m_pShadowMap.Reset();
+	m_pShadowMapDSV.Reset();
+	m_pShadowMapSRV.Reset();
 
 	// Mesh, Material 해제
 	Human.Clear();
 	Vampire.Clear();
 	Plane.Clear();
+	cube.Clear();
+	Tree.Clear();
 
 	// 기본 텍스처 해제
 	Material::DestroyDefaultTextures();

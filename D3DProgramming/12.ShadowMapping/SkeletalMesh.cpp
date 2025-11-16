@@ -285,6 +285,11 @@ void SkeletalMesh::RenderShadow(ID3D11DeviceContext* context, int isRigid)
 
     for (auto& sub : m_Sections)
     {
+        // Shadow Pass: Opacity SRV만 slot 4에 바인딩
+        ID3D11ShaderResourceView* opacitySRV[1] = { sub.m_SRVs[4] };
+        context->PSSetShaderResources(4, 1, opacitySRV);
+
+
         UINT stride = sizeof(Vertex);
         UINT offset = 0;
         context->IASetVertexBuffers(0, 1, sub.m_VertexBuffer.GetAddressOf(), &stride, &offset);
@@ -360,4 +365,6 @@ void SkeletalMesh::Clear()
 
     m_Skeleton.clear();
     m_Animations.clear();
+
+	m_pSkeletonInfo.reset();
 }
