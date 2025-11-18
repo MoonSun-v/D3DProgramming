@@ -425,6 +425,8 @@ void TestApp::Render_ImGui()
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
 
+	// UI용 폰트 적용
+	ImGui::PushFont(m_UIFont);
 
 	// -----------------------------
 	// [ Object Transform ]
@@ -524,7 +526,46 @@ void TestApp::Render_ImGui()
 	ImGui::SliderFloat("Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
 
 	// [ 끝 ] 
+	ImGui::PopFont();
 	ImGui::End();
+
+
+
+	// -----------------------------
+	// 텍스트 정보 출력
+	// -----------------------------
+
+	ImGui::SetNextWindowBgAlpha(0.0f); // 배경 투명
+	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always, ImVec2(0.0f, 0.0f)); // 왼쪽 상단 
+
+	ImGui::Begin("DebugText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs);
+
+	// 글자색 검은색
+	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255)); // RGBA
+
+	// 디버그 전용 폰트 적용 (UI 폰트와 분리됨)
+	ImGui::PushFont(m_DebugFont);
+
+	// FPS 출력
+	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+	// 카메라 위치
+	ImGui::Text("Camera: X=%.2f Y=%.2f Z=%.2f", m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z);
+
+	// Human 메시 위치
+	ImGui::Text("Human Pos: X=%.2f Y=%.2f Z=%.2f", m_CharPos[0], m_CharPos[1], m_CharPos[2]);
+
+	// Vampire 메시 위치
+	ImGui::Text("Vampire Pos: X=%.2f Y=%.2f Z=%.2f", m_VampirePos[0], m_VampirePos[1], m_VampirePos[2]);
+
+	// 글자색과 폰트 복원
+	ImGui::PopFont();
+	ImGui::PopStyleColor();
+
+	ImGui::End();
+
 
 	// [ ImGui 프레임 최종 렌더링 ]
 	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
@@ -572,6 +613,14 @@ bool TestApp::InitImGUI()
 
 	// 3. ImGui 스타일 설정
 	ImGui::StyleColorsDark(); // ImGui::StyleColorsLight();
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	// 1. UI 폰트 (Arial)
+	m_UIFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\arial.ttf", 13.0f);
+
+	// 2. DebugText 폰트 (Consolas)
+	m_DebugFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\consola.ttf", 15.0f);
 
 	// 4. 플랫폼 및 렌더러 백엔드 초기화
 	ImGui_ImplWin32_Init(m_hWnd);												// Win32 플랫폼용 초기화 (윈도우 핸들 필요)

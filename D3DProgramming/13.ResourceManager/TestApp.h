@@ -126,6 +126,10 @@ public:
 	XMFLOAT4 m_LightAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	XMFLOAT4 m_LightDiffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
+	// ÆùÆ® 
+	ImFont* m_UIFont = nullptr;
+	ImFont* m_DebugFont = nullptr;
+
 public:
 	bool Initialize() override;
 	void Uninitialize() override;
