@@ -531,8 +531,10 @@ void TestApp::Render_ImGui()
 
 
 
+
+
 	// -----------------------------
-	// 텍스트 정보 출력
+	// 리소스 정보 출력
 	// -----------------------------
 
 	ImGui::SetNextWindowBgAlpha(0.0f); // 배경 투명
@@ -551,14 +553,43 @@ void TestApp::Render_ImGui()
 	// FPS 출력
 	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-	// 카메라 위치
-	ImGui::Text("Camera: X=%.2f Y=%.2f Z=%.2f", m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z);
+	// [ 시스템 메모리 사용량 ]
+	MEMORYSTATUSEX memInfo;
+	memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+	GlobalMemoryStatusEx(&memInfo);
 
-	// Human 메시 위치
-	ImGui::Text("Human Pos: X=%.2f Y=%.2f Z=%.2f", m_CharPos[0], m_CharPos[1], m_CharPos[2]);
+	double totalPhysGB = memInfo.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
+	double usedPhysGB = (memInfo.ullTotalPhys - memInfo.ullAvailPhys) / (1024.0 * 1024.0 * 1024.0);
 
-	// Vampire 메시 위치
-	ImGui::Text("Vampire Pos: X=%.2f Y=%.2f Z=%.2f", m_VampirePos[0], m_VampirePos[1], m_VampirePos[2]);
+	ImGui::Text("System RAM: %.1f / %.1f GB", usedPhysGB, totalPhysGB);
+
+
+	// [ 페이지 파일 사용량 ]
+	double totalPageGB = memInfo.ullTotalPageFile / (1024.0 * 1024.0 * 1024.0);
+	double usedPageGB = (memInfo.ullTotalPageFile - memInfo.ullAvailPageFile) / (1024.0 * 1024.0 * 1024.0);
+
+	ImGui::Text("Page File: %.1f / %.1f GB", usedPageGB, totalPageGB);
+
+
+	// [ GPU VRAM ]
+	IDXGIDevice* dxgiDevice = nullptr;
+	IDXGIAdapter* adapter = nullptr;
+	DXGI_ADAPTER_DESC desc;
+
+	m_D3DDevice.GetDevice()->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
+	dxgiDevice->GetAdapter(&adapter);
+
+	adapter->GetDesc(&desc);
+	UINT64 totalVRAM = desc.DedicatedVideoMemory;
+
+	ImGui::Text("GPU VRAM: %.1f GB", totalVRAM / (1024.0 * 1024.0 * 1024.0));
+
+
+	// 정리
+	if (adapter)     adapter->Release();
+	if (dxgiDevice)  dxgiDevice->Release();
+
+
 
 	// 글자색과 폰트 복원
 	ImGui::PopFont();
