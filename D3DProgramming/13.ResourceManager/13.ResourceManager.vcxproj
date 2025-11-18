@@ -128,8 +128,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Animation.cpp" />
+    <ClCompile Include="AssetManager.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
+    <ClCompile Include="SkeletalMeshAsset.cpp" />
+    <ClCompile Include="SkeletalMeshInstance.cpp" />
     <ClCompile Include="SkeletalMeshSection.cpp" />
     <ClCompile Include="SkeletonInfo.cpp" />
     <ClCompile Include="TestApp.cpp" />
@@ -137,11 +140,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation.h" />
+    <ClInclude Include="AssetKey.h" />
+    <ClInclude Include="AssetManager.h" />
     <ClInclude Include="Bone.h" />
     <ClInclude Include="BoneMatrixContainer.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="SkeletalMesh.h" />
+    <ClInclude Include="SkeletalMeshAsset.h" />
+    <ClInclude Include="SkeletalMeshInstance.h" />
     <ClInclude Include="SkeletalMeshSection.h" />
     <ClInclude Include="SkeletonInfo.h" />
     <ClInclude Include="TestApp.h" />

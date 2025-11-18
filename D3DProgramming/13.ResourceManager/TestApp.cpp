@@ -1,4 +1,5 @@
 #include "TestApp.h"
+#include "AssetManager.h"
 
 #include <string> 
 #include <dxgi1_3.h>
@@ -74,10 +75,10 @@ void TestApp::Update()
 
 	// [ 오브젝트 업데이트 ]
 	Plane.Update(deltaTime, m_WorldPlane);
-	Human.Update(deltaTime, m_WorldHuman);
-	Vampire.Update(deltaTime, m_WorldVampire);
-	cube.Update(deltaTime, m_WorldCube);
-	Tree.Update(deltaTime, m_WorldTree);
+	for (size_t i = 0; i < m_Humans.size(); i++)
+	{
+		m_Humans[i]->Update(deltaTime, m_HumansWorld[i]);
+	}
 
 
 	// ---------------------------------------------
@@ -101,47 +102,148 @@ void TestApp::Update()
 
 }     
 
-
 void TestApp::Render()
 {
-	// [ DepthOnly Pass 렌더링 (ShadowMap) ] : PixelShader가 ShadowMap 읽지 않도록 SRV 언바인딩
+	// [ DepthOnly Pass 렌더링 (ShadowMap) ]
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, nullSRV);
 
 	RenderShadowMap();
 
-
 	// [ Main Pass 렌더링 ]
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
 
-	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout.Get());
-	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	auto* context = m_D3DDevice.GetDeviceContext();
 
-	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
-	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+	context->IASetInputLayout(m_pInputLayout.Get());
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetSamplers(1, 1, m_pSamplerComparison.GetAddressOf()); 
+	context->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	context->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	context->PSSetSamplers(1, 1, m_pSamplerComparison.GetAddressOf());
 
 	// ShadowMap SRV 바인딩
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
+	context->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
 
+	// -----------------------
+	// Mesh 렌더링
+	// -----------------------
+	RenderMesh(Plane, m_WorldPlane, 1);          // Static Mesh
+	// RenderMesh(Human, m_WorldHuman, 0);         // SkeletalMeshAsset 기반 단일 Human
 
-	// [ Mesh 렌더링 ]
-	RenderMesh(Plane, m_WorldPlane, 1);
-	RenderMesh(Human, m_WorldHuman, 0);
-	RenderMesh(Vampire, m_WorldVampire, 0);
-	RenderMesh(cube, m_WorldCube, 1);
-	RenderMesh(Tree, m_WorldTree, 1);
+	// SkeletalMeshInstance 배열
+	for (size_t i = 0; i < m_Humans.size(); i++)
+	{
+		RenderMeshInstance(*m_Humans[i], m_HumansWorld[i]);
+	}
 
-	// [ UI ]
+	// UI 렌더링
 	Render_ImGui();
 
-	// [ 스왑체인 교체 ] (화면 출력 : 백 버퍼 <-> 프론트 버퍼 교체)
-	m_D3DDevice.EndFrame(); 
+	// 화면 출력
+	m_D3DDevice.EndFrame();
 }
 
+// -----------------------
+// SkeletalMeshInstance용 Render
+// -----------------------
+void TestApp::RenderMeshInstance(SkeletalMeshInstance& instance, const Matrix& world)
+{
+	auto* context = m_D3DDevice.GetDeviceContext();
+
+	// b0 업데이트
+	cb.mWorld = XMMatrixTranspose(world);
+	cb.mView = XMMatrixTranspose(m_View);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
+	cb.vLightDir = m_LightDir;
+	cb.vLightColor = m_LightColor;
+	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
+	cb.vAmbient = m_MaterialAmbient;
+	cb.vDiffuse = m_LightDiffuse;
+	cb.vSpecular = m_MaterialSpecular;
+	cb.fShininess = m_Shininess;
+	cb.gIsRigid = 0; // SkeletalMeshInstance는 스켈레탈
+
+	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	// Render 호출
+	instance.Render(context, m_pSamplerLinear.Get(), 0);
+}
+
+// -----------------------
+// Shadow Map 렌더링
+// -----------------------
+void TestApp::RenderShadowMap()
+{
+	auto* context = m_D3DDevice.GetDeviceContext();
+
+	// ShadowMap 초기화
+	context->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	context->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
+	context->RSSetViewports(1, &m_ShadowViewport);
+
+	// b3 Shadow CB 업데이트
+	ShadowConstantBuffer shadowCB;
+	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
+	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
+
+	// b0 업데이트
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	// Shadow용 셰이더
+	context->IASetInputLayout(m_pShadowInputLayout.Get());
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
+	context->PSSetShader(m_pShadowPS.Get(), nullptr, 0);
+
+	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	auto RenderShadowObject = [&](SkeletalMesh& mesh, const Matrix& world, int isRigid)
+		{
+			cb.mWorld = XMMatrixTranspose(world);
+			cb.gIsRigid = isRigid;
+			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+			shadowCB.mWorld = XMMatrixTranspose(world);
+			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+
+			mesh.RenderShadow(context, isRigid);
+		};
+
+	auto RenderShadowInstance = [&](SkeletalMeshInstance& instance, const Matrix& world)
+		{
+			cb.mWorld = XMMatrixTranspose(world);
+			cb.gIsRigid = 0;
+			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+			shadowCB.mWorld = XMMatrixTranspose(world);
+			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+
+			instance.RenderShadow(context, 0);
+		};
+
+	// Static / Skeletal 렌더
+	RenderShadowObject(Plane, m_WorldPlane, 1);
+	// RenderShadowObject(Human, m_WorldHuman, 0);
+
+	for (size_t i = 0; i < m_Humans.size(); i++)
+		RenderShadowInstance(*m_Humans[i], m_HumansWorld[i]);
+
+	// RenderShadowObject(Vampire, m_WorldVampire, 0);
+	// RenderShadowObject(cube, m_WorldCube, 1);
+	// RenderShadowObject(Tree, m_WorldTree, 1);
+
+	// RenderTarget / Viewport 복원
+	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
+	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
+	context->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
+}
 
 void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 {
@@ -172,76 +274,6 @@ void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
 
 	// SkeletalMesh에서 b1, b2 업데이트 
 	mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), isRigid);
-}
-
-
-// [ Multi Pass Rendering ] 
-// 1.DepthOnly : Shadow Pass -> Depth 생성 (Depth만 렌더링, PS 필요X)
-// 2.Render    : Main Pass -> SRV 샘플링 -> shadowFactor 계산 -> directLighting 곱
-
-void TestApp::RenderShadowMap()
-{
-	// ShadowMap 초기화 
-	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView( m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0 );
-
-	// ShadowMap DSV로 렌더 타겟 설정
-	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
-
-	// Shadow 뷰포트 설정
-	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_ShadowViewport);
-
-	// b3 : Shadow 상수버퍼 
-	ShadowConstantBuffer shadowCB;
-	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
-	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
-
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-
-	// ShadowPass에서도 MainPass의 b0 필요 : gWorld, gIsRigid 
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	// Shadow Vertex Shader만 사용 (PS X : Depth만 필요)
-	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pShadowInputLayout.Get());
-	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
-	// m_D3DDevice.GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);		// 투명도 적용 X (Pixel Shader 미사용)
-	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pShadowPS.Get(), nullptr, 0); // 투명도 적용 
-
-	// Sampler 바인딩
-	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-
-	// ------------------------------
-	// 각 메시 Depth 렌더링 : ShadowMap에 기록 
-	// ------------------------------
-	
-	auto RenderShadowObject = [&](SkeletalMesh& mesh, const Matrix& world, int isRigid)
-		{
-			// b0
-			cb.mWorld = XMMatrixTranspose(world);
-			cb.gIsRigid = isRigid;
-			m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-			// b3 (ShadowCB world 갱신)
-			shadowCB.mWorld = XMMatrixTranspose(world);
-			m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-
-			// 스켈레탈인 경우 : b1, b2 바인딩
-			mesh.RenderShadow(m_D3DDevice.GetDeviceContext(), isRigid);
-		};
-
-	RenderShadowObject(Plane, m_WorldPlane, 1);
-	RenderShadowObject(Human, m_WorldHuman, 0);
-	RenderShadowObject(Vampire, m_WorldVampire, 0);
-	RenderShadowObject(cube, m_WorldCube, 1);
-	RenderShadowObject(Tree, m_WorldTree, 1);
-
-
-	// 메인 Pass 렌더타겟/뷰포트 복원
-	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &m_D3DDevice.GetViewport());
-	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
-	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
 }
 
 
@@ -313,11 +345,21 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-	Vampire.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Situps.fbx");
+	// Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+	
+	// [ FBX 파일에서 SkeletalMeshAsset 생성 ]
+	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+
+	// SkeletalMeshInstance 생성 후 Asset 연결
+	auto instance = std::make_shared<SkeletalMeshInstance>();
+	instance->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
+
+	m_Humans.push_back(instance);
+	m_HumansWorld.push_back(m_WorldHuman);
+
+
 	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-	cube.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-	Tree.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
+
 
 	// ---------------------------------------------------------------
 	// Shadow Map 생성 
@@ -403,6 +445,36 @@ bool TestApp::InitScene()
 	return true;
 }
 
+void TestApp::AddHumanInFrontOfCamera()
+{
+	// Asset으로부터 새 인스턴스 생성
+	auto newHuman = std::make_shared<SkeletalMeshInstance>();
+	newHuman->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
+
+    // 카메라 정보
+	Vector3 camPos = m_Camera.m_Position;
+	Vector3 camForward = m_Camera.GetForward();
+
+	// 생성 위치 계산
+	float spawnDist = 2.0f;   // 카메라 5m 앞
+	float offsetRange = 1.0f; // 양옆 랜덤 편차
+
+	float offsetX = ((rand() % 1000) / 1000.0f - 0.5f) * offsetRange * 2.0f;
+	float offsetZ = ((rand() % 1000) / 1000.0f - 0.5f) * offsetRange * 2.0f;
+
+	Vector3 spawnPos = camPos + camForward * spawnDist + Vector3(offsetX, 0.0f, offsetZ);
+
+	Matrix world = XMMatrixScaling(1, 1, 1) * XMMatrixTranslation(spawnPos.x, spawnPos.y, spawnPos.z);
+
+
+	// 벡터에 추가
+	m_Humans.push_back(newHuman);
+	m_HumansWorld.push_back(world);
+
+	OutputDebugString((L"AddHumanInFrontOfCamera called! Total humans: " + std::to_wstring(m_Humans.size()) + L"\n").c_str());
+}
+
+
 
 // ★ [ ImGui ] - UI 프레임 준비 및 렌더링
 void TestApp::Render_ImGui()
@@ -457,38 +529,6 @@ void TestApp::Render_ImGui()
 	ImGui::Text("");
 
 	// -----------------------------
-	// [ Light ]
-	// -----------------------------
-	ImGui::Text("[ Light ]");
-
-	// 광원 색상
-	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
-
-	// 광원 방향 
-	ImGui::DragFloat3("Light Dir", (float*)&m_LightDir, 0.01f, -1.0f, 1.0f);
-
-	// 주변광 / 난반사 / 정반사 계수
-	ImGui::ColorEdit3("Ambient Light", (float*)&m_LightAmbient);
-	ImGui::ColorEdit3("Diffuse Light", (float*)&m_LightDiffuse);
-	ImGui::DragFloat("Shininess (alpha)", &m_Shininess, 10.0f, 5.0f, 1000.0f);
-
-	ImGui::Separator();
-	ImGui::Text("");
-
-
-	// -----------------------------
-	// [ Material ]
-	// -----------------------------
-	ImGui::Text("[ Material ]");
-
-	ImGui::ColorEdit3("Ambient", (float*)&m_MaterialAmbient);
-	ImGui::ColorEdit3("Specular", (float*)&m_MaterialSpecular);
-
-	ImGui::Separator();
-	ImGui::Text("");
-
-
-	// -----------------------------
 	// [ Camera ]
 	// -----------------------------
 	ImGui::Text("[ Camera ]");
@@ -532,7 +572,6 @@ void TestApp::Render_ImGui()
 
 
 
-
 	// -----------------------------
 	// 리소스 정보 출력
 	// -----------------------------
@@ -542,7 +581,7 @@ void TestApp::Render_ImGui()
 
 	ImGui::Begin("DebugText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs);
+		ImGuiWindowFlags_NoScrollbar);
 
 	// 글자색 검은색
 	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255)); // RGBA
@@ -550,8 +589,13 @@ void TestApp::Render_ImGui()
 	// 디버그 전용 폰트 적용 (UI 폰트와 분리됨)
 	ImGui::PushFont(m_DebugFont);
 
+	if (ImGui::Button("Add Human"))
+	{
+		AddHumanInFrontOfCamera();
+	}
+
 	// FPS 출력
-	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+	// ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
 	// [ 시스템 메모리 사용량 ]
 	MEMORYSTATUSEX memInfo;
@@ -621,11 +665,11 @@ void TestApp::UninitScene()
 	m_pShadowMapSRV.Reset();
 
 	// Mesh, Material 해제
-	Human.Clear();
-	Vampire.Clear();
+	// Human.Clear();
+	// Vampire.Clear();
 	Plane.Clear();
-	cube.Clear();
-	Tree.Clear();
+	// cube.Clear();
+	// Tree.Clear();
 
 	// 기본 텍스처 해제
 	Material::DestroyDefaultTextures();

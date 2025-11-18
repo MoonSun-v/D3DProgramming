@@ -12,6 +12,8 @@
 
 #include <DirectXColors.h>
 #include <Effects.h>
+// #include "SkeletalMeshAsset.h"
+#include "SkeletalMeshInstance.h"
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -26,7 +28,15 @@ public:
 	TestApp();
 	~TestApp();
 
-	SkeletalMesh Human, Vampire, Plane, cube, Tree;
+	// SkeletalMesh /*Human,*/ Vampire, Plane, cube, Tree;
+	SkeletalMesh Plane;
+
+	//std::vector<SkeletalMesh> m_Humans;          // Human 여러 개
+	//std::vector<Matrix>       m_HumansWorld;     // 각 Human의 월드행렬
+
+	std::shared_ptr<SkeletalMeshAsset> humanAsset;               // 공유 Asset
+	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
+	std::vector<Matrix> m_HumansWorld;                           // 각 인스턴스의 World
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -89,7 +99,7 @@ public:
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
 	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
-	Vector3 m_PlaneScale = { 400.0f, 10.0f, 400.0f };
+	Vector3 m_PlaneScale = { 600.0f, 10.0f, 600.0f };
 
 	bool m_bDebugShadow = true; // 그림자 디버그 모드
 
@@ -136,7 +146,10 @@ public:
 	void Update() override;
 	void Render() override;
 	void RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid);
+	void RenderMeshInstance(SkeletalMeshInstance& instance, const Matrix& world);
 	void RenderShadowMap();
+
+	void AddHumanInFrontOfCamera();
 
 public:
 	bool InitScene();		
