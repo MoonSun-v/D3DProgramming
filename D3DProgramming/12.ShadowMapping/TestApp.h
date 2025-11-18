@@ -10,6 +10,11 @@
 #include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 #include <string>
 
+#include <PrimitiveBatch.h>
+#include <VertexTypes.h>
+#include <DirectXColors.h>
+#include <Effects.h>
+
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 
@@ -29,6 +34,11 @@ private:
 	D3DDevice m_D3DDevice;  
 
 public:
+
+	// [ 절두체 디버깅 ]
+	DirectX::BoundingFrustum m_ShadowFrustum;
+	std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_DebugBatch;
+	std::unique_ptr<BasicEffect> m_BasicEffect;
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass
@@ -66,7 +76,7 @@ public:
 	// [ Main Camera ]
 	float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
 	float m_CameraNear = 0.1f;
-	float m_CameraFar = 2000.0f;
+	float m_CameraFar = 5000.0f;
 
 		 
 	// [ 오브젝트 : Human ]

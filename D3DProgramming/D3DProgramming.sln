@@ -31,6 +31,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "12.ShadowMapping", "12.Shad
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "11.FBXSkinned_ToonWithOutline", "11.FBXSkinned_ToonWithOutline\11.FBXSkinned_ToonWithOutline.vcxproj", "{21982F15-1805-4B7D-ADB0-D2DDEAD1E882}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DebugDraw", "DebugDraw\DebugDraw.vcxproj", "{42429E7D-2D5C-4491-818F-15C8DB63726B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -151,6 +153,14 @@ Global
 		{21982F15-1805-4B7D-ADB0-D2DDEAD1E882}.Release|x64.Build.0 = Release|x64
 		{21982F15-1805-4B7D-ADB0-D2DDEAD1E882}.Release|x86.ActiveCfg = Release|Win32
 		{21982F15-1805-4B7D-ADB0-D2DDEAD1E882}.Release|x86.Build.0 = Release|Win32
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Debug|x64.ActiveCfg = Debug|x64
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Debug|x64.Build.0 = Debug|x64
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Debug|x86.ActiveCfg = Debug|Win32
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Debug|x86.Build.0 = Debug|Win32
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Release|x64.ActiveCfg = Release|x64
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Release|x64.Build.0 = Release|x64
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Release|x86.ActiveCfg = Release|Win32
+		{42429E7D-2D5C-4491-818F-15C8DB63726B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

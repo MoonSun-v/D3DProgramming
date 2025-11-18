@@ -5,6 +5,7 @@
 #include <d3dcompiler.h>
 #include <Directxtk/DDSTextureLoader.h>
 #include <windows.h>
+#include "DebugDraw.h"
 
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -30,6 +31,15 @@ bool TestApp::Initialize()
 	m_Camera.m_Position = Vector3(40.0f, 80.0f, -600.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
+
+
+	// [ 절두체 디버깅 준비 ]
+	// PrimitiveBatch : 라인 렌더링 담당
+	// BasicEffect: InputLayout, Shader를 자동으로 설정
+	//m_DebugBatch = std::make_unique<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>>(m_D3DDevice.GetDeviceContext());
+
+	//m_BasicEffect = std::make_unique<DirectX::BasicEffect>(m_D3DDevice.GetDevice());
+	//m_BasicEffect->SetVertexColorEnabled(true);
 
 	return true;
 }
@@ -97,8 +107,12 @@ void TestApp::Update()
 	m_ShadowView = XMMatrixLookAtLH(shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 400.0f, 3000.f);
+	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 500.0f, 10000.f);
 
+
+	// [ Shadoe 카메라 절두체 디버깅 ]
+	// m_ShadowFrustum : ShadowMap 범위 나타냄 
+	// m_ShadowFrustum = DirectX::BoundingFrustum( XMMatrixMultiply(m_ShadowView, m_ShadowProjection) );
 }     
 
 
@@ -134,6 +148,19 @@ void TestApp::Render()
 	RenderMesh(Vampire, m_WorldVampire, 0);
 	RenderMesh(cube, m_WorldCube, 1);
 	RenderMesh(Tree, m_WorldTree, 1);
+
+	// [ 절두체 디버깅 렌더링 ]
+	//m_BasicEffect->SetView(m_View);
+	//m_BasicEffect->SetProjection(m_Projection);
+	//auto context = m_D3DDevice.GetDeviceContext();
+	//m_BasicEffect->Apply(context);
+
+	//m_DebugBatch->Begin();
+
+	//DebugDraw debugDraw;
+	//debugDraw.Draw(m_DebugBatch.get(), m_ShadowFrustum, DirectX::Colors::Red);
+
+	//m_DebugBatch->End();
 
 	// [ UI ]
 	Render_ImGui();
@@ -407,7 +434,7 @@ bool TestApp::InitScene()
 	m_View = XMMatrixLookAtLH(Eye, At, Up);					// 왼손 좌표계(LH) 기준 
 
 	// 투영행렬(Projection) : 카메라의 시야각(FOV), 화면 종횡비, Near, Far 
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4,m_ClientWidth / (FLOAT)m_ClientHeight, m_CameraNear, m_CameraFar);
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, m_CameraNear, m_CameraFar);
 
 
 	return true;
