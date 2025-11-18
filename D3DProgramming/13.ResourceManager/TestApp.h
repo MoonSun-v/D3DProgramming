@@ -10,8 +10,6 @@
 #include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 #include <string>
 
-#include <PrimitiveBatch.h>
-#include <VertexTypes.h>
 #include <DirectXColors.h>
 #include <Effects.h>
 
@@ -35,11 +33,6 @@ private:
 
 public:
 
-	// [ 절두체 디버깅 ]
-	//DirectX::BoundingFrustum m_ShadowFrustum;
-	//std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_DebugBatch;
-	//std::unique_ptr<BasicEffect> m_BasicEffect;
-
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass
 	ComPtr<ID3D11VertexShader> m_pShadowVS;			// ShadowPass
@@ -48,7 +41,6 @@ public:
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		
 	ComPtr<ID3D11InputLayout> m_pShadowInputLayout; 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
-	// ComPtr<ID3D11RasterizerState> m_pRasterizerState;
 
 	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// b0 : 상수 버퍼
