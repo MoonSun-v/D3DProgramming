@@ -21,9 +21,6 @@
     <ClCompile Include="Material.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="SkeletalMesh.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="SkeletalMeshSection.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -66,9 +63,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Material.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SkeletalMesh.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="SkeletalMeshSection.h">

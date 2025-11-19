@@ -1,7 +1,6 @@
 #pragma once
 #include "../Common/GameApp.h"
 #include "../Common/D3DDevice.h"
-#include "SkeletalMesh.h"
 #include "ConstantBuffer.h"
 
 #include <imgui.h>
@@ -12,7 +11,6 @@
 
 #include <DirectXColors.h>
 #include <Effects.h>
-// #include "SkeletalMeshAsset.h"
 #include "SkeletalMeshInstance.h"
 #include "StaticMeshInstance.h"
 
@@ -29,16 +27,12 @@ public:
 	TestApp();
 	~TestApp();
 
-	// SkeletalMesh /*Human,*/ Vampire, Plane, cube, Tree;
-	// SkeletalMesh Plane;
-
-	//std::vector<SkeletalMesh> m_Humans;          // Human 여러 개
-	//std::vector<Matrix>       m_HumansWorld;     // 각 Human의 월드행렬
-
+	// [ Human ]
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;               // 공유 Asset
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
 	std::vector<Matrix> m_HumansWorld;                           // 각 인스턴스의 World
 
+	// [ Plane ]
 	std::shared_ptr<StaticMeshAsset> planeAsset;             
 	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes; 
 	std::vector<Matrix> m_PlanesWorld;
@@ -89,7 +83,7 @@ public:
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
 	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
-	Vector3 m_PlaneScale = { 400.0f, 10.0f, 400.0f };
+	Vector3 m_PlaneScale = { 200.0f, 30.0f, 200.0f };
 
 
 	// [ 배경색 ]
@@ -121,10 +115,11 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
-	void RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid);
-	void RenderMesh(StaticMeshInstance& instance, const Matrix& world);
-	void RenderMeshInstance(SkeletalMeshInstance& instance, const Matrix& world);
+	void RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world);
+	void RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world);
 	void RenderShadowMap();
+
+	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 
 	void AddHumanInFrontOfCamera();
 

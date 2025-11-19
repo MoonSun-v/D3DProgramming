@@ -107,9 +107,6 @@ void SkeletalMeshInstance::RenderShadow(ID3D11DeviceContext* context, int isRigi
         // Bone Offset (b2)
         if (m_Asset->m_pSkeletonInfo)
         {
-            //context->UpdateSubresource(m_Asset->m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, nullptr, m_Asset->m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
-            //context->VSSetConstantBuffers(2, 1, m_Asset->m_pSkeletonInfo->m_pBoneOffsetBuffer.GetAddressOf());
-
             context->UpdateSubresource(m_Asset->m_pBoneOffsetBuffer.Get(), 0, nullptr, m_Asset->m_pSkeletonInfo->BoneOffsetMatrices.m_Model, 0, 0);
             context->VSSetConstantBuffers(2, 1, m_Asset->m_pBoneOffsetBuffer.GetAddressOf());
         }

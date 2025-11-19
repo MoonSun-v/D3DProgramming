@@ -53,8 +53,6 @@ void TestApp::Update()
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
 	// [ 오브젝트 업데이트 ]
-	// Plane.Update(deltaTime, m_WorldPlane);
-
 	m_WorldPlane =
 		XMMatrixScaling(m_PlaneScale.x, m_PlaneScale.y, m_PlaneScale.z) *
 		XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
@@ -83,8 +81,28 @@ void TestApp::Update()
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
 	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 500.0f, 10000.f);
-
 }     
+
+void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
+{
+	cb.mWorld = XMMatrixTranspose(world);
+	cb.mView = XMMatrixTranspose(m_View);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
+	cb.vLightDir = m_LightDir;
+	cb.vLightColor = m_LightColor;
+	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
+	cb.vAmbient = m_MaterialAmbient;
+	cb.vDiffuse = m_LightDiffuse;
+	cb.vSpecular = m_MaterialSpecular;
+	cb.fShininess = m_Shininess;
+	cb.gIsRigid = isRigid;
+
+	auto* context = m_D3DDevice.GetDeviceContext();
+	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+}
+
 
 void TestApp::Render()
 {
@@ -93,6 +111,7 @@ void TestApp::Render()
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, nullSRV);
 
 	RenderShadowMap();
+
 
 	// [ Main Pass 렌더링 ]
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
@@ -112,20 +131,21 @@ void TestApp::Render()
 	// ShadowMap SRV 바인딩
 	context->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
 
-	// -----------------------
-	// Mesh 렌더링
-	// -----------------------
+
+
+
+	// [ Mesh 렌더링 ]
 	
-	// Static Mesh
+	// Static Mesh Instance 
 	for (size_t i = 0; i < m_Planes.size(); i++)
 	{
-		RenderMesh(*m_Planes[i], m_PlanesWorld[i]);
+		RenderStaticMesh(*m_Planes[i], m_PlanesWorld[i]);
 	}
 
-	// SkeletalMeshInstance 배열
+	// Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
-		RenderMeshInstance(*m_Humans[i], m_HumansWorld[i]);
+		RenderSkeletalMesh(*m_Humans[i], m_HumansWorld[i]);
 	}
 
 	// UI 렌더링
@@ -135,55 +155,18 @@ void TestApp::Render()
 	m_D3DDevice.EndFrame();
 }
 
-// -----------------------
-// SkeletalMeshInstance용 Render
-// -----------------------
-void TestApp::RenderMeshInstance(SkeletalMeshInstance& instance, const Matrix& world)
+void TestApp::RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world)
 {
-	auto* context = m_D3DDevice.GetDeviceContext();
+	UpdateConstantBuffer(world, 0); // SkeletalMesh
 
-	// b0 업데이트
-	cb.mWorld = XMMatrixTranspose(world);
-	cb.mView = XMMatrixTranspose(m_View);
-	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.vLightDir = m_LightDir;
-	cb.vLightColor = m_LightColor;
-	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-	cb.vAmbient = m_MaterialAmbient;
-	cb.vDiffuse = m_LightDiffuse;
-	cb.vSpecular = m_MaterialSpecular;
-	cb.fShininess = m_Shininess;
-	cb.gIsRigid = 0; // SkeletalMeshInstance는 스켈레탈
-
-	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	// Render 호출
-	instance.Render(context, m_pSamplerLinear.Get(), 0);
+	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), 0); // Render 호출
 }
 
-void TestApp::RenderMesh(StaticMeshInstance& instance, const Matrix& world)
+void TestApp::RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world)
 {
-	// b0 업데이트
-	cb.mWorld = XMMatrixTranspose(world);    // World
-	cb.mView = XMMatrixTranspose(m_View);    // View
-	cb.mProjection = XMMatrixTranspose(m_Projection); // Projection
-	cb.vLightDir = m_LightDir;
-	cb.vLightColor = m_LightColor;
-	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-	cb.vAmbient = m_MaterialAmbient;
-	cb.vDiffuse = m_LightDiffuse;
-	cb.vSpecular = m_MaterialSpecular;
-	cb.fShininess = m_Shininess;
-	cb.gIsRigid = 1; // StaticMesh
+	UpdateConstantBuffer(world, 1); // StaticMesh
 
-	auto* context = m_D3DDevice.GetDeviceContext();
-	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	instance.Render(context, m_pSamplerLinear.Get());
+	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
 }
 
 
@@ -216,7 +199,7 @@ void TestApp::RenderShadowMap()
 
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	auto RenderShadowObject = [&](StaticMeshInstance& mesh, const Matrix& world)
+	auto RenderShadowStatic = [&](StaticMeshInstance& mesh, const Matrix& world)
 		{
 			cb.mWorld = XMMatrixTranspose(world);
 			cb.gIsRigid = 1;
@@ -228,7 +211,7 @@ void TestApp::RenderShadowMap()
 			mesh.RenderShadow(context);
 		};
 
-	auto RenderShadowInstance = [&](SkeletalMeshInstance& instance, const Matrix& world)
+	auto RenderShadowSkeletal = [&](SkeletalMeshInstance& instance, const Matrix& world)
 		{
 			cb.mWorld = XMMatrixTranspose(world);
 			cb.gIsRigid = 0;
@@ -240,53 +223,22 @@ void TestApp::RenderShadowMap()
 			instance.RenderShadow(context, 0);
 		};
 
-	// Static / Skeletal 렌더
 
+	// [ Static / Skeletal 렌더 ]
 	for (size_t i = 0; i < m_Planes.size(); i++)
 	{
-		RenderShadowObject(*m_Planes[i], m_PlanesWorld[i]);
+		RenderShadowStatic(*m_Planes[i], m_PlanesWorld[i]);
 	}
 
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
-		RenderShadowInstance(*m_Humans[i], m_HumansWorld[i]);
+		RenderShadowSkeletal(*m_Humans[i], m_HumansWorld[i]);
 	}
 
 	// RenderTarget / Viewport 복원
 	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
 	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
 	context->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
-}
-
-void TestApp::RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid)
-{
-	cb.mWorld = XMMatrixTranspose(world);
-	cb.mView = XMMatrixTranspose(m_View);
-	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.vLightDir = m_LightDir;
-	cb.vLightColor = m_LightColor;
-	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-	cb.vAmbient = m_MaterialAmbient;
-	cb.vDiffuse = m_LightDiffuse;
-	cb.vSpecular = m_MaterialSpecular;
-	cb.fShininess = m_Shininess;
-	cb.gIsRigid = isRigid;
-
-	// b0
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	// StaticMesh일 경우: 이전 본 버퍼(b1, b2) 언바인딩
-	if (isRigid == 1)
-	{
-		ID3D11Buffer* nullCB[1] = { nullptr };
-		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(1, 1, nullCB);
-		m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(2, 1, nullCB);
-	}
-
-	// SkeletalMesh에서 b1, b2 업데이트 
-	mesh.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), isRigid);
 }
 
 
@@ -356,28 +308,22 @@ bool TestApp::InitScene()
 
 
 	// ---------------------------------------------------------------
-	// 리소스 로드 
+	// 리소스 로드 (Asset)
 	// ---------------------------------------------------------------
 	
-	// [ FBX 파일에서 SkeletalMeshAsset 생성 ]
-	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
-
-	// SkeletalMeshInstance 생성 후 Asset 연결
-	//auto instance = std::make_shared<SkeletalMeshInstance>();
-	//instance->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-	// 
-	//m_Humans.push_back(instance);
-	//m_HumansWorld.push_back(m_WorldHuman);
-
-	// [ FBX 파일에서 StaticMeshAsset 생성 ]
+	// [ Static Mesh Asset 생성 ]
 	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-	
-	// StaticMeshInstance 생성 후 Asset 연결
-	auto instance = std::make_shared<StaticMeshInstance>();
+
+	auto instance = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
 	instance->SetAsset(planeAsset);
 
 	m_Planes.push_back(instance);
 	m_PlanesWorld.push_back(m_WorldPlane);
+
+
+	// [ Skeletal Mesh Asset 생성 ]
+	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+
 
 
 
