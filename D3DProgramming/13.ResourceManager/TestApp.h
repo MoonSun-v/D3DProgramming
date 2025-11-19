@@ -14,6 +14,7 @@
 #include <Effects.h>
 // #include "SkeletalMeshAsset.h"
 #include "SkeletalMeshInstance.h"
+#include "StaticMeshInstance.h"
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -29,7 +30,7 @@ public:
 	~TestApp();
 
 	// SkeletalMesh /*Human,*/ Vampire, Plane, cube, Tree;
-	SkeletalMesh Plane;
+	// SkeletalMesh Plane;
 
 	//std::vector<SkeletalMesh> m_Humans;          // Human 여러 개
 	//std::vector<Matrix>       m_HumansWorld;     // 각 Human의 월드행렬
@@ -37,6 +38,10 @@ public:
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;               // 공유 Asset
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
 	std::vector<Matrix> m_HumansWorld;                           // 각 인스턴스의 World
+
+	std::shared_ptr<StaticMeshAsset> planeAsset;             
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes; 
+	std::vector<Matrix> m_PlanesWorld;
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -80,40 +85,11 @@ public:
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 5000.0f;
 
-		 
-	// [ 오브젝트 : Human ]
-	Matrix m_WorldHuman;
-	float m_CharPos[3] = { -80.0f, 1.0f, 0.0f };
-	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };     
-	
-	float rotX = XMConvertToRadians(0.0f);  // 라디안
-	float rotY = XMConvertToRadians(0.0f); 
-	float rotZ = XMConvertToRadians(0.0f); 
-
-
-	// [ 오브젝트 : 좀비 ]
-	Matrix m_WorldVampire;
-	float m_VampirePos[3] = { -20.0f, 1.0f, 0.0f };
-
 
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
 	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
-	Vector3 m_PlaneScale = { 600.0f, 10.0f, 600.0f };
-
-	bool m_bDebugShadow = true; // 그림자 디버그 모드
-
-
-	// [ 오브젝트 : 큐브 ]
-	Matrix m_WorldCube;
-	float m_CubePos[3] = { 60.0f, 60.0f, 0.0f };
-	Vector3 m_CubeScale = { 10.0f, 10.0f, 10.0f };
-
-
-	// [ 오브젝트 : 트리 ]
-	Matrix m_WorldTree;
-	float m_TreePos[3] = { 170.0f, 0.0f, -80.0f };
-	Vector3 m_TreeScale = { 50.0f, 50.0f, 50.0f };
+	Vector3 m_PlaneScale = { 400.0f, 10.0f, 400.0f };
 
 
 	// [ 배경색 ]
@@ -146,6 +122,7 @@ public:
 	void Update() override;
 	void Render() override;
 	void RenderMesh(SkeletalMesh& mesh, const Matrix& world, int isRigid);
+	void RenderMesh(StaticMeshInstance& instance, const Matrix& world);
 	void RenderMeshInstance(SkeletalMeshInstance& instance, const Matrix& world);
 	void RenderShadowMap();
 

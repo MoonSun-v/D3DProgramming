@@ -52,29 +52,13 @@ void TestApp::Update()
 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
-	// [ 오브젝트 ] 
-	m_WorldHuman =
-		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *   // 스케일
-		XMMatrixRotationRollPitchYaw(rotX, rotY, rotZ) *                 // 입력 회전
-		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);   // 위치
-
-	m_WorldVampire = XMMatrixTranslation(m_VampirePos[0], m_VampirePos[1], m_VampirePos[2]);
+	// [ 오브젝트 업데이트 ]
+	// Plane.Update(deltaTime, m_WorldPlane);
 
 	m_WorldPlane =
 		XMMatrixScaling(m_PlaneScale.x, m_PlaneScale.y, m_PlaneScale.z) *
 		XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
 
-	m_WorldCube =
-		XMMatrixScaling(m_CubeScale.x, m_CubeScale.y, m_CubeScale.z) *
-		XMMatrixTranslation(m_CubePos[0], m_CubePos[1], m_CubePos[2]);
-
-	m_WorldTree =
-		XMMatrixScaling(m_TreeScale.x, m_TreeScale.y, m_TreeScale.z) *
-		XMMatrixTranslation(m_TreePos[0], m_TreePos[1], m_TreePos[2]);
-	
-
-	// [ 오브젝트 업데이트 ]
-	Plane.Update(deltaTime, m_WorldPlane);
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
 		m_Humans[i]->Update(deltaTime, m_HumansWorld[i]);
@@ -131,7 +115,12 @@ void TestApp::Render()
 	// -----------------------
 	// Mesh 렌더링
 	// -----------------------
-	RenderMesh(Plane, m_WorldPlane, 1);          // Static Mesh
+	
+	// Static Mesh
+	for (size_t i = 0; i < m_Planes.size(); i++)
+	{
+		RenderMesh(*m_Planes[i], m_PlanesWorld[i]);
+	}
 
 	// SkeletalMeshInstance 배열
 	for (size_t i = 0; i < m_Humans.size(); i++)
@@ -174,6 +163,30 @@ void TestApp::RenderMeshInstance(SkeletalMeshInstance& instance, const Matrix& w
 	instance.Render(context, m_pSamplerLinear.Get(), 0);
 }
 
+void TestApp::RenderMesh(StaticMeshInstance& instance, const Matrix& world)
+{
+	// b0 업데이트
+	cb.mWorld = XMMatrixTranspose(world);    // World
+	cb.mView = XMMatrixTranspose(m_View);    // View
+	cb.mProjection = XMMatrixTranspose(m_Projection); // Projection
+	cb.vLightDir = m_LightDir;
+	cb.vLightColor = m_LightColor;
+	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
+	cb.vAmbient = m_MaterialAmbient;
+	cb.vDiffuse = m_LightDiffuse;
+	cb.vSpecular = m_MaterialSpecular;
+	cb.fShininess = m_Shininess;
+	cb.gIsRigid = 1; // StaticMesh
+
+	auto* context = m_D3DDevice.GetDeviceContext();
+	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	instance.Render(context, m_pSamplerLinear.Get());
+}
+
+
 // -----------------------
 // Shadow Map 렌더링
 // -----------------------
@@ -203,16 +216,16 @@ void TestApp::RenderShadowMap()
 
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	auto RenderShadowObject = [&](SkeletalMesh& mesh, const Matrix& world, int isRigid)
+	auto RenderShadowObject = [&](StaticMeshInstance& mesh, const Matrix& world)
 		{
 			cb.mWorld = XMMatrixTranspose(world);
-			cb.gIsRigid = isRigid;
+			cb.gIsRigid = 1;
 			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 			shadowCB.mWorld = XMMatrixTranspose(world);
 			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
 
-			mesh.RenderShadow(context, isRigid);
+			mesh.RenderShadow(context);
 		};
 
 	auto RenderShadowInstance = [&](SkeletalMeshInstance& instance, const Matrix& world)
@@ -228,13 +241,16 @@ void TestApp::RenderShadowMap()
 		};
 
 	// Static / Skeletal 렌더
-	RenderShadowObject(Plane, m_WorldPlane, 1);
+
+	for (size_t i = 0; i < m_Planes.size(); i++)
+	{
+		RenderShadowObject(*m_Planes[i], m_PlanesWorld[i]);
+	}
 
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
 		RenderShadowInstance(*m_Humans[i], m_HumansWorld[i]);
 	}
-
 
 	// RenderTarget / Viewport 복원
 	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -349,10 +365,20 @@ bool TestApp::InitScene()
 	// SkeletalMeshInstance 생성 후 Asset 연결
 	//auto instance = std::make_shared<SkeletalMeshInstance>();
 	//instance->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
+	// 
 	//m_Humans.push_back(instance);
 	//m_HumansWorld.push_back(m_WorldHuman);
 
-	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
+	// [ FBX 파일에서 StaticMeshAsset 생성 ]
+	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
+	
+	// StaticMeshInstance 생성 후 Asset 연결
+	auto instance = std::make_shared<StaticMeshInstance>();
+	instance->SetAsset(planeAsset);
+
+	m_Planes.push_back(instance);
+	m_PlanesWorld.push_back(m_WorldPlane);
+
 
 
 	// ---------------------------------------------------------------
@@ -671,9 +697,6 @@ void TestApp::UninitScene()
 	m_pShadowMap.Reset();
 	m_pShadowMapDSV.Reset();
 	m_pShadowMapSRV.Reset();
-
-	// Mesh, Material 해제
-	Plane.Clear();
 
 
 	// 기본 텍스처 해제

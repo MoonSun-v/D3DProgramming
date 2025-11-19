@@ -45,6 +45,12 @@
     <ClCompile Include="SkeletalMeshInstance.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="StaticMeshAsset.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMeshInstance.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation.h">
@@ -84,6 +90,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="AssetKey.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshAsset.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshInstance.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

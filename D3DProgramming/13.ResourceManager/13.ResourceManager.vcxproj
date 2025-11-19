@@ -135,6 +135,8 @@
     <ClCompile Include="SkeletalMeshInstance.cpp" />
     <ClCompile Include="SkeletalMeshSection.cpp" />
     <ClCompile Include="SkeletonInfo.cpp" />
+    <ClCompile Include="StaticMeshAsset.cpp" />
+    <ClCompile Include="StaticMeshInstance.cpp" />
     <ClCompile Include="TestApp.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
@@ -151,6 +153,8 @@
     <ClInclude Include="SkeletalMeshInstance.h" />
     <ClInclude Include="SkeletalMeshSection.h" />
     <ClInclude Include="SkeletonInfo.h" />
+    <ClInclude Include="StaticMeshAsset.h" />
+    <ClInclude Include="StaticMeshInstance.h" />
     <ClInclude Include="TestApp.h" />
   </ItemGroup>
   <ItemGroup>
