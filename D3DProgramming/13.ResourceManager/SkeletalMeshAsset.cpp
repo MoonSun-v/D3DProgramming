@@ -219,3 +219,22 @@ void SkeletalMeshAsset::CreateSkeleton(const aiScene* scene)
 
     traverse(scene->mRootNode, -1, DirectX::XMMatrixIdentity());
 }
+
+void SkeletalMeshAsset::Clear()
+{
+    // Bone offset buffer
+    if (m_pBoneOffsetBuffer) m_pBoneOffsetBuffer.Reset();
+
+    // 각 Section에서 D3D 버퍼 해제
+    for (auto& section : m_Sections)
+    {
+        if (section.m_VertexBuffer) section.m_VertexBuffer.Reset();
+        if (section.m_IndexBuffer) section.m_IndexBuffer.Reset();
+    }
+
+    m_Sections.clear();
+    m_Materials.clear();
+    m_Animations.clear();
+    m_Skeleton.clear();
+    m_pSkeletonInfo.reset();
+}

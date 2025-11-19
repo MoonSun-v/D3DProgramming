@@ -17,6 +17,15 @@ Vector3 Camera::GetRight()
 	return m_World.Right();
 }
 
+Vector3 Camera::GetUp()
+{
+	Vector3 forward = GetForward();
+	Vector3 right = GetRight();
+	Vector3 up = right.Cross(forward);   // left-handed cross
+	up.Normalize();
+	return up;
+}
+
 void Camera::Reset()
 {
 	m_World = Matrix::Identity;

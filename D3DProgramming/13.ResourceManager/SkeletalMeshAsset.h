@@ -8,9 +8,6 @@
 
 // 기존 SkeletalMesh에서 Asset부분(공유되는 부분)만 추출 
 
-// m_pBonePoseBuffer 제거해야 함.
-// 포즈는 인스턴스별로 다름 -> Asset에 들어가면 모든 객체가 똑같이 움직여버림.
-
 class SkeletalMeshAsset
 {
 public:
@@ -24,6 +21,7 @@ public:
 
 public:
     bool LoadFromFBX(ID3D11Device* device, const std::string& path);
+    void Clear();
 
 private:
     void CreateSkeleton(const aiScene* scene);

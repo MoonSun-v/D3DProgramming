@@ -1,11 +1,10 @@
 #include "TestApp.h"
-
+#include "DebugDraw.h"
 #include <string> 
 #include <dxgi1_3.h>
 #include <d3dcompiler.h>
 #include <Directxtk/DDSTextureLoader.h>
 #include <windows.h>
-#include "DebugDraw.h"
 
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -36,13 +35,15 @@ bool TestApp::Initialize()
 	// [ 절두체 디버깅 준비 ]
 	// PrimitiveBatch : 라인 렌더링 담당
 	// BasicEffect: InputLayout, Shader를 자동으로 설정
-	//m_DebugBatch = std::make_unique<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>>(m_D3DDevice.GetDeviceContext());
+	m_DebugBatch = std::make_unique<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>>(m_D3DDevice.GetDeviceContext());
 
-	//m_BasicEffect = std::make_unique<DirectX::BasicEffect>(m_D3DDevice.GetDevice());
-	//m_BasicEffect->SetVertexColorEnabled(true);
+	m_BasicEffect = std::make_unique<DirectX::BasicEffect>(m_D3DDevice.GetDevice());
+	m_BasicEffect->SetVertexColorEnabled(true);
 
 	return true;
 }
+
+
 
 void TestApp::Uninitialize()
 {
@@ -112,7 +113,7 @@ void TestApp::Update()
 
 	// [ Shadoe 카메라 절두체 디버깅 ]
 	// m_ShadowFrustum : ShadowMap 범위 나타냄 
-	// m_ShadowFrustum = DirectX::BoundingFrustum( XMMatrixMultiply(m_ShadowView, m_ShadowProjection) );
+	 m_ShadowFrustum = DirectX::BoundingFrustum( XMMatrixMultiply(m_ShadowView, m_ShadowProjection) );
 }     
 
 
@@ -150,17 +151,18 @@ void TestApp::Render()
 	RenderMesh(Tree, m_WorldTree, 1);
 
 	// [ 절두체 디버깅 렌더링 ]
-	//m_BasicEffect->SetView(m_View);
-	//m_BasicEffect->SetProjection(m_Projection);
-	//auto context = m_D3DDevice.GetDeviceContext();
-	//m_BasicEffect->Apply(context);
+	m_BasicEffect->SetView(m_View);
+	m_BasicEffect->SetProjection(m_Projection);
+	auto context = m_D3DDevice.GetDeviceContext();
+	m_BasicEffect->Apply(context);
 
-	//m_DebugBatch->Begin();
+	m_DebugBatch->Begin();
 
-	//DebugDraw debugDraw;
-	//debugDraw.Draw(m_DebugBatch.get(), m_ShadowFrustum, DirectX::Colors::Red);
+	DebugDraw debugDraw;
+	debugDraw.Draw(m_DebugBatch.get(), m_ShadowFrustum, DirectX::Colors::Red);
 
-	//m_DebugBatch->End();
+	m_DebugBatch->End();
+
 
 	// [ UI ]
 	Render_ImGui();

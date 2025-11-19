@@ -6,8 +6,8 @@
 class AssetManager
 {
 public:
-    // ΩÃ±€≈Ê 
-    static AssetManager& Get()
+    
+    static AssetManager& Get() // ΩÃ±€≈Ê 
     {
         static AssetManager instance;
         return instance;
@@ -16,5 +16,6 @@ public:
     std::map<AssetKey, std::weak_ptr<SkeletalMeshAsset>> m_SkeletalMeshMap;
 
     std::shared_ptr<SkeletalMeshAsset> LoadSkeletalMesh(ID3D11Device* device, const std::string& filePath);
+    void UnloadSkeletalMesh(const std::string& filePath);
 };
 

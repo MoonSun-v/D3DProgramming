@@ -14,6 +14,7 @@
 #include <VertexTypes.h>
 #include <DirectXColors.h>
 #include <Effects.h>
+#include <CommonStates.h>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -36,9 +37,9 @@ private:
 public:
 
 	// [ 절두체 디버깅 ]
-	//DirectX::BoundingFrustum m_ShadowFrustum;
-	//std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_DebugBatch;
-	//std::unique_ptr<BasicEffect> m_BasicEffect;
+	DirectX::BoundingFrustum m_ShadowFrustum;
+	std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_DebugBatch;
+	std::unique_ptr<BasicEffect> m_BasicEffect;
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass

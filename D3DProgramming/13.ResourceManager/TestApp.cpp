@@ -132,7 +132,6 @@ void TestApp::Render()
 	// Mesh 렌더링
 	// -----------------------
 	RenderMesh(Plane, m_WorldPlane, 1);          // Static Mesh
-	// RenderMesh(Human, m_WorldHuman, 0);         // SkeletalMeshAsset 기반 단일 Human
 
 	// SkeletalMeshInstance 배열
 	for (size_t i = 0; i < m_Humans.size(); i++)
@@ -230,14 +229,12 @@ void TestApp::RenderShadowMap()
 
 	// Static / Skeletal 렌더
 	RenderShadowObject(Plane, m_WorldPlane, 1);
-	// RenderShadowObject(Human, m_WorldHuman, 0);
 
 	for (size_t i = 0; i < m_Humans.size(); i++)
+	{
 		RenderShadowInstance(*m_Humans[i], m_HumansWorld[i]);
+	}
 
-	// RenderShadowObject(Vampire, m_WorldVampire, 0);
-	// RenderShadowObject(cube, m_WorldCube, 1);
-	// RenderShadowObject(Tree, m_WorldTree, 1);
 
 	// RenderTarget / Viewport 복원
 	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -345,18 +342,15 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 리소스 로드 
 	// ---------------------------------------------------------------
-	// Human.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 	
 	// [ FBX 파일에서 SkeletalMeshAsset 생성 ]
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 
 	// SkeletalMeshInstance 생성 후 Asset 연결
-	auto instance = std::make_shared<SkeletalMeshInstance>();
-	instance->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-
-	m_Humans.push_back(instance);
-	m_HumansWorld.push_back(m_WorldHuman);
-
+	//auto instance = std::make_shared<SkeletalMeshInstance>();
+	//instance->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
+	//m_Humans.push_back(instance);
+	//m_HumansWorld.push_back(m_WorldHuman);
 
 	Plane.LoadFromFBX(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 
@@ -447,31 +441,34 @@ bool TestApp::InitScene()
 
 void TestApp::AddHumanInFrontOfCamera()
 {
-	// Asset으로부터 새 인스턴스 생성
 	auto newHuman = std::make_shared<SkeletalMeshInstance>();
 	newHuman->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
 
-    // 카메라 정보
+	// 1) 카메라 방향 벡터
 	Vector3 camPos = m_Camera.m_Position;
 	Vector3 camForward = m_Camera.GetForward();
+	Vector3 camRight = m_Camera.GetRight();
 
-	// 생성 위치 계산
-	float spawnDist = 2.0f;   // 카메라 5m 앞
-	float offsetRange = 1.0f; // 양옆 랜덤 편차
+	// 2) 오프셋 (카메라 기준 좌우/상하)
+	float spawnDist = 500.0f;
 
-	float offsetX = ((rand() % 1000) / 1000.0f - 0.5f) * offsetRange * 2.0f;
-	float offsetZ = ((rand() % 1000) / 1000.0f - 0.5f) * offsetRange * 2.0f;
+	float offsetRight = ((rand() % 1000) / 1000.0f - 0.5f) * 200.0f;
+	float offsetUp = ((rand() % 1000) / 1000.0f - 0.5f) * 50.0f;
 
-	Vector3 spawnPos = camPos + camForward * spawnDist + Vector3(offsetX, 0.0f, offsetZ);
+	// 3) 최종 위치 계산
+	Vector3 spawnPos =
+		camPos +
+		camForward * spawnDist +
+		camRight * offsetRight +
+		Vector3(0, offsetUp, 0);
 
-	Matrix world = XMMatrixScaling(1, 1, 1) * XMMatrixTranslation(spawnPos.x, spawnPos.y, spawnPos.z);
+	Matrix world =
+		XMMatrixScaling(1, 1, 1) *
+		XMMatrixTranslation(spawnPos.x, spawnPos.y, spawnPos.z);
 
-
-	// 벡터에 추가
+	// 4) Human 등록
 	m_Humans.push_back(newHuman);
 	m_HumansWorld.push_back(world);
-
-	OutputDebugString((L"AddHumanInFrontOfCamera called! Total humans: " + std::to_wstring(m_Humans.size()) + L"\n").c_str());
 }
 
 
@@ -492,7 +489,7 @@ void TestApp::Render_ImGui()
 
 
 	// 초기 창 크기 지정
-	ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_Always); // ImGuiCond_FirstUseEver
+	ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_Always); // ImGuiCond_FirstUseEver
 
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
@@ -501,32 +498,19 @@ void TestApp::Render_ImGui()
 	ImGui::PushFont(m_UIFont);
 
 	// -----------------------------
-	// [ Object Transform ]
+	// [ Light ]
 	// -----------------------------
-	ImGui::Text(" ");
-	ImGui::Text("[ Human Object Transform ]");
+	ImGui::Text("[ Light ]");
 
-	// 위치
-	ImGui::Text("Position (XYZ)");
-	ImGui::DragFloat3("Object_Position", m_CharPos, 1.0f);
+	// 광원 색상
+	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
 
-	// 스케일
-	ImGui::Text("Scale (XYZ)");
-	ImGui::DragFloat3("Object_Scale", (float*)&m_CharScale, 0.01f, 0.01f, 10.0f);
-
-	// 회전 (도 단위)
-	static float rotDegree[3] = { XMConvertToDegrees(rotX), XMConvertToDegrees(rotY), XMConvertToDegrees(rotZ) };
-	ImGui::Text("Rotation (Degrees)");
-	if (ImGui::DragFloat3("Object_Rotation", rotDegree, 0.5f, -360.0f, 360.0f))
-	{
-		// 입력값을 라디안으로 변환 적용
-		rotX = XMConvertToRadians(rotDegree[0]);
-		rotY = XMConvertToRadians(rotDegree[1]);
-		rotZ = XMConvertToRadians(rotDegree[2]);
-	}
+	// 광원 방향 
+	ImGui::DragFloat3("Light Dir", (float*)&m_LightDir, 0.01f, -1.0f, 1.0f);
 
 	ImGui::Separator();
 	ImGui::Text("");
+
 
 	// -----------------------------
 	// [ Camera ]
@@ -537,7 +521,6 @@ void TestApp::Render_ImGui()
 	ImGui::Text("Position (XYZ)");
 	if (ImGui::DragFloat3("Position", &m_Camera.m_Position.x, 0.5f))
 	{
-		// 위치 변경 시 즉시 World 행렬 업데이트
 		m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
 	}
 
@@ -591,13 +574,43 @@ void TestApp::Render_ImGui()
 
 	if (ImGui::Button("Add Human"))
 	{
+		if (!humanAsset)
+		{
+			// Reset으로 해제된 경우 재로딩
+			humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+		}
+
 		AddHumanInFrontOfCamera();
 	}
 
-	// FPS 출력
-	// ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+	if (ImGui::Button("Reset Human & Trim"))
+	{
+		// Human 인스턴스 벡터 비우기
+		m_Humans.clear();
+		m_HumansWorld.clear();
 
-	// [ 시스템 메모리 사용량 ]
+		// Asset 강제 언로드
+		if (humanAsset)
+		{
+			humanAsset->Clear();
+			AssetManager::Get().UnloadSkeletalMesh("../Resource/SkinningTest.fbx");
+			humanAsset.reset();
+		}
+
+		// IDXGIDevice3::Trim() 호출 (GPU 캐시 제거)
+		IDXGIDevice3* dxgiDevice3 = nullptr;
+		if (SUCCEEDED(m_D3DDevice.GetDevice()->QueryInterface(__uuidof(IDXGIDevice3), (void**)&dxgiDevice3)))
+		{
+			dxgiDevice3->Trim();
+			dxgiDevice3->Release();
+		}
+	}
+
+	// [ FPS 출력 ]
+	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+
+	// [ 사용량 출력 ]
 	MEMORYSTATUSEX memInfo;
 	memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 	GlobalMemoryStatusEx(&memInfo);
@@ -605,34 +618,29 @@ void TestApp::Render_ImGui()
 	double totalPhysGB = memInfo.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
 	double usedPhysGB = (memInfo.ullTotalPhys - memInfo.ullAvailPhys) / (1024.0 * 1024.0 * 1024.0);
 
-	ImGui::Text("System RAM: %.1f / %.1f GB", usedPhysGB, totalPhysGB);
-
-
-	// [ 페이지 파일 사용량 ]
 	double totalPageGB = memInfo.ullTotalPageFile / (1024.0 * 1024.0 * 1024.0);
 	double usedPageGB = (memInfo.ullTotalPageFile - memInfo.ullAvailPageFile) / (1024.0 * 1024.0 * 1024.0);
 
-	ImGui::Text("Page File: %.1f / %.1f GB", usedPageGB, totalPageGB);
-
-
-	// [ GPU VRAM ]
+	// GPU VRAM 조회
 	IDXGIDevice* dxgiDevice = nullptr;
 	IDXGIAdapter* adapter = nullptr;
-	DXGI_ADAPTER_DESC desc;
-
+	DXGI_ADAPTER_DESC desc{};
 	m_D3DDevice.GetDevice()->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
-	dxgiDevice->GetAdapter(&adapter);
+	if (dxgiDevice)
+	{
+		dxgiDevice->GetAdapter(&adapter);
+		if (adapter)
+		{
+			adapter->GetDesc(&desc);
+			adapter->Release();
+		}
+		dxgiDevice->Release();
+	}
+	double totalVRAMGB = desc.DedicatedVideoMemory / (1024.0 * 1024.0 * 1024.0);
 
-	adapter->GetDesc(&desc);
-	UINT64 totalVRAM = desc.DedicatedVideoMemory;
-
-	ImGui::Text("GPU VRAM: %.1f GB", totalVRAM / (1024.0 * 1024.0 * 1024.0));
-
-
-	// 정리
-	if (adapter)     adapter->Release();
-	if (dxgiDevice)  dxgiDevice->Release();
-
+	ImGui::Text("System RAM: %.3f / %.3f GB", usedPhysGB, totalPhysGB);
+	ImGui::Text("Page File: %.3f / %.3f GB", usedPageGB, totalPageGB);
+	ImGui::Text("GPU VRAM: %.3f GB", totalVRAMGB);
 
 
 	// 글자색과 폰트 복원
@@ -665,11 +673,8 @@ void TestApp::UninitScene()
 	m_pShadowMapSRV.Reset();
 
 	// Mesh, Material 해제
-	// Human.Clear();
-	// Vampire.Clear();
 	Plane.Clear();
-	// cube.Clear();
-	// Tree.Clear();
+
 
 	// 기본 텍스처 해제
 	Material::DestroyDefaultTextures();
