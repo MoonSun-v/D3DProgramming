@@ -52,9 +52,29 @@ bool StaticMeshAsset::LoadFromFBX(ID3D11Device* device, const std::string& path)
 
 void StaticMeshAsset::Clear()
 {
-    for (auto& sub : m_Sections) sub.Clear();
+    for (auto& sub : m_Sections)
+    {
+        // Section 내부의 GPU 리소스 완전 해제
+        if (sub.m_VertexBuffer) sub.m_VertexBuffer.Reset();
+        if (sub.m_IndexBuffer)  sub.m_IndexBuffer.Reset();
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (sub.m_SRVs[i]) sub.m_SRVs[i].Reset();
+        }
+    }
     m_Sections.clear();
 
-    for (auto& mat : m_Materials) mat.Clear();
+    // Material texture SRV 해제
+    for (auto& mat : m_Materials)
+    {
+        mat.Clear(); // 혹은 직접 Reset() 호출
+    }
     m_Materials.clear();
+
+    //for (auto& sub : m_Sections) sub.Clear();
+    //m_Sections.clear();
+
+    //for (auto& mat : m_Materials) mat.Clear();
+    //m_Materials.clear();
 }

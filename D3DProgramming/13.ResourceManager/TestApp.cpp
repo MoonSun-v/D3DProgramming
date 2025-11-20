@@ -28,7 +28,7 @@ bool TestApp::Initialize()
 	if (!InitScene())	return false;
 	if (!InitImGUI())	return false;
 
-	m_Camera.m_Position = Vector3(40.0f, 80.0f, -600.0f);
+	m_Camera.m_Position = Vector3(0.0f, 200.0f, -1200.0f);
 	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 	m_Camera.SetSpeed(200.0f);
 
@@ -37,9 +37,9 @@ bool TestApp::Initialize()
 
 void TestApp::Uninitialize()
 {
+	UninitScene();      // 리소스 해제 
 	UninitImGUI();
 	m_D3DDevice.Cleanup();
-	UninitScene();      // 리소스 해제 
 	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 }
 
@@ -112,7 +112,6 @@ void TestApp::Render()
 
 	RenderShadowMap();
 
-
 	// [ Main Pass 렌더링 ]
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
@@ -130,7 +129,6 @@ void TestApp::Render()
 
 	// ShadowMap SRV 바인딩
 	context->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
-
 
 
 
@@ -325,8 +323,6 @@ bool TestApp::InitScene()
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 
 
-
-
 	// ---------------------------------------------------------------
 	// Shadow Map 생성 
 	// ---------------------------------------------------------------
@@ -411,37 +407,30 @@ bool TestApp::InitScene()
 	return true;
 }
 
-void TestApp::AddHumanInFrontOfCamera()
+void TestApp::AddHumanRandom()
 {
 	auto newHuman = std::make_shared<SkeletalMeshInstance>();
 	newHuman->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
 
-	// 1) 카메라 방향 벡터
-	Vector3 camPos = m_Camera.m_Position;
-	Vector3 camForward = m_Camera.GetForward();
-	Vector3 camRight = m_Camera.GetRight();
+	// 랜덤 위치 
+	float rangeX = 200.0f;
+	float rangeY = 5.0f;
+	float rangeZ = 200.0f;
 
-	// 2) 오프셋 (카메라 기준 좌우/상하)
-	float spawnDist = 500.0f;
+	float x = ((rand() % 1000) / 1000.0f - 0.5f) * 2.0f * rangeX; 
+	float y = ((rand() % 1000) / 1000.0f) * rangeY;               
+	float z = ((rand() % 1000) / 1000.0f - 0.5f) * 2.0f * rangeZ; 
 
-	float offsetRight = ((rand() % 1000) / 1000.0f - 0.5f) * 200.0f;
-	float offsetUp = ((rand() % 1000) / 1000.0f - 0.5f) * 50.0f;
+	Vector3 spawnPos = Vector3(x, y, z);
 
-	// 3) 최종 위치 계산
-	Vector3 spawnPos =
-		camPos +
-		camForward * spawnDist +
-		camRight * offsetRight +
-		Vector3(0, offsetUp, 0);
+	Matrix world = XMMatrixTranslation(spawnPos.x, spawnPos.y, spawnPos.z);
 
-	Matrix world =
-		XMMatrixScaling(1, 1, 1) *
-		XMMatrixTranslation(spawnPos.x, spawnPos.y, spawnPos.z);
-
-	// 4) Human 등록
+	// Human 등록
 	m_Humans.push_back(newHuman);
 	m_HumansWorld.push_back(world);
 }
+
+
 
 
 
@@ -525,8 +514,6 @@ void TestApp::Render_ImGui()
 	ImGui::End();
 
 
-
-
 	// -----------------------------
 	// 리소스 정보 출력
 	// -----------------------------
@@ -552,7 +539,7 @@ void TestApp::Render_ImGui()
 			humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
 		}
 
-		AddHumanInFrontOfCamera();
+		AddHumanRandom();
 	}
 
 	if (ImGui::Button("Reset Human & Trim"))
@@ -632,6 +619,7 @@ void TestApp::UninitScene()
 {
 	// 샘플러, 상수버퍼, 셰이더, 입력레이아웃 해제
 	m_pSamplerLinear.Reset();
+	m_pSamplerComparison.Reset();
 	m_pConstantBuffer.Reset();
 	m_pVertexShader.Reset();
 	m_pPixelShader.Reset();
@@ -644,6 +632,13 @@ void TestApp::UninitScene()
 	m_pShadowMapDSV.Reset();
 	m_pShadowMapSRV.Reset();
 
+	m_Humans.clear();
+	m_Planes.clear();
+	m_PlanesWorld.clear();
+
+	OutputDebugString((L"[TestApp::UninitScene] 실행 "));
+
+	AssetManager::Get().UnloadAll(); 
 
 	// 기본 텍스처 해제
 	Material::DestroyDefaultTextures();

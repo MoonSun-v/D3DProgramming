@@ -35,7 +35,8 @@ public:
 	// [ Plane ]
 	std::shared_ptr<StaticMeshAsset> planeAsset;             
 	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes; 
-	std::vector<Matrix> m_PlanesWorld;
+	std::vector<Matrix> m_PlanesWorld;                 
+
 
 private:
 	D3DDevice m_D3DDevice;  
@@ -121,7 +122,7 @@ public:
 
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 
-	void AddHumanInFrontOfCamera();
+	void AddHumanRandom();
 
 public:
 	bool InitScene();		

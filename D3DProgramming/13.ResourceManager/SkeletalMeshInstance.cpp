@@ -115,7 +115,15 @@ void SkeletalMeshInstance::RenderShadow(ID3D11DeviceContext* context, int isRigi
     for (auto& sub : m_Asset->m_Sections)
     {
         // Shadow Pass: Opacity SRV만 slot 4에 바인딩
-        ID3D11ShaderResourceView* opacitySRV[1] = { sub.m_SRVs[4] };
+        Material* material = nullptr;
+        if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Asset->m_Materials.size())
+            material = &m_Asset->m_Materials[sub.m_MaterialIndex];
+
+        ID3D11ShaderResourceView* opacitySRV[1] =
+        {
+            material ? material->GetTextures().OpacitySRV.Get() : nullptr
+        };
+
         context->PSSetShaderResources(4, 1, opacitySRV);
 
         UINT stride = sizeof(Vertex);

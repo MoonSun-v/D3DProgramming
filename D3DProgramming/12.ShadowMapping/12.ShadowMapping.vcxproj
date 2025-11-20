@@ -150,9 +150,6 @@
     <ProjectReference Include="..\Common\Common.vcxproj">
       <Project>{778df53f-a208-4a5d-a528-6d3e00fad309}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\DebugDraw\DebugDraw.vcxproj">
-      <Project>{42429e7d-2d5c-4491-818f-15c8db63726b}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Animation.cpp" />

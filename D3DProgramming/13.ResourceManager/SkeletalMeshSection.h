@@ -56,7 +56,8 @@ public:
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
 
     //  Material SRV ¹è¿­
-    ID3D11ShaderResourceView* m_SRVs[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+    // ID3D11ShaderResourceView* m_SRVs[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+    ComPtr<ID3D11ShaderResourceView> m_SRVs[5];
 
 
 public:

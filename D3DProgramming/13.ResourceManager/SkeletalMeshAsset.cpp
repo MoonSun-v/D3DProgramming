@@ -230,6 +230,11 @@ void SkeletalMeshAsset::Clear()
     {
         if (section.m_VertexBuffer) section.m_VertexBuffer.Reset();
         if (section.m_IndexBuffer) section.m_IndexBuffer.Reset();
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (section.m_SRVs[i]) section.m_SRVs[i].Reset();
+        }
     }
 
     m_Sections.clear();
