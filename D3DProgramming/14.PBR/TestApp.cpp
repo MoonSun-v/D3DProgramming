@@ -113,10 +113,9 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 	cb.vLightDir = m_LightDir;
 	cb.vLightColor = m_LightColor;
 	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-	cb.vAmbient = m_MaterialAmbient;
-	cb.vDiffuse = m_LightDiffuse;
-	cb.vSpecular = m_MaterialSpecular;
-	cb.fShininess = m_Shininess;
+	cb.gMetallicMultiplier = XMFLOAT4(1.0f, 0, 0, 0);  // 임시 값
+	cb.gRoughnessMultiplier = XMFLOAT4(1.0f, 0, 0, 0); // 임시 값
+
 	cb.gIsRigid = isRigid;
 
 	auto* context = m_D3DDevice.GetDeviceContext();
@@ -130,7 +129,7 @@ void TestApp::Render()
 {
 	// [ DepthOnly Pass 렌더링 (ShadowMap) ]
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(5, 1, nullSRV);
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(6, 1, nullSRV);
 
 	RenderShadowMap();
 
@@ -150,7 +149,7 @@ void TestApp::Render()
 	context->PSSetSamplers(1, 1, m_pSamplerComparison.GetAddressOf());
 
 	// ShadowMap SRV 바인딩
-	context->PSSetShaderResources(5, 1, m_pShadowMapSRV.GetAddressOf());
+	context->PSSetShaderResources(6, 1, m_pShadowMapSRV.GetAddressOf());
 
 
 	// [ Mesh 렌더링 ]

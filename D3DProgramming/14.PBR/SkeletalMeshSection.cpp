@@ -140,11 +140,11 @@ void SkeletalMeshSection::Render(ID3D11DeviceContext* context, const Material& m
     // 렌더링 시에만 raw pointer 배열을 임시 생성
     ID3D11ShaderResourceView* srvs[5] =
     {
-        tex.DiffuseSRV.Get(),
-        tex.NormalSRV.Get(),
-        tex.SpecularSRV.Get(),
-        tex.EmissiveSRV.Get(),
-        tex.OpacitySRV.Get()
+        tex.BaseColorSRV.Get(),   // slot 0
+        tex.NormalSRV.Get(),      // slot 1
+        tex.MetallicSRV.Get(),    // slot 2
+        tex.RoughnessSRV.Get(),    // slot 3
+        tex.OpacitySRV.Get()    // slot 5
     };
 
     context->PSSetShaderResources(0, 5, srvs);

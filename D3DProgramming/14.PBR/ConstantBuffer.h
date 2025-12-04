@@ -9,18 +9,15 @@ struct ConstantBuffer
 
 	Vector4 vLightDir;		// 광원 방향
 	Vector4 vLightColor;	// 광원 색상
-	Vector4 vOutputColor;	// 출력 색상 
 
 	Vector4 vEyePos;		// 카메라 위치
 
-	Vector4 vAmbient;		// 머티리얼 Ambient
-	Vector4 vDiffuse;		// 머티리얼 Diffuse
-	Vector4 vSpecular;		// 머티리얼 Specular
-
-	float   fShininess = 40.0f;   // 반짝임 정도
-	int		gIsRigid = 1;         // 1: Rigid, 0: Skinned
-	float	pad1[2];			  // 16바이트 정렬
+	Vector4 gMetallicMultiplier;		
+	Vector4 gRoughnessMultiplier;		
+	int		gIsRigid = 1;     // 1: Rigid, 0: Skinned
+	float	pad;			  // 16바이트 정렬
 };
+
 
 // ShadowMap생성 Pass에서 사용ㅎ 
 struct ShadowConstantBuffer

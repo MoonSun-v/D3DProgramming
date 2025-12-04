@@ -95,5 +95,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="imgui.ini" />
+    <None Include="..\Shaders\14.Shared.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\Shaders\14.PixelShader.hlsl" />
+    <FxCompile Include="..\Shaders\14.ShadowPixelShader.hlsl" />
+    <FxCompile Include="..\Shaders\14.ShadowVertexShader.hlsl" />
+    <FxCompile Include="..\Shaders\14.VertexShader.hlsl" />
   </ItemGroup>
 </Project>

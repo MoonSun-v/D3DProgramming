@@ -12,10 +12,10 @@ using namespace DirectX;
 // 각 머티리얼 텍스처(SRV) 
 struct TextureSRVs
 {
-    ComPtr<ID3D11ShaderResourceView> DiffuseSRV;
+    ComPtr<ID3D11ShaderResourceView> BaseColorSRV;
     ComPtr<ID3D11ShaderResourceView> NormalSRV;
-    ComPtr<ID3D11ShaderResourceView> SpecularSRV;
-    ComPtr<ID3D11ShaderResourceView> EmissiveSRV;
+    ComPtr<ID3D11ShaderResourceView> MetallicSRV;
+    ComPtr<ID3D11ShaderResourceView> RoughnessSRV;
     ComPtr<ID3D11ShaderResourceView> OpacitySRV;
 };
 
@@ -27,10 +27,10 @@ private:
 
 public:
     // 텍스처 파일 경로 (확인용)
-    std::wstring FilePathDiffuse;
+    std::wstring FilePathBaseColor;
     std::wstring FilePathNormal;
-    std::wstring FilePathSpecular;
-    std::wstring FilePathEmissive;
+    std::wstring FilePathMetallic;
+    std::wstring FilePathRoughness;
     std::wstring FilePathOpacity;
 
     // Assimp 머티리얼로부터 초기화
