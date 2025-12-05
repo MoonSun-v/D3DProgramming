@@ -162,10 +162,10 @@ void TestApp::Render()
 
 
 	// UI 렌더링
-	Render_ImGui();
+	Render_ImGui(); 
 
 	// 화면 출력
-	m_D3DDevice.EndFrame();
+	m_D3DDevice.EndFrame(); 
 }
 
 void TestApp::RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world)

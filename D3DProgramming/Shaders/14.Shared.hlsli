@@ -1,35 +1,36 @@
 
 SamplerState samLinear : register(s0);
-SamplerComparisonState samShadow : register(s1); // Depth 비교용 샘플러
+SamplerComparisonState samShadow : register(s1); 
 
-Texture2D txDiffuse : register(t0);
+Texture2D txBaseColor : register(t0);
 Texture2D txNormal : register(t1);
-Texture2D txSpecular : register(t2);
-Texture2D txEmissive : register(t3);
-Texture2D txOpacity : register(t4);
-Texture2D txShadowMap : register(t5); // Shadow Map 텍스처
+Texture2D txMetallic : register(t2);  // Texture2D txSpecular : register(t2);
+Texture2D txRoughness : register(t3); // Texture2D txEmissive : register(t3);
+
+Texture2D txEmissive : register(t4);  // Texture2D txOpacity : register(t4); 
+Texture2D txOpacity : register(t5);   // Texture2D txShadowMap : register(t5);
+Texture2D txShadowMap : register(t6);
+
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
 //--------------------------------------------------------------------------------------
 cbuffer ConstantBuffer : register(b0)
 {
-    matrix gWorld; // 월드 변환 행렬 (모델 좌표 → 월드 좌표)
-    matrix gView; // 뷰 변환 행렬 (월드 좌표 → 카메라 좌표)
-    matrix gProjection; // 투영 변환 행렬 (카메라 좌표 → 클립 좌표)
+    matrix gWorld;
+    matrix gView;
+    matrix gProjection;
 
-    float4 vLightDir;   // 광원 방향 벡터 
-    float4 vLightColor; // 광원 색상 
-    float4 vOutputColor; // 단색 렌더링용 출력 색상
-    float4 vEyePos;      // 카메라 위치
+    float4 vLightDir;
+    float4 vLightColor;
     
-    float4 vAmbient; // 머티리얼 Ambient
-    float4 vDiffuse; // 머티리얼 DiffuseA
-    float4 vSpecular; // 머티리얼 Specular
+    float4 vEyePos;
+  
+    float4 gMetallicMultiplier;
+    float4 gRoughnessMultiplier;
     
-    float fShininess;  
-    int gIsRigid;     // 1: Rigid, 0: Skinned
-    float pad1[2];      // 16바이트 정렬
+    int gIsRigid; // 1: Rigid, 0: Skinned
+    float pad[3];
 }
 
 

@@ -12,10 +12,11 @@ struct ConstantBuffer
 
 	Vector4 vEyePos;		// 카메라 위치
 
-	Vector4 gMetallicMultiplier;		
-	Vector4 gRoughnessMultiplier;		
+	Vector4 gMetallicMultiplier;
+	Vector4 gRoughnessMultiplier;
+
 	int		gIsRigid = 1;     // 1: Rigid, 0: Skinned
-	float	pad;			  // 16바이트 정렬
+	float	pad[3];			  // 16바이트 정렬
 };
 
 
