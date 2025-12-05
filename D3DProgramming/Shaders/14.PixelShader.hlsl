@@ -106,7 +106,7 @@ float4 main(PS_INPUT input) : SV_Target
     
     
     // 5. 머티리얼 파라미터 
-    float3 albedo = baseColorTex.rgb;
+    float3 albedo = baseColorTex.rgb; // albedo = pow(baseColorTex.rgb, 2.2); // TODO: 감마보정 
     float metallic = saturate(metalTex * gMetallicMultiplier);
     float roughness = saturate(roughTex * gRoughnessMultiplier);
     roughness = max(roughness, 0.05); // 거칠기(roughness)는 최소값 유지 (roughness가 0에 가까우면 수학적 특이점 생김)
@@ -170,9 +170,9 @@ float4 main(PS_INPUT input) : SV_Target
     float3 Lo = (diffuseBRDF + specularBRDF) * radiance * cosLi * shadowFactor;
     
     Lo += emissiveTex.rgb; // 발광(emissive) 추가
-
-    // TODO : 감마 보정 필요
+    
     float3 finalRgb = saturate(Lo);
+    
     float4 finalColor = float4(finalRgb, opacityTex.a);
     
     return finalColor; 

@@ -4,11 +4,10 @@ SamplerComparisonState samShadow : register(s1);
 
 Texture2D txBaseColor : register(t0);
 Texture2D txNormal : register(t1);
-Texture2D txMetallic : register(t2);  // Texture2D txSpecular : register(t2);
-Texture2D txRoughness : register(t3); // Texture2D txEmissive : register(t3);
-
-Texture2D txEmissive : register(t4);  // Texture2D txOpacity : register(t4); 
-Texture2D txOpacity : register(t5);   // Texture2D txShadowMap : register(t5);
+Texture2D txMetallic : register(t2);  
+Texture2D txRoughness : register(t3);
+Texture2D txEmissive : register(t4);  
+Texture2D txOpacity : register(t5);   
 Texture2D txShadowMap : register(t6);
 
 

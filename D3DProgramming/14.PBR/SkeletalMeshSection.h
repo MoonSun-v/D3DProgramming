@@ -56,7 +56,7 @@ public:
     XMMATRIX m_WorldTransform = XMMatrixIdentity(); 
 
     //  Material SRV 배열 : PBR 텍스처 슬롯
-    ComPtr<ID3D11ShaderResourceView> m_SRVs[5]; 
+    ComPtr<ID3D11ShaderResourceView> m_SRVs[6]; 
 
 
 public:

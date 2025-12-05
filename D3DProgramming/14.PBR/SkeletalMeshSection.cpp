@@ -138,16 +138,17 @@ void SkeletalMeshSection::Render(ID3D11DeviceContext* context, const Material& m
     //context->PSSetShaderResources(0, 5, m_SRVs);
     
     // 렌더링 시에만 raw pointer 배열을 임시 생성
-    ID3D11ShaderResourceView* srvs[5] =
+    ID3D11ShaderResourceView* srvs[6] =
     {
-        tex.BaseColorSRV.Get(),   // slot 0
-        tex.NormalSRV.Get(),      // slot 1
-        tex.MetallicSRV.Get(),    // slot 2
-        tex.RoughnessSRV.Get(),    // slot 3
-        tex.OpacitySRV.Get()    // slot 5
+        tex.BaseColorSRV.Get(),     // slot 0
+        tex.NormalSRV.Get(),        // slot 1
+        tex.MetallicSRV.Get(),      // slot 2
+        tex.RoughnessSRV.Get(),     // slot 3
+        tex.EmissiveSRV.Get(),      // slot 4
+        tex.OpacitySRV.Get()        // slot 5
     };
 
-    context->PSSetShaderResources(0, 5, srvs);
+    context->PSSetShaderResources(0, 6, srvs);
     context->PSSetSamplers(0, 1, &pSampler);
 
     // 그리기
@@ -163,9 +164,9 @@ void SkeletalMeshSection::RenderShadow(ID3D11DeviceContext* context, int isRigid
     context->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
     context->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-    // Shadow Pass에서는 OpacitySRV만 slot 4에 바인딩
-    ID3D11ShaderResourceView* opacitySRV[1] = { m_SRVs[4].Get() };
-    context->PSSetShaderResources(4, 1, opacitySRV);
+    // Shadow Pass에서는 OpacitySRV만 slot 5에 바인딩
+    ID3D11ShaderResourceView* opacitySRV[1] = { m_SRVs[5].Get() };
+    context->PSSetShaderResources(5, 1, opacitySRV);
 
     // 그리기
     context->DrawIndexed(m_IndexCount, 0, 0);

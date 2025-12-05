@@ -335,7 +335,11 @@ bool TestApp::InitScene()
 
 
 	// [ Skeletal Mesh Asset »ý¼º ]
-	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx");
+	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx"); 
+	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
+	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
+	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
+
 
 	auto instance_human = std::make_shared<SkeletalMeshInstance>();
 	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);

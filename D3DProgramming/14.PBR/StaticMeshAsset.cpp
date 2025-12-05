@@ -58,7 +58,7 @@ void StaticMeshAsset::Clear()
         if (sub.m_VertexBuffer) sub.m_VertexBuffer.Reset();
         if (sub.m_IndexBuffer)  sub.m_IndexBuffer.Reset();
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 6; i++)
         {
             if (sub.m_SRVs[i]) sub.m_SRVs[i].Reset();
         }

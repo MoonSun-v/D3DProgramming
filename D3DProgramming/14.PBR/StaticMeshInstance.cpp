@@ -30,7 +30,7 @@ void StaticMeshInstance::RenderShadow(ID3D11DeviceContext* context)
 
     for (auto& sub : m_Asset->m_Sections)
     {
-        // Shadow Pass: Opacity SRV만 slot 4에 바인딩
+        // Shadow Pass: Opacity SRV만 slot 5에 바인딩
         Material* material = nullptr;
         if (sub.m_MaterialIndex >= 0 && sub.m_MaterialIndex < (int)m_Asset->m_Materials.size())
             material = &m_Asset->m_Materials[sub.m_MaterialIndex];
@@ -40,7 +40,7 @@ void StaticMeshInstance::RenderShadow(ID3D11DeviceContext* context)
             material ? material->GetTextures().OpacitySRV.Get() : nullptr
         };
 
-        context->PSSetShaderResources(4, 1, opacitySRV);
+        context->PSSetShaderResources(5, 1, opacitySRV);
 
         UINT stride = sizeof(Vertex);
         UINT offset = 0;
