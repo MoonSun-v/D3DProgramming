@@ -32,6 +32,11 @@ public:
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
 	std::vector<Matrix> m_HumansWorld;                           // 각 인스턴스의 World
 
+	// [ char ]
+	std::shared_ptr<StaticMeshAsset> charAsset;
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Chars;
+	std::vector<Matrix> m_CharsWorld;
+
 	// [ Plane ]
 	std::shared_ptr<StaticMeshAsset> planeAsset;             
 	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes; 
@@ -86,9 +91,14 @@ public:
 	float m_PlanePos[3] = { 0.0f, -90.0f, 0.0f };
 	Vector3 m_PlaneScale = { 100.0f, 20.0f, 100.0f };
 
-	// [ 오브젝트 : 캐릭터 ]
+	// [ 오브젝트 : char (StaticMesh) ]
+	Matrix m_WorldChar;
+	float m_CharPos[3] = { 40.0f, 10.0f, 0.0f };
+	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };
+
+	// [ 오브젝트 : 캐릭터 (SkeletalMesh)]
 	Matrix m_WorldHuman;
-	float m_HumanPos[3] = { 0.0f, 0.0f, 0.0f };
+	float m_HumanPos[3] = { -40.0f, 0.0f, 0.0f };
 	Vector3 m_HumanScale = { 1.0f, 1.0f, 1.0f };
 
 

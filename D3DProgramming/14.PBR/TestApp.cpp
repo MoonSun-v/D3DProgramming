@@ -53,6 +53,10 @@ void TestApp::Update()
 		XMMatrixScaling(m_PlaneScale.x, m_PlaneScale.y, m_PlaneScale.z) *
 		XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
 
+	m_WorldChar =
+		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *
+		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);
+
 	m_WorldHuman =
 		XMMatrixScaling(m_HumanScale.x, m_HumanScale.y, m_HumanScale.z) *
 		XMMatrixTranslation(m_HumanPos[0], m_HumanPos[1], m_HumanPos[2]);
@@ -67,16 +71,27 @@ void TestApp::Update()
 		}
 	}
 
+	if (m_Chars.size() > 0)
+	{
+		if (m_CharsWorld.size() != m_Chars.size()) m_CharsWorld.resize(m_Chars.size(), m_WorldChar);
+
+		for (size_t i = 0; i < m_Chars.size(); ++i)
+		{
+			m_CharsWorld[i] = m_WorldChar; // 같은 transform 적용. 필요하면 인덱스별 pos/scale 배열 사용 해야함 
+		}
+	}
+
 	if (m_Humans.size() > 0)
 	{
-		if (m_HumansWorld.size() != m_Humans.size())
-			m_HumansWorld.resize(m_Humans.size(), m_WorldHuman);
+		if (m_HumansWorld.size() != m_Humans.size()) m_HumansWorld.resize(m_Humans.size(), m_WorldHuman);
 
 		for (size_t i = 0; i < m_Humans.size(); ++i)
 		{
 			m_HumansWorld[i] = m_WorldHuman; // 같은 transform 적용. 필요하면 인덱스별 pos/scale 배열 사용 해야함 
 		} 
 	}
+
+
 
 	// 이제 인스턴스들 Update 호출 (업데이트된 world 전달)
 	for (size_t i = 0; i < m_Humans.size(); i++)
@@ -156,6 +171,7 @@ void TestApp::Render()
 
 	// Static Mesh Instance 
 	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i], m_PlanesWorld[i]); }
+	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
 
 	// Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i], m_HumansWorld[i]); }
@@ -325,21 +341,29 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	
 	// [ Static Mesh Asset 생성 ]
+	// 1. Plane 
 	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-
+	
 	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
 	instance_plane->SetAsset(planeAsset);
 
 	m_Planes.push_back(instance_plane);
 	m_PlanesWorld.push_back(m_WorldPlane);
 
+	// 2. char
+	charAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
+
+	auto instance_char = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
+	instance_char->SetAsset(charAsset);
+
+	m_Chars.push_back(instance_char);
+	m_CharsWorld.push_back(m_WorldChar);
+
 
 	// [ Skeletal Mesh Asset 생성 ]
 	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx"); 
 	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
-	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
-
 
 	auto instance_human = std::make_shared<SkeletalMeshInstance>();
 	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);

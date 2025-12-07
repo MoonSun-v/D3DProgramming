@@ -7,6 +7,7 @@
 #include <Directxtk/WICTextureLoader.h>
 #include <dxgidebug.h>
 #include <dxgi1_3.h>  // DXGIGetDebugInterface1
+#include <DirectXTex.h>
 
 #pragma comment(lib, "dxguid.lib")  // 꼭 필요!
 #pragma comment(lib, "dxgi.lib")
@@ -73,20 +74,46 @@ HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName
 {
 	HRESULT hr = S_OK;
 
-	// DDS 포맷 텍스처 시도
-	hr = DirectX::CreateDDSTextureFromFile(d3dDevice, szFileName, nullptr, textureView);
-	if (FAILED(hr))
+	std::wstring ext = szFileName;
+
+	// 확장자 추출
+	size_t dot = ext.find_last_of(L'.');
+	std::wstring extension = (dot != std::wstring::npos) ? ext.substr(dot + 1) : L"";
+
+	// 소문자로 변환
+	for (auto& c : extension) c = towlower(c);
+
+
+	// 1. DDS 텍스처 먼저 시도
+	if (extension == L"dds")
 	{
-		// WIC 기반 로더 (PNG, JPG, BMP 등)
-		hr = DirectX::CreateWICTextureFromFile(d3dDevice, szFileName, nullptr, textureView);
-		if (FAILED(hr))
-		{
-			// 실패 시 에러 메시지 출력
-			MessageBoxW(NULL, GetComErrorString(hr), szFileName, MB_OK);
-			return hr;
-		}
+		hr = DirectX::CreateDDSTextureFromFile(d3dDevice, szFileName, nullptr, textureView);
+		return hr;
 	}
-	return S_OK;
+
+	// 2. TGA 파일이면 DirectXTex 로더 사용
+	if (extension == L"tga")
+	{
+		DirectX::ScratchImage image;
+		hr = DirectX::LoadFromTGAFile(szFileName, nullptr, image);
+		if (FAILED(hr))
+			return hr;
+
+		hr = DirectX::CreateShaderResourceView(
+			d3dDevice,
+			image.GetImages(),
+			image.GetImageCount(),
+			image.GetMetadata(),
+			textureView);
+
+		return hr;
+	}
+
+
+	// 3. 나머지 포맷 (PNG, JPG 등)
+	hr = DirectX::CreateWICTextureFromFile(d3dDevice, szFileName, nullptr, textureView);
+
+	return hr;
 }
 
 void CheckDXGIDebug()
