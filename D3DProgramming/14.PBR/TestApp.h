@@ -88,17 +88,17 @@ public:
 
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
-	float m_PlanePos[3] = { 0.0f, -90.0f, 0.0f };
-	Vector3 m_PlaneScale = { 100.0f, 20.0f, 100.0f };
+	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
+	Vector3 m_PlaneScale = { 1.0f, 1.0f, 1.0f };
 
 	// [ 오브젝트 : char (StaticMesh) ]
 	Matrix m_WorldChar;
-	float m_CharPos[3] = { 40.0f, 10.0f, 0.0f };
+	float m_CharPos[3] = { 40.0f, 0.0f, 0.0f };
 	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };
 
 	// [ 오브젝트 : 캐릭터 (SkeletalMesh)]
 	Matrix m_WorldHuman;
-	float m_HumanPos[3] = { -40.0f, 0.0f, 0.0f };
+	float m_HumanPos[3] = { -60.0f, 0.0f, 0.0f };
 	Vector3 m_HumanScale = { 1.0f, 1.0f, 1.0f };
 
 

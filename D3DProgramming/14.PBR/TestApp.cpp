@@ -264,6 +264,11 @@ void TestApp::RenderShadowMap()
 		RenderShadowSkeletal(*m_Humans[i], m_HumansWorld[i]);
 	}
 
+	for (size_t i = 0; i < m_Chars.size(); i++)
+	{
+		RenderShadowStatic(*m_Chars[i], m_CharsWorld[i]);
+	}
+
 	// RenderTarget / Viewport º¹¿ø
 	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
 	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
