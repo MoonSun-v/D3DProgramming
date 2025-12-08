@@ -1,22 +1,33 @@
 #pragma once
 #include "../Common/Helper.h"
 
-struct ConstantBuffer
+struct alignas(16) ConstantBuffer
 {
 	Matrix mWorld;			// 월드 변환 행렬 : 64bytes
 	Matrix mView;			// 뷰 변환 행렬   : 64bytes
 	Matrix mProjection;		// 투영 변환 행렬 : 64bytes
 
-	Vector4 vLightDir;		// 광원 방향
-	Vector4 vLightColor;	// 광원 색상
+	Vector4 vLightDir;		// 광원 방향 : 16
+	Vector4 vLightColor;	// 광원 색상 : 16
 
-	Vector4 vEyePos;		// 카메라 위치
+	Vector4 vEyePos;		// 카메라 위치 : 16
 
-	Vector4 gMetallicMultiplier;
-	Vector4 gRoughnessMultiplier;
+	Vector4 gMetallicMultiplier; // 16
+	Vector4 gRoughnessMultiplier;// 16
 
-	int		gIsRigid = 1;     // 1: Rigid, 0: Skinned
-	float	pad[3];			  // 16바이트 정렬
+	int	gIsRigid = 1;     // 1: Rigid, 0: Skinned : 4
+	int useTexture_BaseColor;	// 4
+	int useTexture_Metallic;	// 4
+	int useTexture_Roughness;	// 4
+
+	int useTexture_Normal;		// 4
+	float pad0;				    // 4
+
+	XMFLOAT4 manualBaseColor;	// 16
+
+	float manualMetallic;		// 4
+	float manualRoughness;		// 4
+	float pad1[2];				// 8
 };
 
 

@@ -132,6 +132,16 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 
 	cb.gIsRigid = isRigid;
 
+	cb.useTexture_BaseColor = useTex_Base;
+	cb.useTexture_Metallic = useTex_Metal;
+	cb.useTexture_Roughness = useTex_Rough;
+	cb.useTexture_Normal = useTex_Normal;
+
+	cb.manualBaseColor = manualBaseColor;
+	cb.manualMetallic = manualMetallic;
+	cb.manualRoughness = manualRoughness;
+
+
 	auto* context = m_D3DDevice.GetDeviceContext();
 	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
@@ -481,7 +491,7 @@ void TestApp::Render_ImGui()
 
 
 	// 초기 창 크기 지정
-	ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_Always); // ImGuiCond_FirstUseEver
+	ImGui::SetNextWindowSize(ImVec2(400, 450), ImGuiCond_Always); // ImGuiCond_FirstUseEver
 
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
@@ -539,6 +549,23 @@ void TestApp::Render_ImGui()
 	// 이동 속도 조절
 	ImGui::Text("Move Speed");
 	ImGui::SliderFloat("Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
+
+	ImGui::Separator();
+	ImGui::Text("");
+
+	// -----------------------------
+	// [ PBR Control ]
+	// -----------------------------
+	ImGui::Text("[ PBR Material ]");
+
+	ImGui::Checkbox("Use BaseColor Texture", &useTex_Base);
+	ImGui::Checkbox("Use Metallic Texture", &useTex_Metal);
+	ImGui::Checkbox("Use Roughness Texture", &useTex_Rough);
+	ImGui::Checkbox("Use Normal Texture", &useTex_Normal);
+
+	if (!useTex_Base) ImGui::ColorEdit3("Manual BaseColor", (float*)&manualBaseColor);
+	if (!useTex_Metal) ImGui::SliderFloat("Manual Metallic", &manualMetallic, 0.0f, 1.0f);
+	if (!useTex_Rough) ImGui::SliderFloat("Manual Roughness", &manualRoughness, 0.05f, 1.0f);
 
 	// [ 끝 ] 
 	ImGui::PopFont();

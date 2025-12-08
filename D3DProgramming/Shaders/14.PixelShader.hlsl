@@ -94,8 +94,19 @@ float4 main(PS_INPUT input) : SV_Target
 
     float3x3 TBN = float3x3(T, B, N);
     
-    float3 normalMap = DecodeNormal(normalTex.rgb); 
-    N = normalize(mul(normalMap, TBN));
+    // float3 normalMap = DecodeNormal(normalTex.rgb); 
+    // N = normalize(mul(normalMap, TBN));
+    
+    // 조건에 따라 Normal 결정
+    float3 normalMap = DecodeNormal(normalTex.rgb);
+    if (useTexture_Normal == 1)
+    {
+        N = normalize(mul(normalMap, TBN));
+    }
+    else
+    {
+        N = normalize(N); // 기본 Normal 유지 (또는 임의 벡터 지정 가능)
+    }
 
     
     // 4. view / light / half 벡터 계산 
@@ -110,10 +121,9 @@ float4 main(PS_INPUT input) : SV_Target
     
     
     // 5. 머티리얼 파라미터 
-    // float3 albedo = baseColorTex.rgb; 
-    float3 albedo = SRGBToLinear(baseColorTex.rgb); // 감마 보정 
-    float metallic = saturate(metalTex * gMetallicMultiplier.x);
-    float roughness = saturate(roughTex * gRoughnessMultiplier.x);
+    float3 albedo = useTexture_BaseColor == 1 ? SRGBToLinear(baseColorTex.rgb) : manualBaseColor.rgb;
+    float metallic = useTexture_Metallic == 1 ? saturate(metalTex * gMetallicMultiplier.x) : saturate(manualMetallic * gMetallicMultiplier.x);
+    float roughness = useTexture_Roughness == 1 ? saturate(roughTex * gRoughnessMultiplier.x) : saturate(manualRoughness * gRoughnessMultiplier.x);
     roughness = max(roughness, 0.05); // 거칠기(roughness)는 최소값 유지 (roughness가 0에 가까우면 수학적 특이점 생김)
     
     
@@ -181,7 +191,6 @@ float4 main(PS_INPUT input) : SV_Target
     // - colorLinear 를 0~1로 제한 (프레임 버퍼는 0~1범위만 표현 가능)
     // - 계산 다 했으니 다시 감마 보정 : linear -> sRGB 
     float3 finalRgb = LinearToSRGB(saturate(colorLinear));
-    // float3 finalRgb = saturate(colorLinear);
     
     float4 finalColor = float4(finalRgb, opacityTex.a);
     

@@ -14,6 +14,8 @@ Texture2D txShadowMap : register(t6);
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
 //--------------------------------------------------------------------------------------
+
+// 1: Rigid, 0: Skinned
 cbuffer ConstantBuffer : register(b0)
 {
     matrix gWorld;
@@ -28,8 +30,19 @@ cbuffer ConstantBuffer : register(b0)
     float4 gMetallicMultiplier;
     float4 gRoughnessMultiplier;
     
-    int gIsRigid; // 1: Rigid, 0: Skinned
-    float pad[3];
+    int gIsRigid; 
+    int useTexture_BaseColor;
+    int useTexture_Metallic;
+    int useTexture_Roughness;
+    
+    int useTexture_Normal;
+    float pad0;
+
+    float4 manualBaseColor;
+    
+    float manualMetallic;
+    float manualRoughness;
+    float pad1[2];
 }
 
 

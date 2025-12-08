@@ -96,29 +96,29 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
     //if (!m_textures.EmissiveSRV)    m_textures.EmissiveSRV = s_defaultTextures.EmissiveSRV;
     //if (!m_textures.OpacitySRV)     m_textures.OpacitySRV = s_defaultTextures.OpacitySRV;
 
-    if (!m_textures.BaseColorSRV) {
-        m_textures.BaseColorSRV = s_defaultTextures.BaseColorSRV;
-        OutputDebugStringW(L"[Material] 기본 BaseColor 텍스처 사용\n");
+    if (!m_textures.BaseColorSRV) 
+    {
+        m_textures.BaseColorSRV = s_defaultTextures.BaseColorSRV; OutputDebugStringW(L"[Material] 기본 BaseColor 텍스처 사용\n");
     }
-    if (!m_textures.NormalSRV) {
-        m_textures.NormalSRV = s_defaultTextures.NormalSRV;
-        OutputDebugStringW(L"[Material] 기본 Normal 텍스처 사용\n");
+    if (!m_textures.NormalSRV) 
+    {
+        m_textures.NormalSRV = s_defaultTextures.NormalSRV; OutputDebugStringW(L"[Material] 기본 Normal 텍스처 사용\n");
     }
-    if (!m_textures.MetallicSRV) {
-        m_textures.MetallicSRV = s_defaultTextures.MetallicSRV;
-        OutputDebugStringW(L"[Material] 기본 Metallic 텍스처 사용\n");
+    if (!m_textures.MetallicSRV) 
+    {
+        m_textures.MetallicSRV = s_defaultTextures.MetallicSRV; OutputDebugStringW(L"[Material] 기본 Metallic 텍스처 사용\n");
     }
-    if (!m_textures.RoughnessSRV) {
-        m_textures.RoughnessSRV = s_defaultTextures.RoughnessSRV;
-        OutputDebugStringW(L"[Material] 기본 Roughness 텍스처 사용\n");
+    if (!m_textures.RoughnessSRV) 
+    {
+        m_textures.RoughnessSRV = s_defaultTextures.RoughnessSRV; OutputDebugStringW(L"[Material] 기본 Roughness 텍스처 사용\n");
     }
-    if (!m_textures.EmissiveSRV) {
-        m_textures.EmissiveSRV = s_defaultTextures.EmissiveSRV;
-        OutputDebugStringW(L"[Material] 기본 Emissive 텍스처 사용\n");
+    if (!m_textures.EmissiveSRV) 
+    {
+        m_textures.EmissiveSRV = s_defaultTextures.EmissiveSRV; OutputDebugStringW(L"[Material] 기본 Emissive 텍스처 사용\n");
     }
-    if (!m_textures.OpacitySRV) {
-        m_textures.OpacitySRV = s_defaultTextures.OpacitySRV;
-        OutputDebugStringW(L"[Material] 기본 Opacity 텍스처 사용\n");
+    if (!m_textures.OpacitySRV) 
+    {
+        m_textures.OpacitySRV = s_defaultTextures.OpacitySRV; OutputDebugStringW(L"[Material] 기본 Opacity 텍스처 사용\n");
     }
 }
 
@@ -160,7 +160,7 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     // BaseColor = white
     Make1x1(255, 255, 255, 255, s_defaultTextures.BaseColorSRV);
 
-    // Normal = (0,0,1) → (128,128,255)
+    // Normal = (0,0,1) -> (128,128,255)
     Make1x1(128, 128, 255, 255, s_defaultTextures.NormalSRV);
 
     // Metallic = 0

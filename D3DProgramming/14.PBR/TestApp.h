@@ -80,6 +80,16 @@ public:
 	Matrix                m_ShadowView;					
 	Matrix                m_ShadowProjection;
 
+	// [ GUI Á¶Á¤ ]
+	bool useTex_Base = true;
+	bool useTex_Metal = true;
+	bool useTex_Rough = true;
+	bool useTex_Normal = true;
+
+	XMFLOAT4 manualBaseColor = XMFLOAT4(1, 1, 1, 1);
+	float manualMetallic = 1.0f;
+	float manualRoughness = 0.5f;
+
 	// [ Main Camera ]
 	// float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
 	float m_CameraNear = 0.1f;
