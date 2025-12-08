@@ -38,7 +38,7 @@ float ndfGGX(float cosNH, float roughness)
 
 // <G> [ Schlick-GGX Geometry Term (1방향) ]
 // 표면의 미세한 요철 때문에 빛이 일부 가려지는 효과
-float gaSchlickGGX(float cosX, float roughness)
+float G_Schlick_GGX(float cosX, float roughness)
 {
     float r = roughness + 1.0;
     float k = (r * r) * 0.125; // (r^2)/8 : Epic Games 에서 만든 근사값  
@@ -46,11 +46,16 @@ float gaSchlickGGX(float cosX, float roughness)
 }
 
 // <G> [ Smith Geometry (양방향) ] : 두 방향의 Geometry Term 곱
-float gaSmith(float cosLi, float cosLo, float roughness)
+float G_Smith(float cosNL, float cosNV, float roughness)
 {
-    return gaSchlickGGX(cosLi, roughness) * gaSchlickGGX(cosLo, roughness);
+    return G_Schlick_GGX(cosNL, roughness) * G_Schlick_GGX(cosNV, roughness);
 }
 
+// sRGB -> Linear 
+float3 SRGBToLinear(float3 c) { return pow(c, 2.2f); }
+
+// Linear -> sRGB 
+float3 LinearToSRGB(float3 c) { return pow(c, 1.0f / 2.2f); }
 
 
 // -------------------------------------------------------------------------------
@@ -98,17 +103,17 @@ float4 main(PS_INPUT input) : SV_Target
     float3 L = normalize(-vLightDir.xyz);               // 광원 방향
     float3 H = normalize(V + L);                        // Half 벡터
 
-    float cosLi = saturate(dot(N, L)); // N·L
-    float cosLo = saturate(dot(N, V)); // N·V
-    float cosNh = saturate(dot(N, H)); // N·H
-    float cosLh = saturate(dot(L, H)); // L·H
-    float HdotV = saturate(dot(H, V)); // Fresnel 계산용 
+    float cosNL = saturate(dot(N, L));
+    float cosNV = saturate(dot(N, V));
+    float cosNH = saturate(dot(N, H));
+    float cosVH = saturate(dot(V, H)); // used for Fresnel
     
     
     // 5. 머티리얼 파라미터 
-    float3 albedo = baseColorTex.rgb; // albedo = pow(baseColorTex.rgb, 2.2); // TODO: 감마보정 
-    float metallic = saturate(metalTex * gMetallicMultiplier);
-    float roughness = saturate(roughTex * gRoughnessMultiplier);
+    // float3 albedo = baseColorTex.rgb; 
+    float3 albedo = SRGBToLinear(baseColorTex.rgb); // 감마 보정 
+    float metallic = saturate(metalTex * gMetallicMultiplier.x);
+    float roughness = saturate(roughTex * gRoughnessMultiplier.x);
     roughness = max(roughness, 0.05); // 거칠기(roughness)는 최소값 유지 (roughness가 0에 가까우면 수학적 특이점 생김)
     
     
@@ -117,9 +122,9 @@ float4 main(PS_INPUT input) : SV_Target
     
     
     // 7. PBR 구성 요소 계산
-    float3 F = fresnelSchlick(F0, HdotV);        // Fresnel (Schlick 근사)
-    float  D = ndfGGX(cosNh, roughness);         // NDF
-    float  G = gaSmith(cosLi, cosLo, roughness); // Geometry
+    float3 F = fresnelSchlick(F0, cosVH);   // Fresnel (Schlick 근사)
+    float D = ndfGGX(cosNH, roughness);     // NDF
+    float G = G_Smith(cosNL, cosNV, roughness); // Geometry
 
     // kd:  금속성, F 항에 따른 확산 반사량 감소  kd = (1 - metallic) * (1 - F)
     float3 kd = (1.0 - metallic) * (1.0 - F);
@@ -128,50 +133,55 @@ float4 main(PS_INPUT input) : SV_Target
     float3 diffuseBRDF = kd * albedo * InvPI;
 
     // specular BRDF (Cook-Torrance 스페큘러 BRDF)
-    float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * cosLo);
+    float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosNL * cosNV);
     
     
     // 7. 그림자(Shadow) 계산 : PCF(Percentage-Closer Filtering)
     // - PositionShadow 는 Light View Projection 좌표(NDC) 기반 -> 직접 변환해야 함
+    float shadowFactor = 1.0f;
+    
     float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
     float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
     
     // NDC -> Texture 좌표계 변환
     uv.y = -uv.y; 
     uv = uv * 0.5f + 0.5f; 
-
-    float shadowFactor = 1.0f;
-    const float depthBias = 0.005f;
-    float texelSize = 1.0 / 8192.0; // ShadowMapSize = 8192.0; // ShadowMap 해상도
-
+    
     // 그림자 맵 범위 내부인지 체크
     if (uv.x >= 0.0f && uv.x <= 1.0f && uv.y >= 0.0f && uv.y <= 1.0f)
     {
-        // 3x3 오프셋
-        float2 offsets[9] =
+        float texelSize = 1.0f / 8192.0f; // ShadowMapSize = 8192.0; // ShadowMap 해상도
+        const float depthBias = 0.0005f; 
+        float sum = 0.0f;
+        
+        // 3x3 PCF
+        [unroll]
+        for (int y = -1; y <= 1; ++y)
         {
-            float2(-1, -1), float2(0, -1), float2(1, -1),
-                float2(-1, 0), float2(0, 0), float2(1, 0),
-                float2(-1, 1), float2(0, 1), float2(1, 1)
-        };
-         
-        shadowFactor = 0.0f; // 초기화 
-
-        for (int i = 0; i < 9; i++)
-        {
-            float2 sampleUV = uv + offsets[i] * texelSize;
-            shadowFactor += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth - depthBias);
+            [unroll]
+            for (int x = -1; x <= 1; ++x)
+            {
+                float2 sampleUV = uv + float2(x, y) * texelSize;
+                sum += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentShadowDepth - depthBias);
+            }
         }
-        shadowFactor /= 9.0f; // 평균값
+        shadowFactor = sum / 9.0f; // 평균값
     }
     
     // 8. 최종 조명 계산
     float3 radiance = vLightColor.rgb; // 광원 색/강도
-    float3 Lo = (diffuseBRDF + specularBRDF) * radiance * cosLi * shadowFactor;
+    float3 Lo = (diffuseBRDF + specularBRDF) * radiance * cosNL * shadowFactor;
     
-    Lo += emissiveTex.rgb; // 발광(emissive) 추가
+    // 발광(emissive) 추가
+    float3 emissive = SRGBToLinear(emissiveTex.rgb);
+    float3 ambient = 0.03f * albedo; // small ambient term recommended
+
+    float3 colorLinear = ambient + Lo + emissive;
     
-    float3 finalRgb = saturate(Lo);
+    // - colorLinear 를 0~1로 제한 (프레임 버퍼는 0~1범위만 표현 가능)
+    // - 계산 다 했으니 다시 감마 보정 : linear -> sRGB 
+    float3 finalRgb = LinearToSRGB(saturate(colorLinear));
+    // float3 finalRgb = saturate(colorLinear);
     
     float4 finalColor = float4(finalRgb, opacityTex.a);
     

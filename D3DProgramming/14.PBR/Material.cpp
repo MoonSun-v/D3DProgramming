@@ -37,9 +37,7 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
                 fs::path fileName = fs::path(texPath.C_Str()).filename();
                 outPath = (fs::path(textureBasePath) / fileName).wstring();
 
-                HRESULT hr = CreateTextureFromFile(device,
-                    outPath.c_str(),
-                    outSRV.ReleaseAndGetAddressOf());
+                HRESULT hr = CreateTextureFromFile(device, outPath.c_str(), outSRV.ReleaseAndGetAddressOf());
 
                 if (SUCCEEDED(hr))
                 {
@@ -91,16 +89,41 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         TryLoad(aiTextureType_UNKNOWN, FilePathBaseColor, m_textures.BaseColorSRV);
 
     // ====== 기본 텍스처 채우기 ========
-    if (!m_textures.BaseColorSRV)   m_textures.BaseColorSRV = s_defaultTextures.BaseColorSRV;
-    if (!m_textures.NormalSRV)      m_textures.NormalSRV = s_defaultTextures.NormalSRV;
-    if (!m_textures.MetallicSRV)    m_textures.MetallicSRV = s_defaultTextures.MetallicSRV;
-    if (!m_textures.RoughnessSRV)   m_textures.RoughnessSRV = s_defaultTextures.RoughnessSRV;
-    if (!m_textures.EmissiveSRV)    m_textures.EmissiveSRV = s_defaultTextures.EmissiveSRV;
-    if (!m_textures.OpacitySRV)     m_textures.OpacitySRV = s_defaultTextures.OpacitySRV;
+    //if (!m_textures.BaseColorSRV)   m_textures.BaseColorSRV = s_defaultTextures.BaseColorSRV;
+    //if (!m_textures.NormalSRV)      m_textures.NormalSRV = s_defaultTextures.NormalSRV;
+    //if (!m_textures.MetallicSRV)    m_textures.MetallicSRV = s_defaultTextures.MetallicSRV;
+    //if (!m_textures.RoughnessSRV)   m_textures.RoughnessSRV = s_defaultTextures.RoughnessSRV;
+    //if (!m_textures.EmissiveSRV)    m_textures.EmissiveSRV = s_defaultTextures.EmissiveSRV;
+    //if (!m_textures.OpacitySRV)     m_textures.OpacitySRV = s_defaultTextures.OpacitySRV;
+
+    if (!m_textures.BaseColorSRV) {
+        m_textures.BaseColorSRV = s_defaultTextures.BaseColorSRV;
+        OutputDebugStringW(L"[Material] 기본 BaseColor 텍스처 사용\n");
+    }
+    if (!m_textures.NormalSRV) {
+        m_textures.NormalSRV = s_defaultTextures.NormalSRV;
+        OutputDebugStringW(L"[Material] 기본 Normal 텍스처 사용\n");
+    }
+    if (!m_textures.MetallicSRV) {
+        m_textures.MetallicSRV = s_defaultTextures.MetallicSRV;
+        OutputDebugStringW(L"[Material] 기본 Metallic 텍스처 사용\n");
+    }
+    if (!m_textures.RoughnessSRV) {
+        m_textures.RoughnessSRV = s_defaultTextures.RoughnessSRV;
+        OutputDebugStringW(L"[Material] 기본 Roughness 텍스처 사용\n");
+    }
+    if (!m_textures.EmissiveSRV) {
+        m_textures.EmissiveSRV = s_defaultTextures.EmissiveSRV;
+        OutputDebugStringW(L"[Material] 기본 Emissive 텍스처 사용\n");
+    }
+    if (!m_textures.OpacitySRV) {
+        m_textures.OpacitySRV = s_defaultTextures.OpacitySRV;
+        OutputDebugStringW(L"[Material] 기본 Opacity 텍스처 사용\n");
+    }
 }
 
 
-// [ 1x1 기본 텍스처 생성 ] TODO : GUI로 조정 가능하도록 하면 좋을듯 
+// [ 1x1 기본 텍스처 생성 ]
 void Material::CreateDefaultTextures(ID3D11Device* device)
 {
     auto Make1x1 = [&](unsigned char r, unsigned char g, unsigned char b, unsigned char a,
@@ -143,11 +166,11 @@ void Material::CreateDefaultTextures(ID3D11Device* device)
     // Metallic = 0
     Make1x1(0, 0, 0, 255, s_defaultTextures.MetallicSRV);
 
-    // Roughness = 255 (거칠기 = 1.0)
+    // Roughness = 128 (거칠기 = 1.0)
     Make1x1(255, 255, 255, 255, s_defaultTextures.RoughnessSRV);
 
     // Emissive 
-    Make1x1(128, 128, 128, 255, s_defaultTextures.EmissiveSRV);
+    Make1x1(0, 0, 0, 255, s_defaultTextures.EmissiveSRV);
 
     // Opacity 기본값 = 255 (불투명)
     Make1x1(255, 255, 255, 255, s_defaultTextures.OpacitySRV);

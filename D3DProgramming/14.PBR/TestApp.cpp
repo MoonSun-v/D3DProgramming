@@ -92,7 +92,6 @@ void TestApp::Update()
 	}
 
 
-
 	// 이제 인스턴스들 Update 호출 (업데이트된 world 전달)
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
@@ -168,10 +167,10 @@ void TestApp::Render()
 
 
 	// [ Mesh 렌더링 ]
-
+	 
 	// Static Mesh Instance 
 	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i], m_PlanesWorld[i]); }
-	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
+	for (size_t i = 0; i < m_Chars.size(); i++)  { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
 
 	// Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i], m_HumansWorld[i]); }
@@ -254,16 +253,15 @@ void TestApp::RenderShadowMap()
 
 
 	// [ Static / Skeletal 렌더 ]
-	for (size_t i = 0; i < m_Planes.size(); i++)
-	{
-		RenderShadowStatic(*m_Planes[i], m_PlanesWorld[i]);
-	}
 
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
 		RenderShadowSkeletal(*m_Humans[i], m_HumansWorld[i]);
 	}
-
+	for (size_t i = 0; i < m_Planes.size(); i++)
+	{
+		RenderShadowStatic(*m_Planes[i], m_PlanesWorld[i]);
+	}
 	for (size_t i = 0; i < m_Chars.size(); i++)
 	{
 		RenderShadowStatic(*m_Chars[i], m_CharsWorld[i]);

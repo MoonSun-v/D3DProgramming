@@ -49,4 +49,3 @@ void StaticMeshInstance::RenderShadow(ID3D11DeviceContext* context)
         context->DrawIndexed(sub.m_IndexCount, 0, 0);
     }
 }
-

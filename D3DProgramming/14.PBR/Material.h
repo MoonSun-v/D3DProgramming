@@ -38,9 +38,6 @@ public:
     // Assimp 머티리얼로부터 초기화
     void InitializeFromAssimpMaterial(ID3D11Device* device, const aiMaterial* material, const std::wstring& textureBasePath);
 
-    XMFLOAT4 DiffuseColor = XMFLOAT4(1, 1, 1, 1); // 기본 흰색
-    XMFLOAT4 SpecularColor;
-    float Shininess;
 
     // 텍스처 SRV 
     const TextureSRVs& GetTextures() const { return m_textures; }

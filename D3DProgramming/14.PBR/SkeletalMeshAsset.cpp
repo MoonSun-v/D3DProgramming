@@ -29,8 +29,7 @@ bool SkeletalMeshAsset::LoadFromFBX(ID3D11Device* device, const std::string& pat
         aiProcess_GenUVCoords |          // 텍스처 좌표 생성
         aiProcess_CalcTangentSpace |     // 탄젠트 벡터 생성 
         aiProcess_LimitBoneWeights |     // 본의 영향을 받는 정점의 최대 개수 
-        aiProcess_ConvertToLeftHanded;   // 왼손좌표계 변환 (DX용)
-    // aiProcess_PreTransformVertices;  // 노드의 변환행렬을 적용한 버텍스 생성한다.  **StaticMesh로 처리할때만 사용 
+        aiProcess_ConvertToLeftHanded;   // 왼손좌표계 변환 (DX용) 
 
     importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false); // $_AssimpFbx$ 노드 제거 
     const aiScene* scene = importer.ReadFile(path, importFlags);
@@ -231,7 +230,7 @@ void SkeletalMeshAsset::Clear()
         if (section.m_VertexBuffer) section.m_VertexBuffer.Reset();
         if (section.m_IndexBuffer) section.m_IndexBuffer.Reset();
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 6; i++)
         {
             if (section.m_SRVs[i]) section.m_SRVs[i].Reset();
         }

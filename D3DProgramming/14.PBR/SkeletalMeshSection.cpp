@@ -30,7 +30,6 @@ void SkeletalMeshSection::InitializeFromAssimpMesh(ID3D11Device* device, const a
             Vertices[i].BlendWeights[0] = 1.0f; // 단일 가중치 
             Vertices[i].BlendIndices[0] = 0; 
         }
-
     }
 
     // [ 본 가중치 데이터 생성 ]
@@ -129,14 +128,7 @@ void SkeletalMeshSection::Render(ID3D11DeviceContext* context, const Material& m
 
     // Material 텍스처를 멤버 SRV 배열에 복사
     const TextureSRVs& tex = mat.GetTextures();
-    //m_SRVs[0] = tex.DiffuseSRV.Get();
-    //m_SRVs[1] = tex.NormalSRV.Get();
-    //m_SRVs[2] = tex.SpecularSRV.Get();
-    //m_SRVs[3] = tex.EmissiveSRV.Get();
-    //m_SRVs[4] = tex.OpacitySRV.Get();
 
-    //context->PSSetShaderResources(0, 5, m_SRVs);
-    
     // 렌더링 시에만 raw pointer 배열을 임시 생성
     ID3D11ShaderResourceView* srvs[6] =
     {
