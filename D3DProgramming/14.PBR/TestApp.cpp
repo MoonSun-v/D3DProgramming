@@ -790,6 +790,14 @@ void TestApp::UninitScene()
 	m_pShadowMap.Reset();
 	m_pShadowMapDSV.Reset();
 	m_pShadowMapSRV.Reset();
+	m_pVertexShader_Sky.Reset();
+	m_pPixelShader_Sky.Reset();
+	m_pInputLayout_Sky.Reset();
+	m_pVertexBuffer_Sky.Reset();
+	m_pIndexBuffer_Sky.Reset();
+	m_pDSState_Sky.Reset();
+	m_pRasterizerState_Sky.Reset();
+	m_pCubeMap.Reset();
 
 	// 인스턴스 해제
 	m_Humans.clear();

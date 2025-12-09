@@ -12,7 +12,9 @@
 #pragma comment(lib, "Psapi.lib")
 
 
-TestApp::TestApp() : GameApp() { }
+TestApp::TestApp() : GameApp() 
+{ 
+}
 
 TestApp::~TestApp() { }
 
@@ -22,6 +24,8 @@ bool TestApp::Initialize()
 
 	if (!m_D3DDevice.Initialize(m_hWnd, m_ClientWidth, m_ClientHeight)) return false;
 	if (!InitScene())	return false;
+	if (!LoadAsset())	return false;
+	if (!InitSkyBox())  return false;
 	if (!InitImGUI())	return false;
 
 	return true;
@@ -35,6 +39,54 @@ void TestApp::Uninitialize()
 	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 }
 
+
+// [ 리소스 로드 (Asset) ]
+bool TestApp::LoadAsset()
+{
+	// -------------- [ Static Mesh Asset 생성 ] --------------
+	// 1. Plane 
+	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
+
+	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
+	instance_plane->SetAsset(planeAsset);
+	instance_plane->transform.position = { 0, -10, 0 };
+	instance_plane->transform.scale = { 0.5f, 1.0f, 0.5f };
+
+	m_Planes.push_back(instance_plane);
+
+	// 2. char
+	charAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
+
+	auto instance_char = std::make_shared<StaticMeshInstance>(); 
+	instance_char->SetAsset(charAsset);
+	instance_char->transform.position = { 40, 0, 0 };
+	instance_char->transform.scale = { 1.0f, 1.0f, 1.0f };
+
+	m_Chars.push_back(instance_char);
+
+
+	// -------------- [ Skeletal Mesh Asset 생성 ] --------------
+	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx"); 
+	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
+	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
+
+	auto instance_human = std::make_shared<SkeletalMeshInstance>();
+	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
+
+	instance_human->transform.position = { -60, 0, 0 };
+	instance_human->transform.scale = { 1.0f, 1.0f, 1.0f };
+
+	m_Humans.push_back(instance_human);
+
+
+	// -------------- [ SkyBox 리소스 ] --------------
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky.dds", nullptr, m_pCubeMap.GetAddressOf()));
+
+
+	return true; 
+}
+
+
 void TestApp::Update()
 {
 	__super::Update();
@@ -44,54 +96,15 @@ void TestApp::Update()
 
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
-	// [ 오브젝트 업데이트 ] : 각 오브젝트마다 별도 pos/scale 
-	m_WorldPlane =
-		XMMatrixScaling(m_PlaneScale.x, m_PlaneScale.y, m_PlaneScale.z) *
-		XMMatrixTranslation(m_PlanePos[0], m_PlanePos[1], m_PlanePos[2]);
-
-	m_WorldChar =
-		XMMatrixScaling(m_CharScale.x, m_CharScale.y, m_CharScale.z) *
-		XMMatrixTranslation(m_CharPos[0], m_CharPos[1], m_CharPos[2]);
-
-	m_WorldHuman =
-		XMMatrixScaling(m_HumanScale.x, m_HumanScale.y, m_HumanScale.z) *
-		XMMatrixTranslation(m_HumanPos[0], m_HumanPos[1], m_HumanPos[2]);
-
-	if (m_Planes.size() > 0)
-	{
-		if (m_PlanesWorld.size() != m_Planes.size()) m_PlanesWorld.resize(m_Planes.size(), m_WorldPlane);
-
-		for (size_t i = 0; i < m_Planes.size(); ++i)
-		{
-			m_PlanesWorld[i] = m_WorldPlane; // 같은 transform 적용. 필요하면 인덱스별 pos/scale 배열 사용 해야함 
-		}
-	}
-
-	if (m_Chars.size() > 0)
-	{
-		if (m_CharsWorld.size() != m_Chars.size()) m_CharsWorld.resize(m_Chars.size(), m_WorldChar);
-
-		for (size_t i = 0; i < m_Chars.size(); ++i)
-		{
-			m_CharsWorld[i] = m_WorldChar; // 같은 transform 적용. 필요하면 인덱스별 pos/scale 배열 사용 해야함 
-		}
-	}
-
-	if (m_Humans.size() > 0)
-	{
-		if (m_HumansWorld.size() != m_Humans.size()) m_HumansWorld.resize(m_Humans.size(), m_WorldHuman);
-
-		for (size_t i = 0; i < m_Humans.size(); ++i)
-		{
-			m_HumansWorld[i] = m_WorldHuman; // 같은 transform 적용. 필요하면 인덱스별 pos/scale 배열 사용 해야함 
-		} 
-	}
+	// [ 오브젝트 업데이트 ] 
+	// m_Planes[0]->transform.position.y = -10.0f;
+	// m_Planes[0]->transform.scale = { 0.5f, 1.0f, 0.5f };
 
 
 	// 인스턴스들 Update 호출 (업데이트된 world 전달)
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
-		m_Humans[i]->Update(deltaTime, m_HumansWorld[i]);
+		m_Humans[i]->Update(deltaTime);
 	}
 
 
@@ -170,11 +183,11 @@ void TestApp::Render()
 
 
 	// Mesh 렌더링 : Static Mesh Instance 
-	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i], m_PlanesWorld[i]); }
-	for (size_t i = 0; i < m_Chars.size(); i++)  { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
+	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
+	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i]); }
 
 	// Mesh 렌더링 : Skeletal Mesh Instance 
-	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i], m_HumansWorld[i]); }
+	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i]); }
 
 	// UI 렌더링
 	Render_ImGui(); 
@@ -183,16 +196,16 @@ void TestApp::Render()
 	m_D3DDevice.EndFrame(); 
 }
 
-void TestApp::RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world)
+void TestApp::RenderSkeletalMesh(SkeletalMeshInstance& instance)
 {
-	UpdateConstantBuffer(world, 0); // SkeletalMesh
+	UpdateConstantBuffer(instance.GetWorld(), 0); // SkeletalMesh
 
 	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), 0); 
 }
 
-void TestApp::RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world)
+void TestApp::RenderStaticMesh(StaticMeshInstance& instance)
 {
-	UpdateConstantBuffer(world, 1); // StaticMesh
+	UpdateConstantBuffer(instance.GetWorld(), 1); // StaticMesh
 
 	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
 }
@@ -287,15 +300,15 @@ void TestApp::RenderShadowMap()
 
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
-		RenderShadowSkeletal(*m_Humans[i], m_HumansWorld[i]);
+		RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
 	}
 	for (size_t i = 0; i < m_Planes.size(); i++)
 	{
-		RenderShadowStatic(*m_Planes[i], m_PlanesWorld[i]);
+		RenderShadowStatic(*m_Planes[i], m_Planes[i]->GetWorld());
 	}
 	for (size_t i = 0; i < m_Chars.size(); i++)
 	{
-		RenderShadowStatic(*m_Chars[i], m_CharsWorld[i]);
+		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
 	}
 
 	// RenderTarget / Viewport 복원
@@ -368,45 +381,6 @@ bool TestApp::InitScene()
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bd, nullptr, m_pConstantBuffer.GetAddressOf()));
-
-
-	// ---------------------------------------------------------------
-	// 리소스 로드 (Asset)
-	// ---------------------------------------------------------------
-	
-	// [ Static Mesh Asset 생성 ]
-	// 1. Plane 
-	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-	
-	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
-	instance_plane->SetAsset(planeAsset);
-
-	m_Planes.push_back(instance_plane);
-	m_PlanesWorld.push_back(m_WorldPlane);
-
-	// 2. char
-	charAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
-
-	auto instance_char = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
-	instance_char->SetAsset(charAsset);
-
-	m_Chars.push_back(instance_char);
-	m_CharsWorld.push_back(m_WorldChar);
-
-
-	// [ Skeletal Mesh Asset 생성 ]
-	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx"); 
-	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
-	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
-
-	auto instance_human = std::make_shared<SkeletalMeshInstance>();
-	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-
-	m_Humans.push_back(instance_human);
-	m_HumansWorld.push_back(m_WorldHuman);
-
-	// [SkyBox 리소스 로딩]
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky.dds", nullptr, m_pCubeMap.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------
@@ -513,12 +487,10 @@ bool TestApp::InitScene()
 	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, m_CameraNear, m_CameraFar);
 
 
-	InitSkyBox();
-
 	return true;
 }
 
-void TestApp::InitSkyBox()
+bool TestApp::InitSkyBox()
 {
 	// ---------------------------------------------
 	// 1. 스카이박스 정점/인덱스 버퍼 생성
@@ -605,6 +577,9 @@ void TestApp::InitSkyBox()
 	ComPtr<ID3DBlob> pixelShaderBuffer_Sky;
 	HR_T(CompileShaderFromFile(L"../Shaders/15.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer_Sky->GetBufferPointer(), pixelShaderBuffer_Sky->GetBufferSize(), NULL, m_pPixelShader_Sky.GetAddressOf()));
+
+
+	return true;
 }
 
 
@@ -624,7 +599,7 @@ void TestApp::Render_ImGui()
 
 
 	// 초기 창 크기 지정
-	ImGui::SetNextWindowSize(ImVec2(400, 450), ImGuiCond_Always); // ImGuiCond_FirstUseEver
+	ImGui::SetNextWindowSize(ImVec2(400, 610), ImGuiCond_Always); // ImGuiCond_FirstUseEver
 
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
@@ -685,6 +660,46 @@ void TestApp::Render_ImGui()
 
 	ImGui::Separator();
 	ImGui::Text("");
+
+	// -----------------------------
+	// [ Character Transform Control ]
+	// -----------------------------
+
+	ImGui::Text("[ Character Transform ]");
+
+	// 캐릭터가 하나라도 있을 때만 표시
+	if (!m_Chars.empty())
+	{
+		auto& chr = m_Chars[0]; // 첫 번째 캐릭터만 제어
+
+		// --- Position ---
+		ImGui::Text("Position");
+		ImGui::DragFloat3("Char Pos", &chr->transform.position.x, 0.1f);
+
+		// --- Rotation (degree) ---
+		Vector3 rotDeg =
+		{
+			XMConvertToDegrees(chr->transform.rotation.x),
+			XMConvertToDegrees(chr->transform.rotation.y),
+			XMConvertToDegrees(chr->transform.rotation.z)
+		};
+
+		ImGui::Text("Rotation (deg)");
+		if (ImGui::DragFloat3("Char Rot", &rotDeg.x, 0.5f))
+		{
+			chr->transform.rotation.x = XMConvertToRadians(rotDeg.x);
+			chr->transform.rotation.y = XMConvertToRadians(rotDeg.y);
+			chr->transform.rotation.z = XMConvertToRadians(rotDeg.z);
+		}
+
+		// --- Scale ---
+		ImGui::Text("Scale");
+		ImGui::DragFloat3("Char Scale", &chr->transform.scale.x, 0.05f, 0.01f, 100.0f);
+
+		ImGui::Separator();
+		ImGui::Text("");
+	}
+
 
 	// -----------------------------
 	// [ PBR Control ]
@@ -790,16 +805,24 @@ void TestApp::UninitScene()
     m_pShadowMap.Reset();
     m_pShadowMapDSV.Reset();
     m_pShadowMapSRV.Reset();
+	m_pVertexShader_Sky.Reset();
+	m_pPixelShader_Sky.Reset();
+	m_pInputLayout_Sky.Reset();
+	m_pVertexBuffer_Sky.Reset();
+	m_pIndexBuffer_Sky.Reset();
+	m_pDSState_Sky.Reset();
+	m_pRasterizerState_Sky.Reset();
+	m_pCubeMap.Reset();
 
 	// 인스턴스 해제
 	m_Humans.clear();
-	m_HumansWorld.clear();
+	// m_HumansWorld.clear();
 
 	m_Planes.clear();
-	m_PlanesWorld.clear();
+	// m_PlanesWorld.clear();
 
 	m_Chars.clear();
-	m_CharsWorld.clear();
+	// m_CharsWorld.clear();
 
 	humanAsset.reset();
 	charAsset.reset();

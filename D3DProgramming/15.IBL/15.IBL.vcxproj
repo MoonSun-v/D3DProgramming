@@ -150,6 +150,7 @@
     <ClInclude Include="StaticMeshAsset.h" />
     <ClInclude Include="StaticMeshInstance.h" />
     <ClInclude Include="TestApp.h" />
+    <ClInclude Include="Transform.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="imgui.ini" />

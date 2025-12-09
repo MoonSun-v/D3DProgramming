@@ -80,7 +80,6 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer_Sky;
 	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
 	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;			// 큐브
 	ComPtr<ID3D11ShaderResourceView> m_pCubeMap;			// 스카이 박스 
 
 	UINT m_VertextBufferStride_Sky = 0;

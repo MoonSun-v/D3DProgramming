@@ -35,17 +35,14 @@ public:
 	// [ Human ]
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;               // 공유 Asset
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
-	std::vector<Matrix> m_HumansWorld;                           // 각 인스턴스의 World
 
 	// [ char ]
 	std::shared_ptr<StaticMeshAsset> charAsset;
 	std::vector<std::shared_ptr<StaticMeshInstance>> m_Chars;
-	std::vector<Matrix> m_CharsWorld;
 
 	// [ Plane ]
 	std::shared_ptr<StaticMeshAsset> planeAsset;             
-	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes; 
-	std::vector<Matrix> m_PlanesWorld;                 
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes;     
 
 
 private:
@@ -80,7 +77,6 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer_Sky;
 	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
 	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;			// 큐브
 	ComPtr<ID3D11ShaderResourceView> m_pCubeMap;			// 스카이 박스 
 
 	UINT m_VertextBufferStride_Sky = 0;
@@ -111,22 +107,6 @@ public:
 	// [ Main Camera ]
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 5000.0f;
-
-
-	// [ 오브젝트 : 바닥 ]
-	Matrix m_WorldPlane;
-	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
-	Vector3 m_PlaneScale = { 0.5f, 1.0f, 0.5f };
-
-	// [ 오브젝트 : char (StaticMesh) ]
-	Matrix m_WorldChar;
-	float m_CharPos[3] = { 40.0f, 0.0f, 0.0f };
-	Vector3 m_CharScale = { 1.0f, 1.0f, 1.0f };
-
-	// [ 오브젝트 : 캐릭터 (SkeletalMesh)]
-	Matrix m_WorldHuman;
-	float m_HumanPos[3] = { -60.0f, 0.0f, 0.0f };
-	Vector3 m_HumanScale = { 1.0f, 1.0f, 1.0f };
 
 
 	// [ 배경색 ]
@@ -161,13 +141,14 @@ public:
 
 public:
 	bool InitScene();
+	bool LoadAsset();
+	bool InitSkyBox();
 	bool InitImGUI();
-	void InitSkyBox();
-
+	
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 
-	void RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world);
-	void RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world);
+	void RenderStaticMesh(StaticMeshInstance& instance);
+	void RenderSkeletalMesh(SkeletalMeshInstance& instance);
 	void RenderShadowMap();
 
 	void Render_SkyBox();

@@ -18,7 +18,7 @@ PS_INPUT_SKY main(VS_INPUT_SKY input)
     output.Pos = mul(output.Pos, gProjection);
 
     // 월드 방향 벡터 (정규화)
-    output.WorldDir = normalize(mul(input.Pos.xyz, (float3x3) gWorld));
+    output.WorldDir = normalize(input.Pos.xyz);
     
     return output;
 }

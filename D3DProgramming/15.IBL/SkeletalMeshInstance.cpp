@@ -15,22 +15,20 @@ void SkeletalMeshInstance::SetAsset(ID3D11Device* device, std::shared_ptr<Skelet
     HR_T(device->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
 }
 
-void SkeletalMeshInstance::Update(float deltaTime, const Matrix& worldTransform)
+void SkeletalMeshInstance::Update(float deltaTime)
 {
-    if (!m_Asset || m_Asset->m_Skeleton.empty())
-    {
-        m_World = worldTransform;
-        return;
-    }
+    if (!m_Asset || m_Asset->m_Skeleton.empty()) return;
 
     if (m_Asset->m_Animations.empty()) return;
 
     Animation& anim = m_Asset->m_Animations[m_AnimationIndex];
     m_AnimationTime += deltaTime;
     if (m_AnimationTime > anim.Duration)
+    {
         m_AnimationTime = fmod(m_AnimationTime, anim.Duration);
+    }
 
-    XMMATRIX worldMat = XMLoadFloat4x4(&worldTransform);
+    XMMATRIX worldMat = transform.GetMatrix();
 
     // 본 포즈 계산
     for (auto& bone : m_Asset->m_Skeleton)
