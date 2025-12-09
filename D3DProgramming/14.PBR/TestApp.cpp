@@ -12,13 +12,9 @@
 #pragma comment(lib, "Psapi.lib")
 
 
-TestApp::TestApp() : GameApp()
-{
-}
+TestApp::TestApp() : GameApp() { }
 
-TestApp::~TestApp()
-{
-}
+TestApp::~TestApp() { }
 
 bool TestApp::Initialize()
 {
@@ -92,7 +88,7 @@ void TestApp::Update()
 	}
 
 
-	// 이제 인스턴스들 Update 호출 (업데이트된 world 전달)
+	// 인스턴스들 Update 호출 (업데이트된 world 전달)
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
 		m_Humans[i]->Update(deltaTime, m_HumansWorld[i]);
@@ -127,25 +123,20 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 	cb.vLightDir = m_LightDir;
 	cb.vLightColor = m_LightColor;
 	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
-	cb.gMetallicMultiplier = XMFLOAT4(1.0f, 0, 0, 0);  // 임시 값
-	cb.gRoughnessMultiplier = XMFLOAT4(1.0f, 0, 0, 0); // 임시 값
-
 	cb.gIsRigid = isRigid;
+
+	cb.gMetallicMultiplier = useTex_Metal ? XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) : XMFLOAT4(manualMetallic, 0.0f, 0.0f, 0.0f); // 텍스처 사용 여부에 따라 GUI 값 적용
+	cb.gRoughnessMultiplier = useTex_Rough ? XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) : XMFLOAT4(manualRoughness, 0.0f, 0.0f, 0.0f);
+	cb.manualBaseColor = manualBaseColor; 
 
 	cb.useTexture_BaseColor = useTex_Base;
 	cb.useTexture_Metallic = useTex_Metal;
 	cb.useTexture_Roughness = useTex_Rough;
 	cb.useTexture_Normal = useTex_Normal;
 
-	cb.manualBaseColor = manualBaseColor;
-	cb.manualMetallic = manualMetallic;
-	cb.manualRoughness = manualRoughness;
-
-
-	auto* context = m_D3DDevice.GetDeviceContext();
-	context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 }
 
 
@@ -176,15 +167,12 @@ void TestApp::Render()
 	context->PSSetShaderResources(6, 1, m_pShadowMapSRV.GetAddressOf());
 
 
-	// [ Mesh 렌더링 ]
-	 
-	// Static Mesh Instance 
+	// Mesh 렌더링 : Static Mesh Instance 
 	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i], m_PlanesWorld[i]); }
 	for (size_t i = 0; i < m_Chars.size(); i++)  { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
 
-	// Skeletal Mesh Instance 
+	// Mesh 렌더링 : Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i], m_HumansWorld[i]); }
-
 
 	// UI 렌더링
 	Render_ImGui(); 
@@ -197,7 +185,7 @@ void TestApp::RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& w
 {
 	UpdateConstantBuffer(world, 0); // SkeletalMesh
 
-	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), 0); // Render 호출
+	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), 0); 
 }
 
 void TestApp::RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world)
@@ -565,7 +553,7 @@ void TestApp::Render_ImGui()
 
 	if (!useTex_Base) ImGui::ColorEdit3("Manual BaseColor", (float*)&manualBaseColor);
 	if (!useTex_Metal) ImGui::SliderFloat("Manual Metallic", &manualMetallic, 0.0f, 1.0f);
-	if (!useTex_Rough) ImGui::SliderFloat("Manual Roughness", &manualRoughness, 0.05f, 1.0f);
+	if (!useTex_Rough) ImGui::SliderFloat("Manual Roughness", &manualRoughness, 0.0f, 1.0f);
 
 	// [ 끝 ] 
 	ImGui::PopFont();
@@ -588,30 +576,6 @@ void TestApp::Render_ImGui()
 
 	// 디버그 전용 폰트 적용 (UI 폰트와 분리됨)
 	ImGui::PushFont(m_DebugFont);
-
-
-	if (ImGui::Button("Reset Human & Trim"))
-	{
-		// Human 인스턴스 벡터 비우기
-		m_Humans.clear();
-		m_HumansWorld.clear();
-
-		// Asset 강제 언로드
-		if (humanAsset)
-		{
-			humanAsset->Clear();
-			AssetManager::Get().UnloadSkeletalMesh("../Resource/SkinningTest.fbx");
-			humanAsset.reset();
-		}
-
-		// IDXGIDevice3::Trim() 호출 (GPU 캐시 제거)
-		IDXGIDevice3* dxgiDevice3 = nullptr;
-		if (SUCCEEDED(m_D3DDevice.GetDevice()->QueryInterface(__uuidof(IDXGIDevice3), (void**)&dxgiDevice3)))
-		{
-			dxgiDevice3->Trim();
-			dxgiDevice3->Release();
-		}
-	}
 
 	// [ FPS 출력 ]
 	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
@@ -665,31 +629,39 @@ void TestApp::Render_ImGui()
 
 void TestApp::UninitScene()
 {
-	// 샘플러, 상수버퍼, 셰이더, 입력레이아웃 해제
-	m_pSamplerLinear.Reset();
-	m_pSamplerComparison.Reset();
-	m_pConstantBuffer.Reset();
-	m_pVertexShader.Reset();
-	m_pPixelShader.Reset();
-	m_pInputLayout.Reset();
-	m_pShadowVS.Reset();
-	m_pShadowPS.Reset();
-	m_pShadowInputLayout.Reset();
-	m_pShadowCB.Reset();
-	m_pShadowMap.Reset();
-	m_pShadowMapDSV.Reset();
-	m_pShadowMapSRV.Reset();
+	OutputDebugString(L"[TestApp::UninitScene] 실행\r\n");
 
+	// 샘플러, 상수버퍼, 셰이더, 입력레이아웃 해제
+    m_pSamplerLinear.Reset();
+    m_pSamplerComparison.Reset();
+    m_pConstantBuffer.Reset();
+    m_pVertexShader.Reset();
+    m_pPixelShader.Reset();
+    m_pInputLayout.Reset();
+    m_pShadowVS.Reset();
+    m_pShadowPS.Reset();
+    m_pShadowInputLayout.Reset();
+    m_pShadowCB.Reset();
+    m_pShadowMap.Reset();
+    m_pShadowMapDSV.Reset();
+    m_pShadowMapSRV.Reset();
+
+	// 인스턴스 해제
 	m_Humans.clear();
+	m_HumansWorld.clear();
+
 	m_Planes.clear();
 	m_PlanesWorld.clear();
 
-	OutputDebugString((L"[TestApp::UninitScene] 실행 "));
+	m_Chars.clear();
+	m_CharsWorld.clear();
+
+	humanAsset.reset();
+	charAsset.reset();
+	planeAsset.reset();
 
 	AssetManager::Get().UnloadAll(); 
-
-	// 기본 텍스처 해제
-	Material::DestroyDefaultTextures();
+	Material::DestroyDefaultTextures(); // 기본 텍스처 
 }
 
 

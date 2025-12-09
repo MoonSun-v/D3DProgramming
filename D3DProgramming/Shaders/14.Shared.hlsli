@@ -29,6 +29,7 @@ cbuffer ConstantBuffer : register(b0)
   
     float4 gMetallicMultiplier;
     float4 gRoughnessMultiplier;
+    float4 manualBaseColor;
     
     int gIsRigid; 
     int useTexture_BaseColor;
@@ -36,13 +37,7 @@ cbuffer ConstantBuffer : register(b0)
     int useTexture_Roughness;
     
     int useTexture_Normal;
-    float pad0;
-
-    float4 manualBaseColor;
-    
-    float manualMetallic;
-    float manualRoughness;
-    float pad1[2];
+    float pad0[3];
 }
 
 

@@ -94,9 +94,6 @@ float4 main(PS_INPUT input) : SV_Target
 
     float3x3 TBN = float3x3(T, B, N);
     
-    // float3 normalMap = DecodeNormal(normalTex.rgb); 
-    // N = normalize(mul(normalMap, TBN));
-    
     // 조건에 따라 Normal 결정
     float3 normalMap = DecodeNormal(normalTex.rgb);
     if (useTexture_Normal == 1)
@@ -121,11 +118,12 @@ float4 main(PS_INPUT input) : SV_Target
     
     
     // 5. 머티리얼 파라미터 
-    float3 albedo = useTexture_BaseColor == 1 ? SRGBToLinear(baseColorTex.rgb) : manualBaseColor.rgb;
-    float metallic = useTexture_Metallic == 1 ? saturate(metalTex * gMetallicMultiplier.x) : saturate(manualMetallic * gMetallicMultiplier.x);
-    float roughness = useTexture_Roughness == 1 ? saturate(roughTex * gRoughnessMultiplier.x) : saturate(manualRoughness * gRoughnessMultiplier.x);
-    roughness = max(roughness, 0.05); // 거칠기(roughness)는 최소값 유지 (roughness가 0에 가까우면 수학적 특이점 생김)
-    
+    // - 텍스처 사용 시 : 텍스처 * multiplier
+    // - 텍스처 미사용 시 : GUI값(또는 multiplier 값) 그대로 사용
+    float3 albedo = useTexture_BaseColor == 1 ? SRGBToLinear(baseColorTex.rgb) : SRGBToLinear(manualBaseColor.rgb);
+    float metallic = useTexture_Metallic == 1 ? saturate(metalTex * gMetallicMultiplier.x) : saturate(gMetallicMultiplier.x); 
+    float roughness = useTexture_Roughness == 1 ? saturate(roughTex * gRoughnessMultiplier.x) : saturate(gRoughnessMultiplier.x); 
+    roughness = max(0.15, roughness); // 거칠기(roughness)는 최소값 유지 (roughness가 0에 가까우면 수학적 특이점 생김)
     
     // 6. F0  (비금속은 0.04, 금속은 Albedo 사용)
     float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
