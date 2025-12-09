@@ -21,6 +21,11 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
+struct Vertex_Sky
+{
+	Vector3 Pos;
+};
+
 class TestApp : public GameApp
 {
 public:
@@ -38,49 +43,61 @@ public:
 	std::vector<Matrix> m_CharsWorld;
 
 	// [ Plane ]
-	std::shared_ptr<StaticMeshAsset> planeAsset;             
-	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes; 
-	std::vector<Matrix> m_PlanesWorld;                 
+	std::shared_ptr<StaticMeshAsset> planeAsset;
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes;
+	std::vector<Matrix> m_PlanesWorld;
 
 
 private:
-	D3DDevice m_D3DDevice;  
+	D3DDevice m_D3DDevice;
 
 public:
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass
-	ComPtr<ID3D11VertexShader> m_pShadowVS;			// ShadowPass
-	ComPtr<ID3D11PixelShader> m_pPixelShader;		
-	ComPtr<ID3D11PixelShader> m_pShadowPS;
-	ComPtr<ID3D11InputLayout> m_pInputLayout;		
-	ComPtr<ID3D11InputLayout> m_pShadowInputLayout; 
+	ComPtr<ID3D11PixelShader> m_pPixelShader;
+	ComPtr<ID3D11InputLayout> m_pInputLayout;
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
-	// 버퍼
 	ComPtr<ID3D11Buffer> m_pConstantBuffer;			// b0 : 상수 버퍼
 
-	ConstantBuffer cb;
-
 	// Shadow Map 
-	D3D11_VIEWPORT						m_ShadowViewport;   
-	ComPtr<ID3D11Texture2D>				m_pShadowMap;       
+	ComPtr<ID3D11VertexShader> m_pShadowVS;
+	ComPtr<ID3D11PixelShader> m_pShadowPS;
+	ComPtr<ID3D11InputLayout> m_pShadowInputLayout;
+	D3D11_VIEWPORT						m_ShadowViewport;
+	ComPtr<ID3D11Texture2D>				m_pShadowMap;
 	ComPtr<ID3D11DepthStencilView>		m_pShadowMapDSV;		// 깊이값 기록을 설정하기 위한 객체 
 	ComPtr<ID3D11ShaderResourceView>	m_pShadowMapSRV;		// 셰이더에서 깊이 버퍼를 슬롯에 설정하고 사용하기 위한 객체 
 	ComPtr<ID3D11SamplerState>			m_pSamplerComparison;	// Comparison Sampler
 	ComPtr<ID3D11Buffer>				m_pShadowCB;			// Shadow 버퍼
 
+	// Sky Box
+	ComPtr<ID3D11VertexShader> m_pVertexShader_Sky;
+	ComPtr<ID3D11PixelShader> m_pPixelShader_Sky;
+	ComPtr<ID3D11InputLayout> m_pInputLayout_Sky;
+	ComPtr<ID3D11Buffer> m_pVertexBuffer_Sky;
+	ComPtr<ID3D11Buffer> m_pIndexBuffer_Sky;
+	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
+	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;			// 큐브
+	ComPtr<ID3D11ShaderResourceView> m_pCubeMap;			// 스카이 박스 
+
+	UINT m_VertextBufferStride_Sky = 0;
+	UINT m_VertextBufferOffset_Sky = 0;
+	int m_nIndices_Sky = 0;
+
 
 	// [ 셰이더에 전달할 데이터 ]
+	ConstantBuffer cb;
 	Matrix                m_World;					// 모델		-> 월드
 	Matrix                m_View;					// 월드		-> 카메라
 	Matrix                m_Projection;				// 카메라	-> NDC
-
-	// Shadow			
-	Matrix                m_ShadowView;					
+	Matrix                m_ShadowView;
 	Matrix                m_ShadowProjection;
 
-	// [ GUI 조정 ]
+
+	// [ Material GUI 조정 ]
 	bool useTex_Base = true;
 	bool useTex_Metal = true;
 	bool useTex_Rough = true;
@@ -90,8 +107,8 @@ public:
 	float manualMetallic = 1.0f;
 	float manualRoughness = 0.5f;
 
+
 	// [ Main Camera ]
-	// float m_CameraPos[3] = { 0.0f, 0.0f, 0.0f };
 	float m_CameraNear = 0.1f;
 	float m_CameraFar = 5000.0f;
 
@@ -99,7 +116,7 @@ public:
 	// [ 오브젝트 : 바닥 ]
 	Matrix m_WorldPlane;
 	float m_PlanePos[3] = { 0.0f, -10.0f, 0.0f };
-	Vector3 m_PlaneScale = { 1.0f, 1.0f, 1.0f };
+	Vector3 m_PlaneScale = { 0.5f, 1.0f, 0.5f };
 
 	// [ 오브젝트 : char (StaticMesh) ]
 	Matrix m_WorldChar;
@@ -141,20 +158,22 @@ public:
 	void Uninitialize() override;
 	void Update() override;
 	void Render() override;
+
+public:
+	bool InitScene();
+	bool InitImGUI();
+	void InitSkyBox();
+
+	void UpdateConstantBuffer(const Matrix& world, int isRigid);
+
 	void RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world);
 	void RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world);
 	void RenderShadowMap();
 
-	void UpdateConstantBuffer(const Matrix& world, int isRigid);
-
-public:
-	bool InitScene();		
-	bool InitImGUI();
-
+	void Render_SkyBox();
 	void Render_ImGui();
 
 	void UninitScene();
-	void UninitD3D();
 	void UninitImGUI();
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;

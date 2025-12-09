@@ -608,7 +608,7 @@ bool TestApp::InitScene()
 	// 7. 텍스쳐 및 샘플러 생성
 	// ================================================================
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/cubemap.dds", nullptr, m_pCubeMap.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"../Resource/SkyBox/cubemap.dds", nullptr, m_pCubeMap.GetAddressOf()));
 
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;

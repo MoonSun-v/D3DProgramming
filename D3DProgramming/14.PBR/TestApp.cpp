@@ -12,9 +12,9 @@
 #pragma comment(lib, "Psapi.lib")
 
 
-TestApp::TestApp() : GameApp() { }
+TestApp::TestApp() : GameApp() {}
 
-TestApp::~TestApp() { }
+TestApp::~TestApp() {}
 
 bool TestApp::Initialize()
 {
@@ -84,7 +84,7 @@ void TestApp::Update()
 		for (size_t i = 0; i < m_Humans.size(); ++i)
 		{
 			m_HumansWorld[i] = m_WorldHuman; // 같은 transform 적용. 필요하면 인덱스별 pos/scale 배열 사용 해야함 
-		} 
+		}
 	}
 
 
@@ -112,8 +112,8 @@ void TestApp::Update()
 	m_ShadowView = XMMatrixLookAtLH(shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 500.0f, 10000.f);
-}     
+	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 50.0f, 10000.f);
+}
 
 void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 {
@@ -127,7 +127,7 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 
 	cb.gMetallicMultiplier = useTex_Metal ? XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) : XMFLOAT4(manualMetallic, 0.0f, 0.0f, 0.0f); // 텍스처 사용 여부에 따라 GUI 값 적용
 	cb.gRoughnessMultiplier = useTex_Rough ? XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) : XMFLOAT4(manualRoughness, 0.0f, 0.0f, 0.0f);
-	cb.manualBaseColor = manualBaseColor; 
+	cb.manualBaseColor = manualBaseColor;
 
 	cb.useTexture_BaseColor = useTex_Base;
 	cb.useTexture_Metallic = useTex_Metal;
@@ -146,13 +146,15 @@ void TestApp::Render()
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(6, 1, nullSRV);
 
-	RenderShadowMap();
+	RenderShadowMap(); // Shadow 
 
 	// [ Main Pass 렌더링 ]
 	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
 	m_D3DDevice.BeginFrame(clearColor);
 
 	auto* context = m_D3DDevice.GetDeviceContext();
+
+	Render_SkyBox(); // SkyBox 
 
 	context->IASetInputLayout(m_pInputLayout.Get());
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -169,23 +171,23 @@ void TestApp::Render()
 
 	// Mesh 렌더링 : Static Mesh Instance 
 	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i], m_PlanesWorld[i]); }
-	for (size_t i = 0; i < m_Chars.size(); i++)  { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
+	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i], m_CharsWorld[i]); }
 
 	// Mesh 렌더링 : Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i], m_HumansWorld[i]); }
 
 	// UI 렌더링
-	Render_ImGui(); 
+	Render_ImGui();
 
 	// 화면 출력
-	m_D3DDevice.EndFrame(); 
+	m_D3DDevice.EndFrame();
 }
 
 void TestApp::RenderSkeletalMesh(SkeletalMeshInstance& instance, const Matrix& world)
 {
 	UpdateConstantBuffer(world, 0); // SkeletalMesh
 
-	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), 0); 
+	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get(), 0);
 }
 
 void TestApp::RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world)
@@ -195,6 +197,37 @@ void TestApp::RenderStaticMesh(StaticMeshInstance& instance, const Matrix& world
 	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
 }
 
+void TestApp::Render_SkyBox()
+{
+	// [ 스카이박스 렌더링 전 (깊이 테스트, 래스터라이저 상태 변경) ]
+	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(m_pDSState_Sky.Get(), 1);
+	m_D3DDevice.GetDeviceContext()->RSSetState(m_pRasterizerState_Sky.Get());
+
+	// CB 업데이트 (카메라 위치 제거) -> 셰이더 코드 내부에서 이동 제거함
+
+	// 설정 
+	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout_Sky.Get());
+	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_D3DDevice.GetDeviceContext()->IASetVertexBuffers(0, 1, m_pVertexBuffer_Sky.GetAddressOf(), &m_VertextBufferStride_Sky, &m_VertextBufferOffset_Sky);
+	m_D3DDevice.GetDeviceContext()->IASetIndexBuffer(m_pIndexBuffer_Sky.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader_Sky.Get(), nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader_Sky.Get(), nullptr, 0);
+
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_pCubeMap.GetAddressOf());  // 스카이박스 큐브맵
+	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	// Draw
+	m_D3DDevice.GetDeviceContext()->DrawIndexed(m_nIndices_Sky, 0, 0);
+
+	// [ 스카이박스 그린 후, 기본 상태로 복원 ]
+	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->RSSetState(nullptr);
+}
 
 // -----------------------
 // Shadow Map 렌더링
@@ -281,12 +314,12 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
-	ComPtr<ID3DBlob> vertexShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/14.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	ComPtr<ID3DBlob> vertexShaderBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/15.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 	ComPtr<ID3DBlob> ShadowVSBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/14.ShadowVertexShader.hlsl", "ShadowVS", "vs_4_0", ShadowVSBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/15.ShadowVertexShader.hlsl", "ShadowVS", "vs_4_0", ShadowVSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), NULL, m_pShadowVS.GetAddressOf()));
 
 	// --------------------------------------------------------------
@@ -297,7 +330,7 @@ bool TestApp::InitScene()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },	// POSITION : float3 (12바이트)
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },	// NORMAL   : float3 (12바이트, 오프셋 12)
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },		// TEXCOORD : float2 (8바이트, 오프셋 24)
-		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // uint4
 		{ "BLENDWEIGHT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // float4
@@ -307,7 +340,7 @@ bool TestApp::InitScene()
 	D3D11_INPUT_ELEMENT_DESC shadowLayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -317,12 +350,12 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
-	ComPtr<ID3DBlob> pixelShaderBuffer; 
-	HR_T(CompileShaderFromFile(L"../Shaders/14.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	ComPtr<ID3DBlob> pixelShaderBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/15.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	ComPtr<ID3DBlob> ShadowPSBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/14.ShadowPixelShader.hlsl", "ShadowPS", "ps_4_0", ShadowPSBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/15.ShadowPixelShader.hlsl", "ShadowPS", "ps_4_0", ShadowPSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(ShadowPSBuffer->GetBufferPointer(), ShadowPSBuffer->GetBufferSize(), NULL, m_pShadowPS.GetAddressOf()));
 
 
@@ -340,11 +373,11 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// 리소스 로드 (Asset)
 	// ---------------------------------------------------------------
-	
+
 	// [ Static Mesh Asset 생성 ]
 	// 1. Plane 
 	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-	
+
 	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
 	instance_plane->SetAsset(planeAsset);
 
@@ -372,11 +405,14 @@ bool TestApp::InitScene()
 	m_Humans.push_back(instance_human);
 	m_HumansWorld.push_back(m_WorldHuman);
 
+	// [SkyBox 리소스 로딩]
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky.dds", nullptr, m_pCubeMap.GetAddressOf()));
+
 
 	// ---------------------------------------------------------------
 	// Shadow Map 생성 
 	// ---------------------------------------------------------------
-	
+
 	// Shadow Map 뷰포트 설정
 	m_ShadowViewport.TopLeftX = 0.0f;
 	m_ShadowViewport.TopLeftY = 0.0f;
@@ -427,8 +463,8 @@ bool TestApp::InitScene()
 	bdShadow.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bdShadow.CPUAccessFlags = 0;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&bdShadow, nullptr, m_pShadowCB.GetAddressOf()));
-	
-	// D3D11_SAMPLER_DESC sampDesc = {};
+
+	// 기본 Sampler 생성
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -438,6 +474,23 @@ bool TestApp::InitScene()
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
+
+	// ---------------------------------------------------------------
+	// Sky Box
+	// ---------------------------------------------------------------
+	D3D11_DEPTH_STENCIL_DESC dsDescSky = {};
+	dsDescSky.DepthEnable = TRUE;
+	dsDescSky.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 기록 안 함
+	dsDescSky.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;      // <= 비교 (끝까지 잘 보이게)
+	dsDescSky.StencilEnable = FALSE;
+	HR_T(m_D3DDevice.GetDevice()->CreateDepthStencilState(&dsDescSky, m_pDSState_Sky.GetAddressOf()));
+
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;        // 일반 면 채우기
+	rsDesc.CullMode = D3D11_CULL_FRONT;        // 앞면을 제거, 안쪽 면이 보이도록
+	rsDesc.FrontCounterClockwise = false;      // 기본 CCW 기준
+	rsDesc.DepthClipEnable = true;
+	HR_T(m_D3DDevice.GetDevice()->CreateRasterizerState(&rsDesc, m_pRasterizerState_Sky.ReleaseAndGetAddressOf()));
 
 
 	// ---------------------------------------------------------------
@@ -460,8 +513,100 @@ bool TestApp::InitScene()
 	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, m_CameraNear, m_CameraFar);
 
 
+	InitSkyBox();
+
 	return true;
 }
+
+void TestApp::InitSkyBox()
+{
+	// ---------------------------------------------
+	// 1. 스카이박스 정점/인덱스 버퍼 생성
+	// ---------------------------------------------
+	const float size = 1.0f;
+
+	// - Vector3 Pos만 가지고 있음 (CubeMap 샘플링에 필요)
+	// - 총 24개의 정점, 큐브의 6면(4정점/면) 구성
+	Vertex_Sky skyboxVertices[] =
+	{
+		{ Vector3(-size, -size, -size) }, { Vector3(-size, +size, -size) },
+		{ Vector3(+size, +size, -size) }, { Vector3(+size, -size, -size) },
+
+		{ Vector3(-size, -size, +size) }, { Vector3(+size, -size, +size) },
+		{ Vector3(+size, +size, +size) }, { Vector3(-size, +size, +size) },
+
+		{ Vector3(-size, +size, -size) }, { Vector3(-size, +size, +size) },
+		{ Vector3(+size, +size, +size) }, { Vector3(+size, +size, -size) },
+
+		{ Vector3(-size, -size, -size) }, { Vector3(+size, -size, -size) },
+		{ Vector3(+size, -size, +size) }, { Vector3(-size, -size, +size) },
+
+		{ Vector3(-size, -size, +size) }, { Vector3(-size, +size, +size) },
+		{ Vector3(-size, +size, -size) }, { Vector3(-size, -size, -size) },
+
+		{ Vector3(+size, -size, -size) }, { Vector3(+size, +size, -size) },
+		{ Vector3(+size, +size, +size) }, { Vector3(+size, -size, +size) }
+	};
+
+	// Vertex Buffer
+	D3D11_BUFFER_DESC vbDesc = {};
+	vbDesc.ByteWidth = sizeof(Vertex_Sky) * ARRAYSIZE(skyboxVertices);
+	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA vbData = {};
+	vbData.pSysMem = skyboxVertices;
+
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&vbDesc, &vbData, m_pVertexBuffer_Sky.GetAddressOf()));
+	m_VertextBufferStride_Sky = sizeof(Vertex_Sky);
+	m_VertextBufferOffset_Sky = 0;
+
+	// Index Buffer : (총 12개의 삼각형, 6면 * 2삼각형/면)
+	WORD skyboxIndices[] =
+	{
+		0,1,2, 0,2,3,
+		4,5,6, 4,6,7,
+		8,9,10, 8,10,11,
+		12,13,14, 12,14,15,
+		16,17,18, 16,18,19,
+		20,21,22, 20,22,23
+	};
+	m_nIndices_Sky = ARRAYSIZE(skyboxIndices);	// 인덱스 개수 저장
+
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(skyboxIndices);
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = skyboxIndices;
+
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&ibDesc, &ibData, m_pIndexBuffer_Sky.GetAddressOf()));
+
+
+
+	// ---------------------------------------------
+	// 2. Vertex Shader -> InputLayout ->  Pixel Shader 생성
+	// ---------------------------------------------
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	// Vertex Shader
+	ComPtr<ID3DBlob> vertexShaderBuffer_Sky;
+	HR_T(CompileShaderFromFile(L"../Shaders/15.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), NULL, m_pVertexShader_Sky.GetAddressOf()));
+
+	// Input Layout
+	HR_T(m_D3DDevice.GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), m_pInputLayout_Sky.GetAddressOf()));
+
+	// Pixel Shader
+	ComPtr<ID3DBlob> pixelShaderBuffer_Sky;
+	HR_T(CompileShaderFromFile(L"../Shaders/15.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer_Sky->GetBufferPointer(), pixelShaderBuffer_Sky->GetBufferSize(), NULL, m_pPixelShader_Sky.GetAddressOf()));
+}
+
 
 // ★ [ ImGui ] - UI 프레임 준비 및 렌더링
 void TestApp::Render_ImGui()
@@ -490,7 +635,7 @@ void TestApp::Render_ImGui()
 	// -----------------------------
 	// [ Light ]
 	// -----------------------------
-	ImGui::Text("[ Light ]"); 
+	ImGui::Text("[ Light ]");
 
 	// 광원 색상
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColor);
@@ -632,19 +777,19 @@ void TestApp::UninitScene()
 	OutputDebugString(L"[TestApp::UninitScene] 실행\r\n");
 
 	// 샘플러, 상수버퍼, 셰이더, 입력레이아웃 해제
-    m_pSamplerLinear.Reset();
-    m_pSamplerComparison.Reset();
-    m_pConstantBuffer.Reset();
-    m_pVertexShader.Reset();
-    m_pPixelShader.Reset();
-    m_pInputLayout.Reset();
-    m_pShadowVS.Reset();
-    m_pShadowPS.Reset();
-    m_pShadowInputLayout.Reset();
-    m_pShadowCB.Reset();
-    m_pShadowMap.Reset();
-    m_pShadowMapDSV.Reset();
-    m_pShadowMapSRV.Reset();
+	m_pSamplerLinear.Reset();
+	m_pSamplerComparison.Reset();
+	m_pConstantBuffer.Reset();
+	m_pVertexShader.Reset();
+	m_pPixelShader.Reset();
+	m_pInputLayout.Reset();
+	m_pShadowVS.Reset();
+	m_pShadowPS.Reset();
+	m_pShadowInputLayout.Reset();
+	m_pShadowCB.Reset();
+	m_pShadowMap.Reset();
+	m_pShadowMapDSV.Reset();
+	m_pShadowMapSRV.Reset();
 
 	// 인스턴스 해제
 	m_Humans.clear();
@@ -660,7 +805,7 @@ void TestApp::UninitScene()
 	charAsset.reset();
 	planeAsset.reset();
 
-	AssetManager::Get().UnloadAll(); 
+	AssetManager::Get().UnloadAll();
 	Material::DestroyDefaultTextures(); // 기본 텍스처 
 }
 
@@ -670,10 +815,10 @@ void TestApp::UninitScene()
 bool TestApp::InitImGUI()
 {
 	// 1. ImGui 버전 확인 
-	IMGUI_CHECKVERSION();   
+	IMGUI_CHECKVERSION();
 
 	// 2. ImGui 컨텍스트 생성
-	ImGui::CreateContext(); 
+	ImGui::CreateContext();
 
 	// 3. ImGui 스타일 설정
 	ImGui::StyleColorsDark(); // ImGui::StyleColorsLight();

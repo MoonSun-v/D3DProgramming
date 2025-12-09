@@ -10,6 +10,7 @@ Texture2D txEmissive : register(t4);
 Texture2D txOpacity : register(t5);   
 Texture2D txShadowMap : register(t6);
 
+TextureCube txSky : register(t10);
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
@@ -74,6 +75,18 @@ struct VS_SHADOW_OUTPUT
 {
     float4 Pos : SV_POSITION;
     float2 Tex : TEXCOORD0; // PS로 전달
+};
+
+// [ SkyBox ]
+struct VS_INPUT_SKY
+{
+    float4 Pos : POSITION;
+};
+
+struct PS_INPUT_SKY
+{
+    float4 Pos : SV_POSITION; // 변환된 정점 좌표 (화면 클립 공간)
+    float3 WorldDir : TEXCOORD0; // CubeMap 샘플링용
 };
 
 
