@@ -80,7 +80,15 @@ bool TestApp::LoadAsset()
 
 
 	// -------------- [ SkyBox 리소스 ] --------------
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky.dds", nullptr, m_pCubeMap.GetAddressOf()));
+	/*HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_DiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));*/
+
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_EnvHDR.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_DiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));
 
 
 	return true; 
@@ -177,13 +185,18 @@ void TestApp::Render()
 
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 	context->PSSetSamplers(1, 1, m_pSamplerComparison.GetAddressOf());
+	context->PSSetSamplers(2, 1, m_pSamplerIBL.GetAddressOf());        // samLinearIBL
+	context->PSSetSamplers(3, 1, m_pSamplerIBL_Clamp.GetAddressOf()); // samClampIBL
 
 	// ShadowMap SRV 바인딩
 	context->PSSetShaderResources(6, 1, m_pShadowMapSRV.GetAddressOf());
-
+	context->PSSetShaderResources(10, 1, m_pSkyBoxSRV.GetAddressOf());      // Sky cube map
+	context->PSSetShaderResources(11, 1, m_pIrradianceSRV.GetAddressOf()); // Diffuse IBL
+	context->PSSetShaderResources(12, 1, m_pPrefilterSRV.GetAddressOf());  // Specular IBL
+	context->PSSetShaderResources(13, 1, m_pBRDFLUTSRV.GetAddressOf());    // BRDF LUT
 
 	// Mesh 렌더링 : Static Mesh Instance 
-	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
+	// for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
 	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i]); }
 
 	// Mesh 렌더링 : Skeletal Mesh Instance 
@@ -231,7 +244,7 @@ void TestApp::Render_SkyBox()
 
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_pCubeMap.GetAddressOf());  // 스카이박스 큐브맵
+	// m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_pSkyBoxSRV.GetAddressOf());  // 스카이박스 큐브맵
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Draw
@@ -465,6 +478,25 @@ bool TestApp::InitScene()
 	rsDesc.FrontCounterClockwise = false;      // 기본 CCW 기준
 	rsDesc.DepthClipEnable = true;
 	HR_T(m_D3DDevice.GetDevice()->CreateRasterizerState(&rsDesc, m_pRasterizerState_Sky.ReleaseAndGetAddressOf()));
+
+	// ---------------------------------------------------------------
+	// IBL 
+	// ---------------------------------------------------------------	
+	// 샘플러 (s2)
+	D3D11_SAMPLER_DESC sampIBL = {};
+	sampIBL.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampIBL.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampIBL.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampIBL.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampIBL, m_pSamplerIBL.GetAddressOf()));
+
+	// IBL CLAMP 샘플러 (s3)
+	D3D11_SAMPLER_DESC sampClamp = {};
+	sampClamp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampClamp.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampClamp.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampClamp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampClamp, m_pSamplerIBL_Clamp.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------
@@ -812,17 +844,17 @@ void TestApp::UninitScene()
 	m_pIndexBuffer_Sky.Reset();
 	m_pDSState_Sky.Reset();
 	m_pRasterizerState_Sky.Reset();
-	m_pCubeMap.Reset();
+	m_pSkyBoxSRV.Reset();
+	m_pIrradianceSRV.Reset();
+	m_pPrefilterSRV.Reset();
+	m_pBRDFLUTSRV.Reset();
 
 	// 인스턴스 해제
 	m_Humans.clear();
-	// m_HumansWorld.clear();
 
 	m_Planes.clear();
-	// m_PlanesWorld.clear();
 
 	m_Chars.clear();
-	// m_CharsWorld.clear();
 
 	humanAsset.reset();
 	charAsset.reset();

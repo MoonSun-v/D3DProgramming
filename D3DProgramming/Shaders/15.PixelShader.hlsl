@@ -129,7 +129,7 @@ float4 main(PS_INPUT input) : SV_Target
     float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
     
     
-    // 7. PBR 구성 요소 계산
+    // 7. BRDF (Local Direct Lighting)
     float3 F = fresnelSchlick(F0, cosVH);   // Fresnel (Schlick 근사)
     float D = ndfGGX(cosNH, roughness);     // NDF
     float G = G_Smith(cosNL, cosNV, roughness); // Geometry
@@ -138,6 +138,8 @@ float4 main(PS_INPUT input) : SV_Target
     float3 kd = (1.0 - metallic) * (1.0 - F);
 
     // diffuse BRDF ( Lambertian Diffuse : 에너지 보존 반영)
+    // irradiance map이 이미 1/PI를 포함하고 있는가?
+    // DiffuseHDR.dds가 Lambertian irradiance 이미 1/PI 포함이라면 -> PI를 곱하면 diffuse IBL이 한 번 더 세짐. (과하게 밝아짐)
     float3 diffuseBRDF = kd * albedo * InvPI;
 
     // specular BRDF (Cook-Torrance 스페큘러 BRDF)
@@ -176,20 +178,57 @@ float4 main(PS_INPUT input) : SV_Target
         shadowFactor = sum / 9.0f; // 평균값
     }
     
-    // 8. 최종 조명 계산
-    float3 radiance = vLightColor.rgb; // 광원 색/강도
+    // 8. Direct lighting 조명 계산
+    float3 radiance = vLightColor.rgb * 0.15f; // 광원 색/강도 : IBL+PBR 환경에서 직광 1.0은 안쓴다고 함 
     float3 Lo = (diffuseBRDF + specularBRDF) * radiance * cosNL * shadowFactor;
     
-    // 발광(emissive) 추가
-    float3 emissive = SRGBToLinear(emissiveTex.rgb);
-    float3 ambient = 0.03f * albedo; // small ambient term recommended
+    // 9. IBL (Diffuse + Specular)
+    // Diffuse IBL (Irradiance)
+    float3 irradiance = txIBL_Diffuse.Sample(samLinearIBL, N).rgb;
 
-    float3 colorLinear = ambient + Lo + emissive;
+    // IBL용 Fresnel 사용: cosNV를 사용 (view angle)
+    float3 F_IBL = fresnelSchlick(F0, cosNV);
+    float3 kd_IBL = lerp(1.0 - F_IBL, 0.0, metallic); // 금속이면 diffuse 사라짐
+
+    // Lambert term is baked into irradiance; multiply by PI to match energy
+    float3 diffuseIBL = kd_IBL * albedo /** PI*/ * irradiance;
+
+    // Specular IBL (Prefiltered env + BRDF LUT)
+    uint mipCount;
+    uint w;
+    uint h;
+    txIBL_Specular.GetDimensions(0, w, h, mipCount);
+
+    float3 R = reflect(-V, N);
+    // sampleLevel: roughness [0..1] -> LOD [0..mipCount-1]
+    float lod = roughness * ((float) mipCount - 1.0);
+    float3 prefilteredColor = txIBL_Specular.SampleLevel(samLinearIBL, R, lod).rgb;
+
+    float2 brdf = txIBL_BRDF_LUT.Sample(samClampIBL, float2(cosNV, roughness)).rg;
+    float3 specularIBL = prefilteredColor * (F0 * brdf.x + brdf.y);
+
+//    // AO (옵션)
+//    float ao = 1.0f;
+//    // If you want AO, define USE_AO_TEXTURE during compile and bind txAO to t14
+//#ifdef USE_AO_TEXTURE
+//        ao = txAO.Sample(samLinearIBL, input.Tex).r;
+//        ao = saturate(ao);
+//#endif
+
+    float3 indirectIBL = (diffuseIBL + specularIBL); // * ao;
+    
+    
+    // 10. 조명 합산 및 출력 
+    // 기존 하드코딩 ambient 제거하고 IBL 사용함
+    float3 emissive = SRGBToLinear(emissiveTex.rgb);
+    // float3 ambient = 0.03f * albedo; // small ambient term recommended
+    // float3 colorLinear = ambient + Lo + emissive;
+    float3 colorLinear = indirectIBL + Lo + emissive;
+    
     
     // - colorLinear 를 0~1로 제한 (프레임 버퍼는 0~1범위만 표현 가능)
     // - 계산 다 했으니 다시 감마 보정 : linear -> sRGB 
     float3 finalRgb = LinearToSRGB(saturate(colorLinear));
-    
     float4 finalColor = float4(finalRgb, opacityTex.a);
     
     return finalColor; 

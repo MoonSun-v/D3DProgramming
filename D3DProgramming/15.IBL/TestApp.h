@@ -77,7 +77,14 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer_Sky;
 	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
 	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
-	ComPtr<ID3D11ShaderResourceView> m_pCubeMap;			// 스카이 박스 
+	ComPtr<ID3D11ShaderResourceView> m_pSkyBoxSRV;			// 스카이 박스 
+	// (IBL)
+	ComPtr<ID3D11ShaderResourceView> m_pIrradianceSRV;		// Diffuse (Irradiance)
+	ComPtr<ID3D11ShaderResourceView> m_pPrefilterSRV;		// Specular (Prefilter)
+	ComPtr<ID3D11ShaderResourceView> m_pBRDFLUTSRV;			// BRDF LUT
+	ComPtr<ID3D11SamplerState> m_pSamplerIBL;       // s2
+	ComPtr<ID3D11SamplerState> m_pSamplerIBL_Clamp; // s3
+
 
 	UINT m_VertextBufferStride_Sky = 0;
 	UINT m_VertextBufferOffset_Sky = 0;

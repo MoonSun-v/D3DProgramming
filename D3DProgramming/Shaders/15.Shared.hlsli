@@ -1,6 +1,8 @@
 
 SamplerState samLinear : register(s0);
 SamplerComparisonState samShadow : register(s1); 
+SamplerState samLinearIBL : register(s2); // IBL 전용 샘플러 (필요시 설정)
+SamplerState samClampIBL : register(s3);  // CLAMP 샘플러 (LUT 샘플용)
 
 Texture2D txBaseColor : register(t0);
 Texture2D txNormal : register(t1);
@@ -11,6 +13,11 @@ Texture2D txOpacity : register(t5);
 Texture2D txShadowMap : register(t6);
 
 TextureCube txSky : register(t10);
+TextureCube txIBL_Diffuse : register(t11);  // Irradiance (Diffuse IBL)
+TextureCube txIBL_Specular : register(t12); // Prefiltered Specular Env (mipmaps represent roughness)
+Texture2D txIBL_BRDF_LUT : register(t13);   // BRDF LUT (A,B)
+// Texture2D txAO : register(t14);             // (Optional) Ambient Occlusion map
+
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables  (CPU -> GPU 데이터 전달용)
