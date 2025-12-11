@@ -48,15 +48,16 @@ bool TestApp::LoadAsset()
 	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
 	instance_plane->SetAsset(planeAsset);
-	instance_plane->transform.position = { 40, 20, 200 };
-	instance_plane->transform.scale = { 0.04f, 10.0f, 0.04f };
+	instance_plane->transform.position = { 0, -15, 0 };
+	instance_plane->transform.scale = { 0.5, 1, 0.5 };
 	m_Planes.push_back(instance_plane);
 
 	// 2. char
 	charAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
 	auto instance_char = std::make_shared<StaticMeshInstance>(); 
 	instance_char->SetAsset(charAsset);
-	instance_char->transform.position = { 40, 0, 0 };
+	instance_char->transform.position = { 0, 0, -90 };
+	instance_char->transform.rotation = { 0, XMConvertToRadians(90), 0 }; // TODO : Transform 라디안 변환
 	instance_char->transform.scale = { 1.0f, 1.0f, 1.0f };
 	m_Chars.push_back(instance_char);
 
@@ -67,26 +68,32 @@ bool TestApp::LoadAsset()
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
 	auto instance_human = std::make_shared<SkeletalMeshInstance>();
 	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-	instance_human->transform.position = { -60, 0, 0 };
-	instance_human->transform.scale = { 1.0f, 1.0f, 1.0f };
+	instance_human->transform.position = { 0, 0, 40 };
+	instance_human->transform.rotation = { 0, XMConvertToRadians(45), 0 };
+	instance_human->transform.scale = { 1.0, 1.0, 1.0 };
 	m_Humans.push_back(instance_human);
 
 
 	// -------------- [ SkyBox 리소스 ] --------------
-	/*HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_DiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));*/
+	m_IBLSet.resize(3);
 
-	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_EnvHDR.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
-	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_DiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
-	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
-	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));
+	// Sky 
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_EnvHDR.dds", m_IBLSet[0].skybox.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_DiffuseHDR.dds", m_IBLSet[0].irradiance.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_SpecularHDR.dds", m_IBLSet[0].prefilter.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_Brdf.dds", m_IBLSet[0].brdfLut.ReleaseAndGetAddressOf()));
 
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomEnvHDR.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomDiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomSpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomBrdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));
+	// InDoor 
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_EnvHDR.dds", m_IBLSet[1].skybox.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_DiffuseHDR.dds",m_IBLSet[1].irradiance.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_SpecularHDR.dds", m_IBLSet[1].prefilter.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_Brdf.dds", m_IBLSet[1].brdfLut.ReleaseAndGetAddressOf()));
+
+	//  OutDoor 
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skybox.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradiance.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilter.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLut.ReleaseAndGetAddressOf()));
 
 	return true; 
 }
@@ -188,12 +195,12 @@ void TestApp::Render()
 
 	// ShadowMap SRV 바인딩
 	context->PSSetShaderResources(6, 1, m_pShadowMapSRV.GetAddressOf());
-	context->PSSetShaderResources(10, 1, m_pSkyBoxSRV.GetAddressOf());      // Sky cube map
+	context->PSSetShaderResources(10, 1, m_IBLSet[currentIBL].skybox.GetAddressOf());      // Sky cube map
 	if (useIBL)
 	{
-		context->PSSetShaderResources(11, 1, m_pIrradianceSRV.GetAddressOf()); // Diffuse IBL
-		context->PSSetShaderResources(12, 1, m_pPrefilterSRV.GetAddressOf());  // Specular IBL
-		context->PSSetShaderResources(13, 1, m_pBRDFLUTSRV.GetAddressOf());    // BRDF LUT
+		context->PSSetShaderResources(11, 1, m_IBLSet[currentIBL].irradiance.GetAddressOf());
+		context->PSSetShaderResources(12, 1, m_IBLSet[currentIBL].prefilter.GetAddressOf());
+		context->PSSetShaderResources(13, 1, m_IBLSet[currentIBL].brdfLut.GetAddressOf());
 	}
 	else
 	{
@@ -512,9 +519,10 @@ bool TestApp::InitScene()
 
 	m_World = XMMatrixIdentity(); // 단위 행렬 
 
-	m_Camera.m_Position = Vector3(0.0f, 100.0f, -500.0f);
-	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
-	m_Camera.SetSpeed(200.0f);
+	m_Camera.m_Position = Vector3(-600.0f, 150.0f, -100.0f);
+	m_Camera.m_Rotation = Vector3(0.0f, XMConvertToRadians(90.0f), 0.0f);
+
+	m_Camera.SetSpeed(400.0f);
 
 	// 카메라(View)
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);	// 카메라 위치
@@ -649,6 +657,7 @@ void TestApp::Render_ImGui()
 	// -----------------------------
 	// [ Light ]
 	// -----------------------------
+	ImGui::Text("");
 	ImGui::Text("[ Light ]"); 
 
 	// 광원 색상
@@ -665,37 +674,33 @@ void TestApp::Render_ImGui()
 	// [ Camera ]
 	// -----------------------------
 	ImGui::Text("[ Camera ]");
+	//ImGui::Text("Position (XYZ)");
+	//if (ImGui::DragFloat3("Position", &m_Camera.m_Position.x, 0.5f))
+	//{
+	//	m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
+	//}
 
-	// 카메라 위치
-	ImGui::Text("Position (XYZ)");
-	if (ImGui::DragFloat3("Position", &m_Camera.m_Position.x, 0.5f))
-	{
-		m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
-	}
+	//// 카메라 회전 (도 단위)
+	//Vector3 rotationDegree =
+	//{
+	//	XMConvertToDegrees(m_Camera.m_Rotation.x),
+	//	XMConvertToDegrees(m_Camera.m_Rotation.y),
+	//	XMConvertToDegrees(m_Camera.m_Rotation.z)
+	//};
 
-	// 카메라 회전 (도 단위)
-	Vector3 rotationDegree =
-	{
-		XMConvertToDegrees(m_Camera.m_Rotation.x),
-		XMConvertToDegrees(m_Camera.m_Rotation.y),
-		XMConvertToDegrees(m_Camera.m_Rotation.z)
-	};
+	//ImGui::Text("Rotation (Degrees)");
+	//if (ImGui::DragFloat3("Rotation", &rotationDegree.x, 0.5f))
+	//{
+	//	// 입력값을 라디안으로 변환하여 카메라에 적용
+	//	m_Camera.m_Rotation.x = XMConvertToRadians(rotationDegree.x);
+	//	m_Camera.m_Rotation.y = XMConvertToRadians(rotationDegree.y);
+	//	m_Camera.m_Rotation.z = XMConvertToRadians(rotationDegree.z);
 
-	ImGui::Text("Rotation (Degrees)");
-	if (ImGui::DragFloat3("Rotation", &rotationDegree.x, 0.5f))
-	{
-		// 입력값을 라디안으로 변환하여 카메라에 적용
-		m_Camera.m_Rotation.x = XMConvertToRadians(rotationDegree.x);
-		m_Camera.m_Rotation.y = XMConvertToRadians(rotationDegree.y);
-		m_Camera.m_Rotation.z = XMConvertToRadians(rotationDegree.z);
-
-		// 회전 변경 시 World 행렬 갱신
-		m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
-	}
-
+	//	// 회전 변경 시 World 행렬 갱신
+	//	m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
+	//}
 	// 이동 속도 조절
-	ImGui::Text("Move Speed");
-	ImGui::SliderFloat("Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
+	ImGui::SliderFloat("Move Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
 
 	ImGui::Separator();
 	ImGui::Text("");
@@ -704,40 +709,50 @@ void TestApp::Render_ImGui()
 	// [ Character Transform Control ]
 	// -----------------------------
 
-	ImGui::Text("[ Character Transform ]");
+	//ImGui::Text("[ Character Transform ]");
 
-	// 캐릭터가 하나라도 있을 때만 표시
-	if (!m_Chars.empty())
-	{
-		auto& chr = m_Chars[0]; // 첫 번째 캐릭터만 제어
+	//// 캐릭터가 하나라도 있을 때만 표시
+	//if (!m_Chars.empty())
+	//{
+	//	auto& chr = m_Chars[0]; // 첫 번째 캐릭터만 제어
 
-		// --- Position ---
-		ImGui::Text("Position");
-		ImGui::DragFloat3("Char Pos", &chr->transform.position.x, 0.1f);
+	//	// --- Position ---
+	//	ImGui::Text("Position");
+	//	ImGui::DragFloat3("Char Pos", &chr->transform.position.x, 0.1f);
 
-		// --- Rotation (degree) ---
-		Vector3 rotDeg =
-		{
-			XMConvertToDegrees(chr->transform.rotation.x),
-			XMConvertToDegrees(chr->transform.rotation.y),
-			XMConvertToDegrees(chr->transform.rotation.z)
-		};
+	//	// --- Rotation (degree) ---
+	//	Vector3 rotDeg =
+	//	{
+	//		XMConvertToDegrees(chr->transform.rotation.x),
+	//		XMConvertToDegrees(chr->transform.rotation.y),
+	//		XMConvertToDegrees(chr->transform.rotation.z)
+	//	};
 
-		ImGui::Text("Rotation (deg)");
-		if (ImGui::DragFloat3("Char Rot", &rotDeg.x, 0.5f))
-		{
-			chr->transform.rotation.x = XMConvertToRadians(rotDeg.x);
-			chr->transform.rotation.y = XMConvertToRadians(rotDeg.y);
-			chr->transform.rotation.z = XMConvertToRadians(rotDeg.z);
-		}
+	//	ImGui::Text("Rotation (deg)");
+	//	if (ImGui::DragFloat3("Char Rot", &rotDeg.x, 0.5f))
+	//	{
+	//		chr->transform.rotation.x = XMConvertToRadians(rotDeg.x);
+	//		chr->transform.rotation.y = XMConvertToRadians(rotDeg.y);
+	//		chr->transform.rotation.z = XMConvertToRadians(rotDeg.z);
+	//	}
 
-		// --- Scale ---
-		ImGui::Text("Scale");
-		ImGui::DragFloat3("Char Scale", &chr->transform.scale.x, 0.05f, 0.01f, 100.0f);
+	//	// --- Scale ---
+	//	ImGui::Text("Scale");
+	//	ImGui::DragFloat3("Char Scale", &chr->transform.scale.x, 0.05f, 0.01f, 100.0f);
 
-		ImGui::Separator();
-		ImGui::Text("");
-	}
+	//	ImGui::Separator();
+	//	ImGui::Text("");
+	//}
+
+	// -----------------------------
+	// [ IBL Environment ]
+	// -----------------------------
+	ImGui::Text("[ IBL Environment ]");
+	ImGui::RadioButton("Sky", &currentIBL, 0);
+	ImGui::RadioButton("Indoor", &currentIBL, 1);
+	ImGui::RadioButton("Outdoor", &currentIBL, 2);
+	ImGui::Separator();
+	ImGui::Text("");
 
 	// -----------------------------
 	// [ IBL Control ]

@@ -26,6 +26,14 @@ struct Vertex_Sky
 	Vector3 Pos;
 };
 
+struct IBLEnvironment
+{
+	ComPtr<ID3D11ShaderResourceView> skybox;
+	ComPtr<ID3D11ShaderResourceView> irradiance;
+	ComPtr<ID3D11ShaderResourceView> prefilter;
+	ComPtr<ID3D11ShaderResourceView> brdfLut;
+};
+
 class TestApp : public GameApp
 {
 public:
@@ -85,6 +93,9 @@ public:
 	ComPtr<ID3D11SamplerState> m_pSamplerIBL;       // s2
 	ComPtr<ID3D11SamplerState> m_pSamplerIBL_Clamp; // s3
 
+	std::vector<IBLEnvironment> m_IBLSet;
+	int currentIBL = 0;   // GUI에서 선택
+
 
 	UINT m_VertextBufferStride_Sky = 0;
 	UINT m_VertextBufferOffset_Sky = 0;
@@ -125,17 +136,8 @@ public:
 
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // 라이트 색상
-	XMFLOAT4 m_LightDir = XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);  // 라이트 방향
+	XMFLOAT4 m_LightDir = XMFLOAT4(0.5f, -1.0f, -0.2f, 0.0f);  // 라이트 방향
 
-
-	// 머터리얼 조절용
-	XMFLOAT4 m_MaterialAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	XMFLOAT4 m_MaterialSpecular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	float    m_Shininess = 280.0f;
-
-	// 블린-퐁 조명용
-	XMFLOAT4 m_LightAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	XMFLOAT4 m_LightDiffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// 폰트 
 	ImFont* m_UIFont = nullptr;

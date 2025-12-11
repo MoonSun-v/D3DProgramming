@@ -207,7 +207,7 @@ float4 main(PS_INPUT input) : SV_Target
         // float3 kd_IBL = lerp(1.0 - F_IBL, 0.0, metallic); // 금속이면 diffuse 사라짐
         float3 kd_IBL = (1.0 - F_IBL) * (1.0 - metallic);
     
-        float3 diffuseIBL = kd_IBL * albedo * irradiance * 0.2;
+        float3 diffuseIBL = kd_IBL * albedo * irradiance * 0.6;
 
     
         // [ Specular IBL ] (Prefiltered env + BRDF LUT) -------------------------
@@ -221,7 +221,7 @@ float4 main(PS_INPUT input) : SV_Target
 
         float2 brdf = txIBL_BRDF_LUT.Sample(samClampIBL, float2(cosNV, roughness)).rg;
     
-        float3 specularIBL = specularIrradiance * (F0 * brdf.x + brdf.y) * 0.1f; // prefilter * (F0 * A + B)
+        float3 specularIBL = specularIrradiance * (F0 * brdf.x + brdf.y) * 0.4f; // prefilter * (F0 * A + B)
     
         IndirectLight_IBL = diffuseIBL + specularIBL;
     }

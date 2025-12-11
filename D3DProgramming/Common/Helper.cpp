@@ -68,6 +68,53 @@ HRESULT CompileShaderFromFile(const WCHAR* szFileName, LPCSTR szEntryPoint, LPCS
 	return S_OK;
 }
 
+void PrintDDSInfo(const wchar_t* file)
+{
+	DirectX::TexMetadata meta;
+	DirectX::ScratchImage img;
+
+	HRESULT hr = DirectX::LoadFromDDSFile(
+		file,
+		DirectX::DDS_FLAGS_NONE,
+		&meta,
+		img
+	);
+
+	wchar_t buffer[512];
+
+	if (FAILED(hr))
+	{
+		swprintf_s(buffer, L"[DDS INFO] Failed to read %s\n", file);
+		OutputDebugStringW(buffer);
+		return;
+	}
+
+	OutputDebugStringW(L"\n===== DDS INFO =====\n");
+
+	swprintf_s(buffer, L"File       : %s\n", file);
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"Format     : %d\n", meta.format);
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"Width      : %llu\n", meta.width);
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"Height     : %llu\n", meta.height);
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"ArraySize  : %llu\n", meta.arraySize);
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"MipLevels  : %llu\n", meta.mipLevels);
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"Cubemap    : %s\n", meta.IsCubemap() ? L"YES" : L"NO");
+	OutputDebugStringW(buffer);
+
+	OutputDebugStringW(L"=====================\n");
+}
+
 
 // 텍스처 로드 
 HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName, ID3D11ShaderResourceView** textureView)
@@ -87,6 +134,8 @@ HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName
 	// 1. DDS 텍스처 먼저 시도
 	if (extension == L"dds")
 	{
+		PrintDDSInfo(szFileName);
+
 		hr = DirectX::CreateDDSTextureFromFile(d3dDevice, szFileName, nullptr, textureView);
 		return hr;
 	}
@@ -115,6 +164,7 @@ HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName
 
 	return hr;
 }
+
 
 void CheckDXGIDebug()
 {
