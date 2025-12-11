@@ -2,15 +2,14 @@
 #include "../Common/Helper.h"
 
 // 1: Rigid, 0: Skinned
-struct ConstantBuffer
+struct /*alignas(16)*/ ConstantBuffer
 {
-	Matrix mWorld;			// 월드 변환 행렬 : 64bytes
-	Matrix mView;			// 뷰 변환 행렬   : 64bytes
-	Matrix mProjection;		// 투영 변환 행렬 : 64bytes
+	Matrix mWorld;			// 월드 변환 행렬 : 64
+	Matrix mView;			// 뷰 변환 행렬   : 64
+	Matrix mProjection;		// 투영 변환 행렬 : 64
 
 	Vector4 vLightDir;		// 광원 방향 : 16
 	Vector4 vLightColor;	// 광원 색상 : 16
-
 	Vector4 vEyePos;		// 카메라 위치 : 16
 
 	Vector4 gMetallicMultiplier; // 16
@@ -23,9 +22,10 @@ struct ConstantBuffer
 	int useTexture_Roughness;	// 4
 
 	int useTexture_Normal;		// 4
-	int pad0[3];				// 12
+	int useIBL;					// 4
+	int pad0[2];				// 8
 
-	float pad1[12];   // 12 * 4 = 48 bytes => total 368 bytes  
+	// float pad1[12];   // 12 * 4 = 48 bytes => total 368 bytes  
 };
 
 

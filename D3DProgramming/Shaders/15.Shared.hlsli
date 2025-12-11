@@ -16,7 +16,7 @@ TextureCube txSky : register(t10);
 TextureCube txIBL_Diffuse : register(t11);  // Irradiance (Diffuse IBL)
 TextureCube txIBL_Specular : register(t12); // Prefiltered Specular Env (mipmaps represent roughness)
 Texture2D txIBL_BRDF_LUT : register(t13);   // BRDF LUT (A,B)
-// Texture2D txAO : register(t14);             // (Optional) Ambient Occlusion map
+// Texture2D txAO : register(t14);          // Ambient Occlusion map
 
 
 //--------------------------------------------------------------------------------------
@@ -32,7 +32,6 @@ cbuffer ConstantBuffer : register(b0)
 
     float4 vLightDir;
     float4 vLightColor;
-    
     float4 vEyePos;
   
     float4 gMetallicMultiplier;
@@ -45,7 +44,8 @@ cbuffer ConstantBuffer : register(b0)
     int useTexture_Roughness;
     
     int useTexture_Normal;
-    float pad0[3];
+    int useIBL;
+    int pad0[2];
 }
 
 

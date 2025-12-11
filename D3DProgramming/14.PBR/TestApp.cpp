@@ -406,7 +406,7 @@ bool TestApp::InitScene()
 	m_HumansWorld.push_back(m_WorldHuman);
 
 	// [SkyBox 리소스 로딩]
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky.dds", nullptr, m_pCubeMap.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky.dds", nullptr, m_pCubeMap.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------

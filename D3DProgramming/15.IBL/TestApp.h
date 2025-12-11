@@ -107,8 +107,9 @@ public:
 	bool useTex_Normal = true;
 
 	XMFLOAT4 manualBaseColor = XMFLOAT4(1, 1, 1, 1);
-	float manualMetallic = 1.0f;
+	float manualMetallic = 0.0f;
 	float manualRoughness = 0.5f;
+	bool useIBL = true;
 
 
 	// [ Main Camera ]

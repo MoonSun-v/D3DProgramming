@@ -46,22 +46,18 @@ bool TestApp::LoadAsset()
 	// -------------- [ Static Mesh Asset 생성 ] --------------
 	// 1. Plane 
 	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-
 	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
 	instance_plane->SetAsset(planeAsset);
-	instance_plane->transform.position = { 0, -10, 0 };
-	instance_plane->transform.scale = { 0.5f, 1.0f, 0.5f };
-
+	instance_plane->transform.position = { 40, 20, 200 };
+	instance_plane->transform.scale = { 0.04f, 10.0f, 0.04f };
 	m_Planes.push_back(instance_plane);
 
 	// 2. char
 	charAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
-
 	auto instance_char = std::make_shared<StaticMeshInstance>(); 
 	instance_char->SetAsset(charAsset);
 	instance_char->transform.position = { 40, 0, 0 };
 	instance_char->transform.scale = { 1.0f, 1.0f, 1.0f };
-
 	m_Chars.push_back(instance_char);
 
 
@@ -69,13 +65,10 @@ bool TestApp::LoadAsset()
 	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx"); 
 	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
-
 	auto instance_human = std::make_shared<SkeletalMeshInstance>();
 	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-
 	instance_human->transform.position = { -60, 0, 0 };
 	instance_human->transform.scale = { 1.0f, 1.0f, 1.0f };
-
 	m_Humans.push_back(instance_human);
 
 
@@ -85,11 +78,15 @@ bool TestApp::LoadAsset()
 	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
 	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/PureSky/PureSky_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));*/
 
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_EnvHDR.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_DiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));
+	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_EnvHDR.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
+	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_DiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
+	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_SpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
+	//HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor_IBL/OutDoor_IBL_Brdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));
 
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomEnvHDR.dds", nullptr, m_pSkyBoxSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomDiffuseHDR.dds", nullptr, m_pIrradianceSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomSpecularHDR.dds", nullptr, m_pPrefilterSRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomBrdf.dds", nullptr, m_pBRDFLUTSRV.GetAddressOf()));
 
 	return true; 
 }
@@ -154,6 +151,7 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 	cb.useTexture_Metallic = useTex_Metal;
 	cb.useTexture_Roughness = useTex_Rough;
 	cb.useTexture_Normal = useTex_Normal;
+	cb.useIBL = 1; // useIBL ? 1 : 0;
 
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
@@ -191,12 +189,22 @@ void TestApp::Render()
 	// ShadowMap SRV 바인딩
 	context->PSSetShaderResources(6, 1, m_pShadowMapSRV.GetAddressOf());
 	context->PSSetShaderResources(10, 1, m_pSkyBoxSRV.GetAddressOf());      // Sky cube map
-	context->PSSetShaderResources(11, 1, m_pIrradianceSRV.GetAddressOf()); // Diffuse IBL
-	context->PSSetShaderResources(12, 1, m_pPrefilterSRV.GetAddressOf());  // Specular IBL
-	context->PSSetShaderResources(13, 1, m_pBRDFLUTSRV.GetAddressOf());    // BRDF LUT
+	if (useIBL)
+	{
+		context->PSSetShaderResources(11, 1, m_pIrradianceSRV.GetAddressOf()); // Diffuse IBL
+		context->PSSetShaderResources(12, 1, m_pPrefilterSRV.GetAddressOf());  // Specular IBL
+		context->PSSetShaderResources(13, 1, m_pBRDFLUTSRV.GetAddressOf());    // BRDF LUT
+	}
+	else
+	{
+		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+		context->PSSetShaderResources(11, 1, nullSRV);
+		context->PSSetShaderResources(12, 1, nullSRV);
+		context->PSSetShaderResources(13, 1, nullSRV);
+	}
 
 	// Mesh 렌더링 : Static Mesh Instance 
-	// for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
+	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
 	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i]); }
 
 	// Mesh 렌더링 : Skeletal Mesh Instance 
@@ -244,7 +252,6 @@ void TestApp::Render_SkyBox()
 
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	// m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_pSkyBoxSRV.GetAddressOf());  // 스카이박스 큐브맵
 	m_D3DDevice.GetDeviceContext()->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Draw
@@ -732,6 +739,13 @@ void TestApp::Render_ImGui()
 		ImGui::Text("");
 	}
 
+	// -----------------------------
+	// [ IBL Control ]
+	// -----------------------------
+	ImGui::Text("[ IBL ]");
+	ImGui::Checkbox("Use IBL", &useIBL);
+	ImGui::Separator();
+	ImGui::Text("");
 
 	// -----------------------------
 	// [ PBR Control ]
@@ -848,12 +862,12 @@ void TestApp::UninitScene()
 	m_pIrradianceSRV.Reset();
 	m_pPrefilterSRV.Reset();
 	m_pBRDFLUTSRV.Reset();
+	m_pSamplerIBL.Reset();
+	m_pSamplerIBL_Clamp.Reset();
 
 	// 인스턴스 해제
 	m_Humans.clear();
-
 	m_Planes.clear();
-
 	m_Chars.clear();
 
 	humanAsset.reset();
