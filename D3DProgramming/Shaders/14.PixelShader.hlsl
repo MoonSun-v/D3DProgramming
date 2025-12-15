@@ -182,9 +182,9 @@ float4 main(PS_INPUT input) : SV_Target
     
     // 발광(emissive) 추가
     float3 emissive = SRGBToLinear(emissiveTex.rgb);
-    float3 ambient = 0.03f * albedo; // small ambient term recommended
+    // float3 ambient = 0.03f * albedo; // small ambient term recommended
 
-    float3 colorLinear = ambient + Lo + emissive;
+    float3 colorLinear = /*ambient*/ +Lo +emissive;
     
     // - colorLinear 를 0~1로 제한 (프레임 버퍼는 0~1범위만 표현 가능)
     // - 계산 다 했으니 다시 감마 보정 : linear -> sRGB 

@@ -315,11 +315,11 @@ bool TestApp::InitScene()
 	// 버텍스 셰이더(Vertex Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> vertexShaderBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/15.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/14.VertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 	ComPtr<ID3DBlob> ShadowVSBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/15.ShadowVertexShader.hlsl", "ShadowVS", "vs_4_0", ShadowVSBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/14.ShadowVertexShader.hlsl", "ShadowVS", "vs_4_0", ShadowVSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), NULL, m_pShadowVS.GetAddressOf()));
 
 	// --------------------------------------------------------------
@@ -351,11 +351,11 @@ bool TestApp::InitScene()
 	// 픽셀 셰이더(Pixel Shader) 컴파일 및 생성
 	// ---------------------------------------------------------------
 	ComPtr<ID3DBlob> pixelShaderBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/15.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/14.PixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	ComPtr<ID3DBlob> ShadowPSBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/15.ShadowPixelShader.hlsl", "ShadowPS", "ps_4_0", ShadowPSBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/14.ShadowPixelShader.hlsl", "ShadowPS", "ps_4_0", ShadowPSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(ShadowPSBuffer->GetBufferPointer(), ShadowPSBuffer->GetBufferSize(), NULL, m_pShadowPS.GetAddressOf()));
 
 
@@ -595,7 +595,7 @@ void TestApp::InitSkyBox()
 
 	// Vertex Shader
 	ComPtr<ID3DBlob> vertexShaderBuffer_Sky;
-	HR_T(CompileShaderFromFile(L"../Shaders/15.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/14.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), NULL, m_pVertexShader_Sky.GetAddressOf()));
 
 	// Input Layout
@@ -603,7 +603,7 @@ void TestApp::InitSkyBox()
 
 	// Pixel Shader
 	ComPtr<ID3DBlob> pixelShaderBuffer_Sky;
-	HR_T(CompileShaderFromFile(L"../Shaders/15.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/14.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer_Sky->GetBufferPointer(), pixelShaderBuffer_Sky->GetBufferSize(), NULL, m_pPixelShader_Sky.GetAddressOf()));
 }
 
