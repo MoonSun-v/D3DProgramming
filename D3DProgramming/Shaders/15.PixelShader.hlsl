@@ -205,7 +205,7 @@ float4 main(PS_INPUT input) : SV_Target
     
         float3 F_IBL = fresnelSchlick(F0, cosVH);
         float3 kd_IBL = lerp(1.0 - F_IBL, 0.0, metallic);
-        float3 diffuseIBL = kd_IBL * albedo / PI * irradiance;
+        float3 diffuseIBL = kd_IBL * albedo/* / PI*/ * irradiance;
 
     
         // [ Specular IBL ] (Prefiltered env + BRDF LUT) -------------------------
