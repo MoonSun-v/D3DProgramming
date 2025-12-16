@@ -2,6 +2,11 @@
 #include "../Common/GameApp.h"
 #include "../Common/D3DDevice.h"
 #include "ConstantBuffer.h"
+#include "DebugDraw.h"
+
+#include <directxtk/SimpleMath.h>
+#include <directxtk/CommonStates.h> 
+#include <directxtk/Effects.h>		
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
@@ -9,8 +14,6 @@
 #include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 #include <string>
 
-#include <DirectXColors.h>
-#include <Effects.h>
 #include "SkeletalMeshInstance.h"
 #include "StaticMeshInstance.h"
 
@@ -40,6 +43,10 @@ public:
 	TestApp();
 	~TestApp();
 
+	// [ Vampire ]
+	std::shared_ptr<SkeletalMeshAsset> VampireAsset;
+	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Vampires;
+
 	// [ Human ]
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;               // 공유 Asset
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
@@ -51,6 +58,19 @@ public:
 	// [ Plane ]
 	std::shared_ptr<StaticMeshAsset> planeAsset;             
 	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes;     
+
+
+	// Debug draw
+	std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_DebugBatch;
+	std::unique_ptr<DirectX::BasicEffect> m_DebugEffect;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_DebugInputLayout;
+	std::unique_ptr<DebugDraw> m_DebugDraw;
+
+	DirectX::BoundingFrustum m_ShadowFrustumWS; // Shadow frustum (world space)
+
+	DirectX::SimpleMath::Vector3 m_ShadowCameraPos; // Shadow camera position (디버그용)
+
+	bool m_DrawShadowFrustum = true; // 토글용
 
 
 private:
@@ -124,7 +144,7 @@ public:
 
 
 	// [ Main Camera ]
-	float m_CameraNear = 0.1f;
+	float m_CameraNear = 0.3f;
 	float m_CameraFar = 5000.0f;
 
 

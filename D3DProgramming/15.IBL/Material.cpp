@@ -26,6 +26,21 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
         CreateDefaultTextures(device); 
     }
 
+    // [1] Diffuse/BaseColor 색 읽기
+    aiColor4D aiBaseColor(1.0f, 1.0f, 1.0f, 1.0f); // 기본값: 흰색
+    if (AI_SUCCESS == aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &aiBaseColor))
+    {
+        BaseColor = XMFLOAT4(aiBaseColor.r, aiBaseColor.g, aiBaseColor.b, aiBaseColor.a);
+        OutputDebugStringW((L"[Material Color] BaseColor: " +
+            std::to_wstring(aiBaseColor.r) + L"," +
+            std::to_wstring(aiBaseColor.g) + L"," +
+            std::to_wstring(aiBaseColor.b) + L"\n").c_str());
+    }
+    else
+    {
+        BaseColor = XMFLOAT4(1, 1, 1, 1);
+    }
+
     // 텍스처 로드 
     auto TryLoad = [&](aiTextureType type, std::wstring& outPath, ComPtr<ID3D11ShaderResourceView>& outSRV)
         {
@@ -69,8 +84,8 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
 
     // Metallic
     bool foundMetal =
-        TryLoad(aiTextureType_METALNESS, FilePathMetallic, m_textures.MetallicSRV) ||
-        TryLoad(aiTextureType_SPECULAR, FilePathMetallic, m_textures.MetallicSRV); // fallback
+        TryLoad(aiTextureType_METALNESS, FilePathMetallic, m_textures.MetallicSRV); /*||
+        TryLoad(aiTextureType_SPECULAR, FilePathMetallic, m_textures.MetallicSRV); */// fallback
 
     // Roughness
     bool foundRough =
@@ -92,7 +107,39 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
     // ====== 기본 텍스처 채우기 ========
     if (!m_textures.BaseColorSRV) 
     {
-        m_textures.BaseColorSRV = s_defaultTextures.BaseColorSRV; OutputDebugStringW(L"[Material] 기본 BaseColor 텍스처 사용\n");
+        // 색상 기반 1x1 텍스처 생성
+        unsigned char color[4] = {
+            (unsigned char)(BaseColor.x * 255),
+            (unsigned char)(BaseColor.y * 255),
+            (unsigned char)(BaseColor.z * 255),
+            (unsigned char)(BaseColor.w * 255)
+        };
+
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = desc.Height = 1;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; 
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+        D3D11_SUBRESOURCE_DATA init{};
+        init.pSysMem = color;
+        init.SysMemPitch = 4;
+
+        ComPtr<ID3D11Texture2D> tex;
+        device->CreateTexture2D(&desc, &init, &tex);
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        srvDesc.Format = desc.Format;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+
+        device->CreateShaderResourceView(tex.Get(), &srvDesc, &m_textures.BaseColorSRV);
+
+        OutputDebugStringW(L"[Material] 기본 BaseColor 텍스처 사용\n");
     }
     if (!m_textures.NormalSRV) 
     {

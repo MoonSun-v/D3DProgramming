@@ -28,6 +28,32 @@ bool TestApp::Initialize()
 	if (!InitSkyBox())  return false;
 	if (!InitImGUI())	return false;
 
+	// ------------------------------------
+	// DebugDraw 초기화
+	// ------------------------------------
+	m_DebugBatch = std::make_unique<DirectX::PrimitiveBatch<VertexPositionColor>>(
+		m_D3DDevice.GetDeviceContext()
+	);
+
+	m_DebugEffect = std::make_unique<DirectX::BasicEffect>(
+		m_D3DDevice.GetDevice()
+	);
+	m_DebugEffect->SetVertexColorEnabled(true);
+
+	void const* shaderByteCode;
+	size_t byteCodeLength;
+	m_DebugEffect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength);
+
+	m_D3DDevice.GetDevice()->CreateInputLayout(
+		DirectX::VertexPositionColor::InputElements,
+		DirectX::VertexPositionColor::InputElementCount,
+		shaderByteCode,
+		byteCodeLength,
+		m_DebugInputLayout.GetAddressOf()
+	);
+
+	m_DebugDraw = std::make_unique<DebugDraw>();
+
 	return true;
 }
 
@@ -63,15 +89,23 @@ bool TestApp::LoadAsset()
 
 
 	// -------------- [ Skeletal Mesh Asset 생성 ] --------------
-	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/SkinningTest.fbx"); 
-	// humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Character.fbx");
-	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Vampire_SkinningTest.fbx");
+	// 1. Human
+	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/DancingHuman.fbx"); 
 	auto instance_human = std::make_shared<SkeletalMeshInstance>();
 	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-	instance_human->transform.position = { 0, 0, 40 };
+	instance_human->transform.position = { 0, 0, 10 };
 	instance_human->transform.rotation = { 0, XMConvertToRadians(45), 0 };
 	instance_human->transform.scale = { 1.0, 1.0, 1.0 };
 	m_Humans.push_back(instance_human);
+
+	// 2. Vampire
+	VampireAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/Vampire_SkinningTest.fbx");
+	auto instance_Vampire = std::make_shared<SkeletalMeshInstance>();
+	instance_Vampire->SetAsset(m_D3DDevice.GetDevice(), VampireAsset);
+	instance_Vampire->transform.position = { 0, 0, 100 };
+	instance_Vampire->transform.rotation = { 0, XMConvertToRadians(45), 0 };
+	instance_Vampire->transform.scale = { 1.0, 1.0, 1.0 };
+	m_Vampires.push_back(instance_Vampire);
 
 
 	// -------------- [ SkyBox 리소스 ] --------------
@@ -83,17 +117,17 @@ bool TestApp::LoadAsset()
 	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_SpecularHDR.dds", m_IBLSet[0].prefilter.ReleaseAndGetAddressOf()));
 	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_Brdf.dds", m_IBLSet[0].brdfLut.ReleaseAndGetAddressOf()));
 
-	// InDoor 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_EnvHDR.dds", m_IBLSet[1].skybox.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_DiffuseHDR.dds",m_IBLSet[1].irradiance.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_SpecularHDR.dds", m_IBLSet[1].prefilter.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/InDoor/InDoor_Brdf.dds", m_IBLSet[1].brdfLut.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomEnvHDR.dds", m_IBLSet[1].skybox.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomDiffuseHDR.dds", m_IBLSet[1].irradiance.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomSpecularHDR.dds", m_IBLSet[1].prefilter.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Room/RoomBrdf.dds", m_IBLSet[1].brdfLut.ReleaseAndGetAddressOf()));
+
 
 	//  OutDoor 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skybox.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradiance.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilter.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLut.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skybox.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradiance.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilter.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLut.ReleaseAndGetAddressOf()));
 
 	return true; 
 }
@@ -118,7 +152,10 @@ void TestApp::Update()
 	{
 		m_Humans[i]->Update(deltaTime);
 	}
-
+	for (size_t i = 0; i < m_Vampires.size(); i++)
+	{
+		m_Vampires[i]->Update(deltaTime);
+	}
 
 	// ---------------------------------------------
 	// [ Shadow 카메라 위치 계산 (원근 투영) ] 
@@ -133,11 +170,24 @@ void TestApp::Update()
 	Vector3 lightDir = XMVector3Normalize(Vector3(m_LightDir.x, m_LightDir.y, m_LightDir.z));
 	Vector3 shadowPos = m_Camera.m_Position + (-lightDir * shadowBackOffset);
 
+	// Shadow 카메라 위치 저장 (DebugDraw용)
+	m_ShadowCameraPos = shadowPos;
+
 	// [ Shadow View ]
 	m_ShadowView = XMMatrixLookAtLH(shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 50.0f, 10000.f);
+	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 300.0f, 9000.f);
+
+
+	// ------------------------------------
+	// Shadow Frustum (World Space)
+	// ------------------------------------
+	DirectX::BoundingFrustum::CreateFromMatrix( m_ShadowFrustumWS, m_ShadowProjection );
+
+	// View inverse로 월드 변환
+	Matrix invShadowView = m_ShadowView.Invert();
+	m_ShadowFrustumWS.Transform(m_ShadowFrustumWS, invShadowView);
 }     
 
 void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
@@ -158,7 +208,7 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 	cb.useTexture_Metallic = useTex_Metal;
 	cb.useTexture_Roughness = useTex_Rough;
 	cb.useTexture_Normal = useTex_Normal;
-	cb.useIBL = 1; // useIBL ? 1 : 0;
+	cb.useIBL = useIBL; // useIBL ? 1 : 0;
 
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
@@ -216,9 +266,55 @@ void TestApp::Render()
 
 	// Mesh 렌더링 : Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i]); }
+	for (size_t i = 0; i < m_Vampires.size(); i++) { RenderSkeletalMesh(*m_Vampires[i]); }
 
 	// UI 렌더링
 	Render_ImGui(); 
+
+	// =====================================
+	// Debug Shadow Frustum Draw
+	// =====================================
+	
+	if (m_DrawShadowFrustum)
+	{
+		auto* context = m_D3DDevice.GetDeviceContext();
+
+		// -----------------------------
+		// DebugDraw 전용 상태 설정
+		// -----------------------------
+		context->IASetInputLayout(m_DebugInputLayout.Get());
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+		m_DebugEffect->SetView(m_View);           // 메인 카메라
+		m_DebugEffect->SetProjection(m_Projection);
+		m_DebugEffect->Apply(context);
+
+		m_DebugBatch->Begin();
+
+		// Shadow Frustum
+		m_DebugDraw->Draw(
+			m_DebugBatch.get(),
+			m_ShadowFrustumWS,
+			DirectX::Colors::Red
+		);
+
+		// Shadow Camera 위치
+		DirectX::BoundingSphere lightPos;
+		lightPos.Center = {
+			m_ShadowCameraPos.x,
+			m_ShadowCameraPos.y,
+			m_ShadowCameraPos.z
+		};
+		lightPos.Radius = 20.0f;
+
+		m_DebugDraw->Draw(
+			m_DebugBatch.get(),
+			lightPos,
+			DirectX::Colors::Yellow
+		);
+
+		m_DebugBatch->End();
+	}
 
 	// 화면 출력
 	m_D3DDevice.EndFrame(); 
@@ -328,6 +424,10 @@ void TestApp::RenderShadowMap()
 	for (size_t i = 0; i < m_Humans.size(); i++)
 	{
 		RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
+	}
+	for (size_t i = 0; i < m_Vampires.size(); i++)
+	{
+		RenderShadowSkeletal(*m_Vampires[i], m_Vampires[i]->GetWorld());
 	}
 	for (size_t i = 0; i < m_Planes.size(); i++)
 	{
@@ -884,10 +984,12 @@ void TestApp::UninitScene()
 	m_Humans.clear();
 	m_Planes.clear();
 	m_Chars.clear();
+	m_Vampires.clear();
 
 	humanAsset.reset();
 	charAsset.reset();
 	planeAsset.reset();
+	VampireAsset.reset();
 
 	AssetManager::Get().UnloadAll(); 
 	Material::DestroyDefaultTextures(); // 기본 텍스처 

@@ -26,6 +26,7 @@ private:
     TextureSRVs m_textures;                 // 현재 Material이 가진 텍스처
     static TextureSRVs s_defaultTextures;   // 기본 텍스처 (모델에 텍스처 없을 때 사용)
 
+    XMFLOAT4 BaseColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 public:
     // 텍스처 파일 경로 (확인용)
     std::wstring FilePathBaseColor;

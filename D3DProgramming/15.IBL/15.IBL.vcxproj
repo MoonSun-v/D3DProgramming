@@ -125,6 +125,7 @@
   <ItemGroup>
     <ClCompile Include="Animation.cpp" />
     <ClCompile Include="AssetManager.cpp" />
+    <ClCompile Include="DebugDraw.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MeshSection.cpp" />
     <ClCompile Include="SkeletalMeshAsset.cpp" />
@@ -142,6 +143,7 @@
     <ClInclude Include="Bone.h" />
     <ClInclude Include="BoneMatrixContainer.h" />
     <ClInclude Include="ConstantBuffer.h" />
+    <ClInclude Include="DebugDraw.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MeshSection.h" />
     <ClInclude Include="SkeletalMeshAsset.h" />
