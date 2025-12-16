@@ -38,14 +38,14 @@ cbuffer ConstantBuffer : register(b0)
     float4 gRoughnessMultiplier;
     float4 manualBaseColor;
     
-    int gIsRigid; 
-    int useTexture_BaseColor;
-    int useTexture_Metallic;
-    int useTexture_Roughness;
-    
-    int useTexture_Normal;
-    int useIBL;
-    int pad0[2];
+    float gIsRigid;
+    float useTexture_BaseColor;
+    float useTexture_Metallic;
+    float useTexture_Roughness;
+
+    float useTexture_Normal;
+    float useIBL;
+    float2 pad0;
 }
 
 

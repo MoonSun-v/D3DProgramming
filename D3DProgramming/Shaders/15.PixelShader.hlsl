@@ -134,6 +134,7 @@ float4 main(PS_INPUT input) : SV_Target
     // F0  (비금속은 0.04, 금속은 Albedo 사용)
     float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
     
+    
     // ----------------------------------------------------------------------    
     // 6. Direct lighting (Cook-Torrance per-light) 
     // ----------------------------------------------------------------------    
@@ -202,9 +203,9 @@ float4 main(PS_INPUT input) : SV_Target
         // [ Diffuse IBL ] (Irradiance) -----------------------------------------
         float3 irradiance = txIBL_Diffuse.Sample(samLinearIBL, N).rgb;
     
-        float3 F_IBL = fresnelSchlick(F0, cosVH); // IBL용 Fresnel 
+        float3 F_IBL = fresnelSchlick(F0, cosVH);
         float3 kd_IBL = lerp(1.0 - F_IBL, 0.0, metallic);
-        float3 diffuseIBL = kd_IBL * albedo * irradiance;
+        float3 diffuseIBL = kd_IBL * albedo / PI * irradiance;
 
     
         // [ Specular IBL ] (Prefiltered env + BRDF LUT) -------------------------
@@ -220,15 +221,14 @@ float4 main(PS_INPUT input) : SV_Target
         // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
         float2 brdf = txIBL_BRDF_LUT.Sample(samClampIBL, float2(cosVH, roughness)).rg;
         
-    
         float3 specularIBL = PrefilteredColor * (F0 * brdf.x + brdf.y);
     
-        IndirectLight_IBL = (diffuseIBL + specularIBL) * 0.3f;
+        IndirectLight_IBL = diffuseIBL + specularIBL;
     }
     
     
     // ----------------------------------------------------------------------
-    // 10. 최종 조명  : 기존 하드코딩 ambient 제거하고 IBL 사용
+    // 10. 최종 조명  
     // ----------------------------------------------------------------------
     float3 emissive = SRGBToLinear(emissiveTex.rgb);
     float3 colorLinear = DirectLight + IndirectLight_IBL + emissive;

@@ -16,14 +16,14 @@ struct /*alignas(16)*/ ConstantBuffer
 	Vector4 gRoughnessMultiplier;// 16
 	Vector4 manualBaseColor;	 // 16
 
-	int	gIsRigid = 1;           // 4
-	int useTexture_BaseColor;	// 4
-	int useTexture_Metallic;	// 4
-	int useTexture_Roughness;	// 4
+	float gIsRigid;
+	float useTexture_BaseColor;
+	float useTexture_Metallic;
+	float useTexture_Roughness;
 
-	int useTexture_Normal;		// 4
-	int useIBL;					// 4
-	int pad0[2];				// 8
+	float useTexture_Normal;
+	float useIBL;
+	float pad0[2];
 
 	// float pad1[12];   // 12 * 4 = 48 bytes => total 368 bytes  
 };
