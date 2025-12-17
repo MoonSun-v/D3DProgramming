@@ -205,7 +205,7 @@ float4 main(PS_INPUT input) : SV_Target
     
         float3 F_IBL = fresnelSchlick(F0, cosVH);
         float3 kd_IBL = lerp(1.0 - F_IBL, 0.0, metallic);
-        float3 diffuseIBL = kd_IBL * albedo/* / PI*/ * irradiance;
+        float3 diffuseIBL = kd_IBL * albedo / PI * irradiance;
 
     
         // [ Specular IBL ] (Prefiltered env + BRDF LUT) -------------------------
@@ -216,7 +216,7 @@ float4 main(PS_INPUT input) : SV_Target
         
         // Lr( View,Normal의 반사벡터) 와 거칠기를 사용하여 반사 빛을 샘플링한다. 
         // 거칠기에 따라 뭉게진 반사 빛을 표현하기위해  LOD 선형보간이 적용된다.    
-        float3 PrefilteredColor = txIBL_Specular.SampleLevel(samLinearIBL, R, roughness * specularTextureLevels).rgb;
+        float3 PrefilteredColor = txIBL_Specular.SampleLevel(samLinearIBL, R, roughness * (specularTextureLevels-1)).rgb;
 
         // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
         float2 brdf = txIBL_BRDF_LUT.Sample(samClampIBL, float2(cosVH, roughness)).rg;

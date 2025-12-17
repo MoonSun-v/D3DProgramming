@@ -69,7 +69,9 @@ cbuffer ShadowCB : register(b3)
 
 cbuffer ToneMapCB : register(b4)
 {
-    float Exposure;
+    float gExposure;    // EV 기반 exposure
+    float gMaxHDRNits; // HDR10 기준 (예: 1000.0)
+    float2 padding;
 };
 
 

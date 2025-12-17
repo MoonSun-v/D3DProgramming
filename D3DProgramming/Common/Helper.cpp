@@ -68,6 +68,35 @@ HRESULT CompileShaderFromFile(const WCHAR* szFileName, LPCSTR szEntryPoint, LPCS
 	return S_OK;
 }
 
+const wchar_t* DXGIFormatToString(DXGI_FORMAT format)
+{
+	switch (format)
+	{
+	case DXGI_FORMAT_UNKNOWN: return L"UNKNOWN";
+
+	case DXGI_FORMAT_R32G32B32A32_FLOAT: return L"R32G32B32A32_FLOAT (HDR)";
+	case DXGI_FORMAT_R16G16B16A16_FLOAT: return L"R16G16B16A16_FLOAT (HDR)";
+	case DXGI_FORMAT_R11G11B10_FLOAT:     return L"R11G11B10_FLOAT (HDR)";
+
+	case DXGI_FORMAT_R8G8B8A8_UNORM:       return L"R8G8B8A8_UNORM (LDR)";
+	case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return L"R8G8B8A8_UNORM_SRGB (LDR)";
+
+	case DXGI_FORMAT_B8G8R8A8_UNORM:       return L"B8G8R8A8_UNORM (LDR)";
+	case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return L"B8G8R8A8_UNORM_SRGB (LDR)";
+
+	case DXGI_FORMAT_BC1_UNORM:            return L"BC1_UNORM (DXT1, LDR)";
+	case DXGI_FORMAT_BC1_UNORM_SRGB:       return L"BC1_UNORM_SRGB (DXT1, LDR)";
+	case DXGI_FORMAT_BC3_UNORM:            return L"BC3_UNORM (DXT5, LDR)";
+	case DXGI_FORMAT_BC3_UNORM_SRGB:       return L"BC3_UNORM_SRGB (DXT5, LDR)";
+	case DXGI_FORMAT_BC6H_UF16:             return L"BC6H_UF16 (HDR)";
+	case DXGI_FORMAT_BC6H_SF16:             return L"BC6H_SF16 (HDR)";
+	case DXGI_FORMAT_BC7_UNORM:             return L"BC7_UNORM (LDR)";
+	case DXGI_FORMAT_BC7_UNORM_SRGB:        return L"BC7_UNORM_SRGB (LDR)";
+
+	default: return L"(Unknown / Unhandled Format)";
+	}
+}
+
 void PrintDDSInfo(const wchar_t* file)
 {
 	DirectX::TexMetadata meta;
@@ -94,7 +123,9 @@ void PrintDDSInfo(const wchar_t* file)
 	swprintf_s(buffer, L"File       : %s\n", file);
 	OutputDebugStringW(buffer);
 
-	swprintf_s(buffer, L"Format     : %d\n", meta.format);
+	swprintf_s(buffer, L"Format     : %s (%d)\n",
+		DXGIFormatToString(meta.format),
+		meta.format);
 	OutputDebugStringW(buffer);
 
 	swprintf_s(buffer, L"Width      : %llu\n", meta.width);
@@ -110,6 +141,14 @@ void PrintDDSInfo(const wchar_t* file)
 	OutputDebugStringW(buffer);
 
 	swprintf_s(buffer, L"Cubemap    : %s\n", meta.IsCubemap() ? L"YES" : L"NO");
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"Compressed : %s\n",
+		DirectX::IsCompressed(meta.format) ? L"YES" : L"NO");
+	OutputDebugStringW(buffer);
+
+	swprintf_s(buffer, L"sRGB       : %s\n",
+		DirectX::IsSRGB(meta.format) ? L"YES" : L"NO");
 	OutputDebugStringW(buffer);
 
 	OutputDebugStringW(L"=====================\n");

@@ -38,8 +38,9 @@ struct ShadowConstantBuffer
 };
 
 // ToneMapping Pass에서 사용
-struct ToneMapCB
+struct ToneMapConstantBuffer
 {
 	float Exposure;
-	float padding[3]; 
+	float MaxHDRNits;
+	float Padding[2];
 };

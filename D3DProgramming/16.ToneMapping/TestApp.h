@@ -31,10 +31,10 @@ struct Vertex_Sky
 
 struct IBLEnvironment
 {
-	ComPtr<ID3D11ShaderResourceView> skybox;
-	ComPtr<ID3D11ShaderResourceView> irradiance;
-	ComPtr<ID3D11ShaderResourceView> prefilter;
-	ComPtr<ID3D11ShaderResourceView> brdfLut;
+	ComPtr<ID3D11ShaderResourceView> skyboxSRV;
+	ComPtr<ID3D11ShaderResourceView> irradianceSRV;
+	ComPtr<ID3D11ShaderResourceView> prefilterSRV;
+	ComPtr<ID3D11ShaderResourceView> brdfLutSRV;
 };
 
 class TestApp : public GameApp
@@ -105,7 +105,7 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer_Sky;
 	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
 	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
-	ComPtr<ID3D11ShaderResourceView> m_pSkyBoxSRV;			// 스카이 박스 
+	// ComPtr<ID3D11ShaderResourceView> m_pSkyBoxSRV;			// 스카이 박스 
 	UINT m_VertextBufferStride_Sky = 0;
 	UINT m_VertextBufferOffset_Sky = 0;
 	int m_nIndices_Sky = 0;
@@ -127,7 +127,6 @@ public:
 	ComPtr<ID3D11Texture2D> m_HDRSceneTex;
 	ComPtr<ID3D11RenderTargetView> m_HDRSceneRTV;
 	ComPtr<ID3D11ShaderResourceView> m_HDRSceneSRV;
-
 	float m_ExposureEV = 0.0f; // 0 = 기본 노출 (2^0 = 1) // TODO: GUI로 조정
 
 

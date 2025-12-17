@@ -108,21 +108,22 @@ bool TestApp::LoadAsset()
 	m_IBLSet.resize(3);
 
 	// Sky 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_EnvHDR.dds", m_IBLSet[0].skybox.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_DiffuseHDR.dds", m_IBLSet[0].irradiance.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_SpecularHDR.dds", m_IBLSet[0].prefilter.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_Brdf.dds", m_IBLSet[0].brdfLut.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_EnvHDR.dds", m_IBLSet[0].skyboxSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_DiffuseHDR.dds", m_IBLSet[0].irradianceSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_SpecularHDR.dds", m_IBLSet[0].prefilterSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_Brdf.dds", m_IBLSet[0].brdfLutSRV.ReleaseAndGetAddressOf()));
 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapEnvHDR.dds", m_IBLSet[1].skybox.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapDiffuseHDR.dds", m_IBLSet[1].irradiance.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapSpecularHDR.dds", m_IBLSet[1].prefilter.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapBrdf.dds", m_IBLSet[1].brdfLut.ReleaseAndGetAddressOf()));
+	// InDoor 
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapEnvHDR.dds", m_IBLSet[1].skyboxSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapDiffuseHDR.dds", m_IBLSet[1].irradianceSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapSpecularHDR.dds", m_IBLSet[1].prefilterSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapBrdf.dds", m_IBLSet[1].brdfLutSRV.ReleaseAndGetAddressOf()));
 
 	// OutDoor 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skybox.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradiance.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilter.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLut.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skyboxSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradianceSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilterSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLutSRV.ReleaseAndGetAddressOf()));
 
 	return true; 
 }
@@ -218,12 +219,8 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 //		- SkyBox
 //		- PBR + IBL
 //	[3] ToneMapping Pass(HDR → LDR)
-//	[4] UI / Debug Pass(LDR 위에)
+//	[4] UI / Debug Pass(LDR 위에: 톤매핑 이후에)
 //	[5] Present
-
-// 1. BeginFrame()를 HDR RT용 BeginScene() 으로 분리
-// 2. HDR RT → BackBuffer로 가는 ToneMapping Pass 추가
-// 3. UI / Debug는 ToneMapping 이후
 
 void TestApp::Render()
 {
@@ -236,8 +233,6 @@ void TestApp::Render()
 	// --------------------------------------------
 	// [2] HDR Scene Pass (R16G16B16A16_FLOAT) 
 	// --------------------------------------------
-	//const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
-	//m_D3DDevice.BeginFrame(clearColor);
 	
 	Render_BeginSceneHDR(); // HDR RT 바인딩 
 	
@@ -258,12 +253,13 @@ void TestApp::Render()
 
 	// ShadowMap SRV 바인딩
 	context->PSSetShaderResources(6, 1, m_pShadowMapSRV.GetAddressOf());
-	context->PSSetShaderResources(10, 1, m_IBLSet[currentIBL].skybox.GetAddressOf());      // Sky cube map
+
+	// IBL 리소스 바인딩
 	if (useIBL)
 	{
-		context->PSSetShaderResources(11, 1, m_IBLSet[currentIBL].irradiance.GetAddressOf());
-		context->PSSetShaderResources(12, 1, m_IBLSet[currentIBL].prefilter.GetAddressOf());
-		context->PSSetShaderResources(13, 1, m_IBLSet[currentIBL].brdfLut.GetAddressOf());
+		context->PSSetShaderResources(11, 1, m_IBLSet[currentIBL].irradianceSRV.GetAddressOf());
+		context->PSSetShaderResources(12, 1, m_IBLSet[currentIBL].prefilterSRV.GetAddressOf());
+		context->PSSetShaderResources(13, 1, m_IBLSet[currentIBL].brdfLutSRV.GetAddressOf());
 	}
 	else
 	{
@@ -327,10 +323,10 @@ void TestApp::Render_BeginBackBuffer()
 {
 	auto* context = m_D3DDevice.GetDeviceContext();
 
-	ID3D11RenderTargetView* rtvs[] = { m_D3DDevice.GetRenderTargetView() }; //GetBackBufferRTV
-	context->OMSetRenderTargets(1, rtvs, nullptr);
+	ID3D11RenderTargetView* rtvs[] = { m_D3DDevice.GetRenderTargetView() }; // GetBackBufferRTV
+	context->OMSetRenderTargets(1, rtvs, m_D3DDevice.GetDepthStencilView());
 
-	const float clearColor[4] = { 0, 0, 0, 1 };
+	const float clearColor[4] = { 1, 0, 1, 1 };
 	context->ClearRenderTargetView(rtvs[0], clearColor);
 
 	// Viewport 동일
@@ -344,12 +340,14 @@ void TestApp::Render_BeginBackBuffer()
 
 
 // ---------------------------------------
-// HDR SceneTexture → LDR BackBuffer
+// HDR SceneTexture → LDR BackBuffer 
 // Exposure + ToneMapping + Gamma
 // ---------------------------------------
 void TestApp::Render_ToneMapping()
 {
 	auto* context = m_D3DDevice.GetDeviceContext();
+
+	context->OMSetDepthStencilState(nullptr, 0);
 
 	// Fullscreen Quad : Vertex Buffer, Input Semantic 없음 -> InputLayout 필요 없음 
 	context->IASetInputLayout(nullptr /*m_pFullscreenInputLayout.Get()*/); 
@@ -359,20 +357,23 @@ void TestApp::Render_ToneMapping()
 	context->PSSetShader(m_pToneMapPS.Get(), nullptr, 0);
 
 	// HDR SceneTexture SRV
-	context->PSSetShaderResources(0, 1, m_HDRSceneSRV.GetAddressOf());
+	context->PSSetShaderResources(7, 1, m_HDRSceneSRV.GetAddressOf());
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
+	ToneMapConstantBuffer toneMapCB;
+
 	// Exposure
-	float exposure = powf(2.0f, m_ExposureEV);
-	context->UpdateSubresource(m_ToneMapCB.Get(), 0, nullptr, &exposure, 0, 0);
+	toneMapCB.Exposure = m_ExposureEV;
+	toneMapCB.MaxHDRNits = 1000.0f; // HDR10 기준
+	context->UpdateSubresource(m_ToneMapCB.Get(), 0, nullptr, &toneMapCB, 0, 0);
 	context->PSSetConstantBuffers(4, 1, m_ToneMapCB.GetAddressOf());
 
 	// Draw fullscreen
 	context->Draw(3, 0);
 
-	// SRV Unbind (중요)
+	// SRV Unbind
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	context->PSSetShaderResources(0, 1, nullSRV);
+	context->PSSetShaderResources(7, 1, nullSRV);
 }
 
 
@@ -390,13 +391,12 @@ void TestApp::Render_BeginSceneHDR()
 	const float clearColor[4] = { 0, 0, 0, 1 };
 	m_D3DDevice.GetDeviceContext()->ClearRenderTargetView(m_HDRSceneRTV.Get(), clearColor);
 	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView(
-		m_D3DDevice.GetDepthStencilView(),
-		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-		1.0f, 0
-	);
+		m_D3DDevice.GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0 );
 
 	// Viewport (BackBuffer와 동일)
 	D3D11_VIEWPORT vp{};
+	vp.TopLeftX = 0.0f;
+	vp.TopLeftY = 0.0f;
 	vp.Width = (float)m_ClientWidth;
 	vp.Height = (float)m_ClientHeight;
 	vp.MinDepth = 0.0f;
@@ -419,10 +419,13 @@ void TestApp::Render_SkyBox()
 	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader_Sky.Get(), nullptr, 0);
 	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader_Sky.Get(), nullptr, 0);
 
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_IBLSet[currentIBL].skyboxSRV.GetAddressOf());
+
 	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
 
 	// Draw
 	m_D3DDevice.GetDeviceContext()->DrawIndexed(m_nIndices_Sky, 0, 0);
@@ -706,8 +709,8 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	
 	D3D11_TEXTURE2D_DESC hdrDesc = {};
-	hdrDesc.Width = m_ClientWidth;
-	hdrDesc.Height = m_ClientHeight;
+	hdrDesc.Width = (UINT)m_ClientWidth;
+	hdrDesc.Height = (UINT)m_ClientHeight;
 	hdrDesc.MipLevels = 1;
 	hdrDesc.ArraySize = 1;
 	hdrDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR 포맷
@@ -723,7 +726,7 @@ bool TestApp::InitScene()
 
 	// 상수버퍼 (톤맵핑용)
 	D3D11_BUFFER_DESC desc{};
-	desc.ByteWidth = sizeof(ToneMapCB);
+	desc.ByteWidth = sizeof(ToneMapConstantBuffer);
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&desc, nullptr, m_ToneMapCB.GetAddressOf()));
@@ -1126,7 +1129,7 @@ void TestApp::UninitScene()
 	m_pIndexBuffer_Sky.Reset();
 	m_pDSState_Sky.Reset();
 	m_pRasterizerState_Sky.Reset();
-	m_pSkyBoxSRV.Reset();
+	// m_pSkyBoxSRV.Reset();
 	m_pIrradianceSRV.Reset();
 	m_pPrefilterSRV.Reset();
 	m_pBRDFLUTSRV.Reset();
