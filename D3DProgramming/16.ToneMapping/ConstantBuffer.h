@@ -29,10 +29,17 @@ struct /*alignas(16)*/ ConstantBuffer
 };
 
 
-// ShadowMap생성 Pass에서 사용
+// ShadowMap Pass에서 사용
 struct ShadowConstantBuffer
 {
 	Matrix mWorld;          // 모델 -> 월드
 	Matrix mLightView;      // 광원 시점 View
 	Matrix mLightProjection;// 광원 시점 Projection
+};
+
+// ToneMapping Pass에서 사용
+struct ToneMapCB
+{
+	float Exposure;
+	float padding[3]; 
 };

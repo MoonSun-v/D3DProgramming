@@ -11,6 +11,7 @@ Texture2D txRoughness : register(t3);
 Texture2D txEmissive : register(t4);  
 Texture2D txOpacity : register(t5);   
 Texture2D txShadowMap : register(t6);
+Texture2D txSceneHDR : register(t7);
 
 TextureCube txSky : register(t10);
 TextureCube txIBL_Diffuse : register(t11);  // Irradiance (Diffuse IBL)
@@ -66,6 +67,11 @@ cbuffer ShadowCB : register(b3)
     matrix mLightProjection;    // 라이트 뷰 -> 클립
 };
 
+cbuffer ToneMapCB : register(b4)
+{
+    float Exposure;
+};
+
 
 // [ Shadow ]
 struct VS_SHADOW_INPUT
@@ -94,6 +100,14 @@ struct PS_INPUT_SKY
 {
     float4 Pos : SV_POSITION;     // 변환된 정점 좌표 (화면 클립 공간)
     float3 WorldDir : TEXCOORD0;  // CubeMap 샘플링용
+};
+
+
+// [ Tone Mapping ]
+struct VSOut
+{
+    float4 Pos : SV_POSITION;
+    float2 UV : TEXCOORD0;
 };
 
 

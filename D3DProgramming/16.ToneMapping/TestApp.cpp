@@ -210,23 +210,41 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 }
 
+// --------------------------------------------
+//	HDR 파이프라인 렌더링 
+// --------------------------------------------
+//	[1] ShadowMap Pass
+//	[2] Scene HDR Pass(R16G16B16A16_FLOAT)
+//		- SkyBox
+//		- PBR + IBL
+//	[3] ToneMapping Pass(HDR → LDR)
+//	[4] UI / Debug Pass(LDR 위에)
+//	[5] Present
+
+// 1. BeginFrame()를 HDR RT용 BeginScene() 으로 분리
+// 2. HDR RT → BackBuffer로 가는 ToneMapping Pass 추가
+// 3. UI / Debug는 ToneMapping 이후
 
 void TestApp::Render()
 {
-	// [ DepthOnly Pass 렌더링 (ShadowMap) ]
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(6, 1, nullSRV);
+	// --------------------------------------------
+	// [1] DepthOnly Pass 렌더링 (ShadowMap) 
+	// --------------------------------------------
+	Render_ShadowMap(); 
 
-	RenderShadowMap(); // Shadow 
 
-	// [ Main Pass 렌더링 ]
-	const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
-	m_D3DDevice.BeginFrame(clearColor);
+	// --------------------------------------------
+	// [2] HDR Scene Pass (R16G16B16A16_FLOAT) 
+	// --------------------------------------------
+	//const float clearColor[4] = { m_ClearColor.x, m_ClearColor.y, m_ClearColor.z, m_ClearColor.w };
+	//m_D3DDevice.BeginFrame(clearColor);
+	
+	Render_BeginSceneHDR(); // HDR RT 바인딩 
+	
+
+	Render_SkyBox();  // SkyBox 렌더링 
 
 	auto* context = m_D3DDevice.GetDeviceContext();
-
-	Render_SkyBox(); // SkyBox 
-
 	context->IASetInputLayout(m_pInputLayout.Get());
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -263,51 +281,26 @@ void TestApp::Render()
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i]); }
 	for (size_t i = 0; i < m_Vampires.size(); i++) { RenderSkeletalMesh(*m_Vampires[i]); }
 
-	// UI 렌더링
-	Render_ImGui(); 
 
-	// =====================================
-	// Debug Shadow Frustum Draw
-	// =====================================
-	
-	if (m_DrawShadowFrustum)
-	{
-		auto* context = m_D3DDevice.GetDeviceContext();
 
-		// -----------------------------
-		// DebugDraw 전용 상태 설정
-		// -----------------------------
-		context->IASetInputLayout(m_DebugInputLayout.Get());
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	// --------------------------------------------
+	// [3] Tone Mapping Pass
+	// --------------------------------------------
 
-		m_DebugEffect->SetView(m_View);           // 메인 카메라
-		m_DebugEffect->SetProjection(m_Projection);
-		m_DebugEffect->Apply(context);
+	Render_BeginBackBuffer(); // BackBuffer RTV
+	Render_ToneMapping();     // Fullscreen Quad
 
-		m_DebugBatch->Begin();
 
-		// Shadow Frustum
-		m_DebugDraw->Draw(m_DebugBatch.get(), m_ShadowFrustumWS, DirectX::Colors::Red);
+	// --------------------------------------------
+	// [4] UI / Debug (LDR)
+	// --------------------------------------------
+	Render_ImGui();		// UI 렌더링
+	Render_DebugDraw(); // Debug Draw 렌더링
 
-		// Shadow Camera 위치
-		DirectX::BoundingSphere lightPos;
-		lightPos.Center = {
-			m_ShadowCameraPos.x,
-			m_ShadowCameraPos.y,
-			m_ShadowCameraPos.z
-		};
-		lightPos.Radius = 20.0f;
 
-		m_DebugDraw->Draw(
-			m_DebugBatch.get(),
-			lightPos,
-			DirectX::Colors::Yellow
-		);
-
-		m_DebugBatch->End();
-	}
-
-	// 화면 출력
+	// --------------------------------------------
+	// [5] Present 
+	// --------------------------------------------
 	m_D3DDevice.EndFrame(); 
 }
 
@@ -323,6 +316,92 @@ void TestApp::RenderStaticMesh(StaticMeshInstance& instance)
 	UpdateConstantBuffer(instance.GetWorld(), 1); // StaticMesh
 
 	instance.Render(m_D3DDevice.GetDeviceContext(), m_pSamplerLinear.Get());
+}
+
+
+// ---------------------------------------
+// Tone Mapping 결과를 BackBuffer(LDR) 로 출력
+// ToneMapping 패스는 Depth 필요 없음
+// ---------------------------------------
+void TestApp::Render_BeginBackBuffer()
+{
+	auto* context = m_D3DDevice.GetDeviceContext();
+
+	ID3D11RenderTargetView* rtvs[] = { m_D3DDevice.GetRenderTargetView() }; //GetBackBufferRTV
+	context->OMSetRenderTargets(1, rtvs, nullptr);
+
+	const float clearColor[4] = { 0, 0, 0, 1 };
+	context->ClearRenderTargetView(rtvs[0], clearColor);
+
+	// Viewport 동일
+	D3D11_VIEWPORT vp{};
+	vp.Width = (float)m_ClientWidth;
+	vp.Height = (float)m_ClientHeight;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	context->RSSetViewports(1, &vp);
+}
+
+
+// ---------------------------------------
+// HDR SceneTexture → LDR BackBuffer
+// Exposure + ToneMapping + Gamma
+// ---------------------------------------
+void TestApp::Render_ToneMapping()
+{
+	auto* context = m_D3DDevice.GetDeviceContext();
+
+	// Fullscreen Quad : Vertex Buffer, Input Semantic 없음 -> InputLayout 필요 없음 
+	context->IASetInputLayout(nullptr /*m_pFullscreenInputLayout.Get()*/); 
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	context->VSSetShader(m_pToneMapVS.Get(), nullptr, 0);
+	context->PSSetShader(m_pToneMapPS.Get(), nullptr, 0);
+
+	// HDR SceneTexture SRV
+	context->PSSetShaderResources(0, 1, m_HDRSceneSRV.GetAddressOf());
+	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	// Exposure
+	float exposure = powf(2.0f, m_ExposureEV);
+	context->UpdateSubresource(m_ToneMapCB.Get(), 0, nullptr, &exposure, 0, 0);
+	context->PSSetConstantBuffers(4, 1, m_ToneMapCB.GetAddressOf());
+
+	// Draw fullscreen
+	context->Draw(3, 0);
+
+	// SRV Unbind (중요)
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	context->PSSetShaderResources(0, 1, nullSRV);
+}
+
+
+// ---------------------------------------
+// SceneColor를 HDR(R16G16B16A16_FLOAT) 로 렌더
+// PBR + IBL 결과를 clamp 없이 저장
+// ---------------------------------------
+void TestApp::Render_BeginSceneHDR()
+{
+	// HDR RT + 기존 DepthStencil
+	ID3D11RenderTargetView* rtvs[] = { m_HDRSceneRTV.Get() };
+	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, rtvs, m_D3DDevice.GetDepthStencilView());
+
+	// Clear
+	const float clearColor[4] = { 0, 0, 0, 1 };
+	m_D3DDevice.GetDeviceContext()->ClearRenderTargetView(m_HDRSceneRTV.Get(), clearColor);
+	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView(
+		m_D3DDevice.GetDepthStencilView(),
+		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+		1.0f, 0
+	);
+
+	// Viewport (BackBuffer와 동일)
+	D3D11_VIEWPORT vp{};
+	vp.Width = (float)m_ClientWidth;
+	vp.Height = (float)m_ClientHeight;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &vp);
 }
 
 void TestApp::Render_SkyBox()
@@ -356,8 +435,11 @@ void TestApp::Render_SkyBox()
 // -----------------------
 // Shadow Map 렌더링
 // -----------------------
-void TestApp::RenderShadowMap()
+void TestApp::Render_ShadowMap()
 {
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(6, 1, nullSRV);
+
 	auto* context = m_D3DDevice.GetDeviceContext();
 
 	// ShadowMap 초기화
@@ -450,6 +532,12 @@ bool TestApp::InitScene()
 	HR_T(CompileShaderFromFile(L"../Shaders/16.ShadowVertexShader.hlsl", "ShadowVS", "vs_4_0", ShadowVSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(ShadowVSBuffer->GetBufferPointer(), ShadowVSBuffer->GetBufferSize(), NULL, m_pShadowVS.GetAddressOf()));
 
+	ComPtr<ID3DBlob> ToneVSBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/16.ToneVertexShader.hlsl", "main", "vs_4_0", ToneVSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(ToneVSBuffer->GetBufferPointer(), ToneVSBuffer->GetBufferSize(), NULL, m_pToneMapVS.GetAddressOf()));
+
+
+
 	// --------------------------------------------------------------
 	// 입력 레이아웃(Input Layout) 생성
 	//---------------------------------------------------------------
@@ -486,6 +574,9 @@ bool TestApp::InitScene()
 	HR_T(CompileShaderFromFile(L"../Shaders/16.ShadowPixelShader.hlsl", "ShadowPS", "ps_4_0", ShadowPSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(ShadowPSBuffer->GetBufferPointer(), ShadowPSBuffer->GetBufferSize(), NULL, m_pShadowPS.GetAddressOf()));
 
+	ComPtr<ID3DBlob> TonePSBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/16.TonePixelShader.hlsl", "main", "ps_4_0", TonePSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(TonePSBuffer->GetBufferPointer(), TonePSBuffer->GetBufferSize(), NULL, m_pToneMapPS.GetAddressOf()));
 
 	// ---------------------------------------------------------------
 	// 상수 버퍼(Constant Buffer) 생성
@@ -505,7 +596,7 @@ bool TestApp::InitScene()
 	// Shadow Map 뷰포트 설정
 	m_ShadowViewport.TopLeftX = 0.0f;
 	m_ShadowViewport.TopLeftY = 0.0f;
-	m_ShadowViewport.Width = 8192.0f; // 해상도
+	m_ShadowViewport.Width = 8192.0f; 
 	m_ShadowViewport.Height = 8192.0f;
 	m_ShadowViewport.MinDepth = 0.0f;
 	m_ShadowViewport.MaxDepth = 1.0f;
@@ -585,8 +676,6 @@ bool TestApp::InitScene()
 	// ---------------------------------------------------------------
 	// IBL 
 	// ---------------------------------------------------------------	
-	
-	// roughness가 뭐든, SampleLevel을 써도, 항상 mip 0 고정이었음.. 
 
 	// 샘플러 (s2)
 	D3D11_SAMPLER_DESC sampIBL = {};
@@ -609,6 +698,36 @@ bool TestApp::InitScene()
 	sampClamp.MaxLOD = D3D11_FLOAT32_MAX;
 	sampClamp.MipLODBias = 0.0f;
 	HR_T(m_D3DDevice.GetDevice()->CreateSamplerState(&sampClamp, m_pSamplerIBL_Clamp.GetAddressOf()));
+
+
+
+	// ---------------------------------------------------------------
+	// HDR 
+	// ---------------------------------------------------------------
+	
+	D3D11_TEXTURE2D_DESC hdrDesc = {};
+	hdrDesc.Width = m_ClientWidth;
+	hdrDesc.Height = m_ClientHeight;
+	hdrDesc.MipLevels = 1;
+	hdrDesc.ArraySize = 1;
+	hdrDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR 포맷
+	hdrDesc.SampleDesc.Count = 1;
+	hdrDesc.Usage = D3D11_USAGE_DEFAULT;
+	hdrDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+	HR_T(m_D3DDevice.GetDevice()->CreateTexture2D(&hdrDesc, nullptr, m_HDRSceneTex.GetAddressOf()));
+
+	HR_T(m_D3DDevice.GetDevice()->CreateRenderTargetView(m_HDRSceneTex.Get(), nullptr, m_HDRSceneRTV.GetAddressOf()));
+
+	HR_T(m_D3DDevice.GetDevice()->CreateShaderResourceView(m_HDRSceneTex.Get(), nullptr, m_HDRSceneSRV.GetAddressOf()));
+
+	// 상수버퍼 (톤맵핑용)
+	D3D11_BUFFER_DESC desc{};
+	desc.ByteWidth = sizeof(ToneMapCB);
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&desc, nullptr, m_ToneMapCB.GetAddressOf()));
+
 
 
 	// ---------------------------------------------------------------
@@ -943,6 +1062,43 @@ void TestApp::Render_ImGui()
 	// [ ImGui 프레임 최종 렌더링 ]
 	ImGui::Render();  // ImGui 내부에서 렌더링 데이터를 준비
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // DX11로 실제 화면에 출력
+}
+
+void TestApp::Render_DebugDraw()
+{
+	// [ Shadow Frustum ]
+	if (m_DrawShadowFrustum)
+	{
+		auto* context = m_D3DDevice.GetDeviceContext();
+
+		// -----------------------------
+		// DebugDraw 전용 상태 설정
+		// -----------------------------
+		context->IASetInputLayout(m_DebugInputLayout.Get());
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+		m_DebugEffect->SetView(m_View);           // 메인 카메라
+		m_DebugEffect->SetProjection(m_Projection);
+		m_DebugEffect->Apply(context);
+
+		m_DebugBatch->Begin();
+
+		// Shadow Frustum
+		m_DebugDraw->Draw(m_DebugBatch.get(), m_ShadowFrustumWS, DirectX::Colors::Red);
+
+		// Shadow Camera 위치
+		DirectX::BoundingSphere lightPos;
+		lightPos.Center = {
+			m_ShadowCameraPos.x,
+			m_ShadowCameraPos.y,
+			m_ShadowCameraPos.z
+		};
+		lightPos.Radius = 20.0f;
+
+		m_DebugDraw->Draw(m_DebugBatch.get(), lightPos, DirectX::Colors::Yellow);
+
+		m_DebugBatch->End();
+	}
 }
 
 void TestApp::UninitScene()

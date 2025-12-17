@@ -216,7 +216,7 @@ float4 main(PS_INPUT input) : SV_Target
         
         // Lr( View,Normal의 반사벡터) 와 거칠기를 사용하여 반사 빛을 샘플링한다. 
         // 거칠기에 따라 뭉게진 반사 빛을 표현하기위해  LOD 선형보간이 적용된다.    
-        float3 PrefilteredColor = txIBL_Specular.SampleLevel(samLinearIBL, R, roughness * (specularTextureLevels-1)).rgb;
+        float3 PrefilteredColor = txIBL_Specular.SampleLevel(samLinearIBL, R, roughness * specularTextureLevels).rgb;
 
         // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
         float2 brdf = txIBL_BRDF_LUT.Sample(samClampIBL, float2(cosVH, roughness)).rg;
@@ -233,10 +233,12 @@ float4 main(PS_INPUT input) : SV_Target
     float3 emissive = SRGBToLinear(emissiveTex.rgb);
     float3 colorLinear = DirectLight + IndirectLight_IBL + emissive;
     
-    // - colorLinear 를 0~1로 제한 (프레임 버퍼는 0~1범위만 표현 가능)
-    // - 계산 다 했으니 다시 감마 보정 : linear -> sRGB 
-    float3 finalRgb = LinearToSRGB(saturate(colorLinear));
-    float4 finalColor = float4(finalRgb, opacityTex.a);
+    // (기존) LDR RenderTarget에 맞게 sRGB로 변환 후 출력
+    // float3 finalRgb = LinearToSRGB(saturate(colorLinear));
+    // float4 finalColor = float4(finalRgb, opacityTex.a);
+    
+    // HDR RenderTarget에 Linear HDR 그대로 출력
+    float4 finalColor = float4(colorLinear, opacityTex.a);
     
     return finalColor;
 }

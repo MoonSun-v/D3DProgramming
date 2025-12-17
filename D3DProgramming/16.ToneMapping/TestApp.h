@@ -106,20 +106,30 @@ public:
 	ComPtr<ID3D11DepthStencilState> m_pDSState_Sky;			// 뎁스스텐실 상태   : 스카이 박스
 	ComPtr<ID3D11RasterizerState> m_pRasterizerState_Sky;	// 래스터라이저 상태 : 스카이 박스 
 	ComPtr<ID3D11ShaderResourceView> m_pSkyBoxSRV;			// 스카이 박스 
-	// (IBL)
+	UINT m_VertextBufferStride_Sky = 0;
+	UINT m_VertextBufferOffset_Sky = 0;
+	int m_nIndices_Sky = 0;
+
+	// IBL
 	ComPtr<ID3D11ShaderResourceView> m_pIrradianceSRV;		// Diffuse (Irradiance)
 	ComPtr<ID3D11ShaderResourceView> m_pPrefilterSRV;		// Specular (Prefilter)
 	ComPtr<ID3D11ShaderResourceView> m_pBRDFLUTSRV;			// BRDF LUT
 	ComPtr<ID3D11SamplerState> m_pSamplerIBL;       // s2
 	ComPtr<ID3D11SamplerState> m_pSamplerIBL_Clamp; // s3
-
 	std::vector<IBLEnvironment> m_IBLSet;
-	int currentIBL = 0;   // GUI에서 선택
+	int currentIBL = 0;  
 
 
-	UINT m_VertextBufferStride_Sky = 0;
-	UINT m_VertextBufferOffset_Sky = 0;
-	int m_nIndices_Sky = 0;
+	// HDR 
+	ComPtr<ID3D11Buffer> m_ToneMapCB;
+	ComPtr<ID3D11VertexShader> m_pToneMapVS;
+	ComPtr<ID3D11PixelShader> m_pToneMapPS;
+	ComPtr<ID3D11Texture2D> m_HDRSceneTex;
+	ComPtr<ID3D11RenderTargetView> m_HDRSceneRTV;
+	ComPtr<ID3D11ShaderResourceView> m_HDRSceneSRV;
+
+	float m_ExposureEV = 0.0f; // 0 = 기본 노출 (2^0 = 1) // TODO: GUI로 조정
+
 
 
 	// [ 셰이더에 전달할 데이터 ]
@@ -148,12 +158,6 @@ public:
 	float m_CameraFar = 5000.0f;
 
 
-	// [ 배경색 ]
-	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f); //  Black
-	Vector4 m_ClearColor = Vector4(0.8f, 0.92f, 1.0f, 1.0f); // Light Sky 
-	// Vector4 m_ClearColor = Vector4(0.0f, 0.0f, 0.3f, 1.0f); // Navy
-
-
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // 라이트 색상
 	XMFLOAT4 m_LightDir = XMFLOAT4(0.5f, -1.0f, -0.2f, 0.0f);  // 라이트 방향
@@ -170,20 +174,27 @@ public:
 	void Render() override;
 
 public:
+	// Initialize
 	bool InitScene();
 	bool LoadAsset();
 	bool InitSkyBox();
 	bool InitImGUI();
 	
+	// Update
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 
+	// Render
+	void Render_ShadowMap();
+	void Render_BeginSceneHDR();
+	void Render_SkyBox();
 	void RenderStaticMesh(StaticMeshInstance& instance);
 	void RenderSkeletalMesh(SkeletalMeshInstance& instance);
-	void RenderShadowMap();
-
-	void Render_SkyBox();
+	void Render_BeginBackBuffer();
+	void Render_ToneMapping();
+	void Render_DebugDraw();
 	void Render_ImGui();
 
+	// Uninitialize
 	void UninitScene();
 	void UninitImGUI();
 
