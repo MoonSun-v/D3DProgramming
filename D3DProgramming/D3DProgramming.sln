@@ -39,6 +39,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "15.IBL", "15.IBL\15.IBL.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "16.ToneMapping", "16.ToneMapping\16.ToneMapping.vcxproj", "{61C71AF8-C357-4FE6-B2B1-7F0974713564}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_1.SmokeRectangle", "02_1.SmokeRectangle\02_1.SmokeRectangle.vcxproj", "{B833ABF6-C6BB-4342-A806-AD38A5878885}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -191,6 +193,14 @@ Global
 		{61C71AF8-C357-4FE6-B2B1-7F0974713564}.Release|x64.Build.0 = Release|x64
 		{61C71AF8-C357-4FE6-B2B1-7F0974713564}.Release|x86.ActiveCfg = Release|Win32
 		{61C71AF8-C357-4FE6-B2B1-7F0974713564}.Release|x86.Build.0 = Release|Win32
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Debug|x64.ActiveCfg = Debug|x64
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Debug|x64.Build.0 = Debug|x64
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Debug|x86.ActiveCfg = Debug|Win32
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Debug|x86.Build.0 = Debug|Win32
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Release|x64.ActiveCfg = Release|x64
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Release|x64.Build.0 = Release|x64
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Release|x86.ActiveCfg = Release|Win32
+		{B833ABF6-C6BB-4342-A806-AD38A5878885}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
