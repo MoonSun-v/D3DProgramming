@@ -9,7 +9,7 @@
 #pragma comment(lib, "dxgi.lib")
 
 
-bool D3DDevice::Initialize(HWND hWnd, UINT width, UINT height)
+bool D3DDevice::Initialize(HWND hWnd, UINT width, UINT height, DXGI_FORMAT backBufferFormat)
 {
     HRESULT hr = 0; // 결과값 : DirectX 함수는 HRESULT 반환
 
@@ -62,8 +62,9 @@ bool D3DDevice::Initialize(HWND hWnd, UINT width, UINT height)
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.Width = width;
     swapChainDesc.Height = height;
-    // swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;				// 백버퍼 포맷: 32비트 RGBA
-    swapChainDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+    // swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;				
+    // swapChainDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+	swapChainDesc.Format = backBufferFormat; 					    // 백버퍼 포맷: 기본은 DXGI_FORMAT_R8G8B8A8_UNORM
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	// 백버퍼의 용도: 렌더타겟 출력
     swapChainDesc.SampleDesc.Count = 1;								// 멀티샘플링(안티에일리어싱) 사용 안함 (기본: 1, 안 씀)
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;				// Recommended for flip models
@@ -80,15 +81,14 @@ bool D3DDevice::Initialize(HWND hWnd, UINT width, UINT height)
         m_SwapChain.GetAddressOf()
     ));
 
-    ComPtr<IDXGISwapChain3> swapChain3;
-    HR_T(m_SwapChain.As(&swapChain3));
-
-    // HDR10 Color Space 설정
-    HR_T(
-        swapChain3->SetColorSpace1(
-            DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
-        )
-    );
+    ComPtr<IDXGISwapChain3> swapChain3; 
+    HR_T(m_SwapChain.As(&swapChain3)); // HR_T(m_SwapChain->QueryInterface(__uuidof(IDXGISwapChain3), (void**)&swapChain3));
+    if (backBufferFormat == DXGI_FORMAT_R10G10B10A2_UNORM)
+    {
+        // EOTF = PQ (ST.2084 / G2084)  , 색역(Primaries) = Rec.2020 , RGB Full Range
+        // 이 스왑체인의 0.0~1.0 값은 선형 RGB나 감마 값이 아니라 PQ로 인코딩된 HDR10 신호로 해석하라”
+        HR_T(swapChain3->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020));
+    }
 
 
     // ------------------------------------------------------

@@ -28,7 +28,7 @@ public:
 	const D3D11_VIEWPORT& GetViewport() const { return viewport; }
 
 public:
-	bool Initialize(HWND hWnd, UINT width, UINT height);
+	bool Initialize(HWND hWnd, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
 
 	void Cleanup();
 

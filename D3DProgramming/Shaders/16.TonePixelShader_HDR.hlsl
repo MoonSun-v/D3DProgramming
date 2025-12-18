@@ -1,29 +1,19 @@
 #include "16.Shared.hlsli"
 
 //--------------------------------------------------------------------------------------
-// Pixel Shader (LDR 출력용)
+// Pixel Shader (HDR 출력용)
 //--------------------------------------------------------------------------------------
 
-float3 ACESFilm(float3 x)
-{
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
-}
-
 // ============================================
-// PQ (ST.2084) constants
+// PQ 인코딩에 사용되는 상수 (ST.2084) 
 // ============================================
-static const float PQ_m1 = 2610.0 / 4096.0 / 4.0;
-static const float PQ_m2 = 2523.0 / 4096.0 * 128.0;
-static const float PQ_c1 = 3424.0 / 4096.0;
-static const float PQ_c2 = 2413.0 / 4096.0 * 32.0;
-static const float PQ_c3 = 2392.0 / 4096.0 * 32.0;
+static const float PQ_m1 = 2610.0 / 4096.0 / 4.0; // 0.1593017578125
+static const float PQ_m2 = 2523.0 / 4096.0 * 128.0; // 78.84375
+static const float PQ_c1 = 3424.0 / 4096.0; // 0.8359375
+static const float PQ_c2 = 2413.0 / 4096.0 * 32.0; // 18.8515625
+static const float PQ_c3 = 2392.0 / 4096.0 * 32.0; // 18.6875
 
-// Rec.709 → Rec.2020
+// Rec.709 -> Rec.2020
 static const float3x3 Rec709to2020 =
 {
     0.6274040f, 0.3292820f, 0.0433136f,
@@ -33,9 +23,11 @@ static const float3x3 Rec709to2020 =
 
 float3 LinearToPQ(float3 linear709, float maxNits)
 {
-    // 1. Rec.709 → Rec.2020
+    // 1. Rec.709 -> Rec.2020 변환 (옵션, Unreal에서도 비슷한 매트릭스 사용)
     float3 color2020 = mul(Rec709to2020, linear709);
 
+    // tonemapped linear 값을 maxNits로 스케일링 후 PQ 적용
+    
     // 2. Nits 정규화 (HDR10 기준 10,000 nits)
     float3 norm = color2020 * (maxNits / 10000.0f);
 
@@ -49,7 +41,7 @@ float3 LinearToPQ(float3 linear709, float maxNits)
 
 float4 main(float4 pos : SV_POSITION, float2 uv : TEXCOORD0) : SV_Target
 {
-    // 1. Scene HDR (선형, Rec.709, Nits 기준)
+    // 1. Scene HDR : 선형 HDR 값 로드 (Nits 값으로 간주)
     float3 hdr709 = txSceneHDR.Sample(samLinear, uv).rgb;
 
     // 2. Exposure (EV)
@@ -59,9 +51,9 @@ float4 main(float4 pos : SV_POSITION, float2 uv : TEXCOORD0) : SV_Target
     // 3. Tone Mapping (ACES)
     float3 tonemapped = ACESFilm(hdr709);
 
-    // 4. PQ Encoding (HDR10)
+    // 4. PQ로 변환 (HDR10 출력용)
     float3 pq = LinearToPQ(tonemapped, gMaxHDRNits);
 
-    // 5. R10G10B10A2_UNORM BackBuffer
+    // 5. 최종 PQ 인코딩된 값 [0.0, 1.0]을 R10G10B10A2_UNORM 백버퍼에 출력
     return float4(pq, 1.0);
 }

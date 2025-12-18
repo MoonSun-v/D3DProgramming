@@ -6,6 +6,7 @@
 #include <d3dcompiler.h>
 #include <Directxtk/DDSTextureLoader.h>
 #include <windows.h>
+#include <dxgi1_6.h>
 
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -22,11 +23,21 @@ bool TestApp::Initialize()
 {
 	__super::Initialize();
 
-	if (!m_D3DDevice.Initialize(m_hWnd, m_ClientWidth, m_ClientHeight)) return false;
+	
+	m_isHDRSupported = CheckHDRSupportAndGetMaxNits(m_MonitorMaxNits, m_SwapChainFormat);
+
+	if (!m_forceLDR && m_isHDRSupported)
+		m_SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;	// HDR
+	else
+		m_SwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;		// LDR
+
+
+	if (!m_D3DDevice.Initialize(m_hWnd, m_ClientWidth, m_ClientHeight, m_SwapChainFormat)) return false;
 	if (!InitScene())	return false;
 	if (!LoadAsset())	return false;
 	if (!InitSkyBox())  return false;
 	if (!InitImGUI())	return false;
+
 
 	// ------------------------------------
 	// DebugDraw 초기화
@@ -349,12 +360,22 @@ void TestApp::Render_ToneMapping()
 
 	context->OMSetDepthStencilState(nullptr, 0);
 
-	// Fullscreen Quad : Vertex Buffer, Input Semantic 없음 -> InputLayout 필요 없음 
-	context->IASetInputLayout(nullptr /*m_pFullscreenInputLayout.Get()*/); 
+	context->IASetInputLayout(nullptr); 
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	context->VSSetShader(m_pToneMapVS.Get(), nullptr, 0);
-	context->PSSetShader(m_pToneMapPS.Get(), nullptr, 0);
+
+	// context->PSSetShader(m_pToneMapPS_HDR.Get(), nullptr, 0);
+	// context->PSSetShader(m_pToneMapPS_LDR.Get(), nullptr, 0);
+	switch (m_SwapChainFormat)
+	{
+	case DXGI_FORMAT_R10G10B10A2_UNORM:
+		context->PSSetShader(m_pToneMapPS_HDR.Get(), nullptr, 0);
+		break;
+	default:
+		context->PSSetShader(m_pToneMapPS_LDR.Get(), nullptr, 0);
+		break;
+	}
 
 	// HDR SceneTexture SRV
 	context->PSSetShaderResources(7, 1, m_HDRSceneSRV.GetAddressOf());
@@ -578,8 +599,12 @@ bool TestApp::InitScene()
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(ShadowPSBuffer->GetBufferPointer(), ShadowPSBuffer->GetBufferSize(), NULL, m_pShadowPS.GetAddressOf()));
 
 	ComPtr<ID3DBlob> TonePSBuffer;
-	HR_T(CompileShaderFromFile(L"../Shaders/16.TonePixelShader.hlsl", "main", "ps_4_0", TonePSBuffer.GetAddressOf()));
-	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(TonePSBuffer->GetBufferPointer(), TonePSBuffer->GetBufferSize(), NULL, m_pToneMapPS.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/16.TonePixelShader_HDR.hlsl", "main", "ps_4_0", TonePSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(TonePSBuffer->GetBufferPointer(), TonePSBuffer->GetBufferSize(), NULL, m_pToneMapPS_HDR.GetAddressOf()));
+
+	// ComPtr<ID3DBlob> TonePSBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/16.TonePixelShader_LDR.hlsl", "main", "ps_4_0", TonePSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(TonePSBuffer->GetBufferPointer(), TonePSBuffer->GetBufferSize(), NULL, m_pToneMapPS_LDR.GetAddressOf()));
 
 	// ---------------------------------------------------------------
 	// 상수 버퍼(Constant Buffer) 생성
@@ -963,6 +988,21 @@ void TestApp::Render_ImGui()
 	//	ImGui::Separator();
 	//	ImGui::Text("");
 	//}
+	
+	// -----------------------------
+	// [ HDR ]
+	// -----------------------------
+	ImGui::Text("[ Display Mode ]");
+	m_isHDRSupported ? ImGui::Text(" HDR Support") : ImGui::Text(" No HDR Support");
+	if (m_SwapChainFormat == DXGI_FORMAT_R10G10B10A2_UNORM)
+		ImGui::Text(" Current Format: R10G10B10A2_UNORM (HDR ToneMapping)");
+	else if (m_SwapChainFormat == DXGI_FORMAT_R8G8B8A8_UNORM)
+		ImGui::Text(" Current Format: R8G8B8A8_UNORM (LDR ToneMapping)");
+	else
+		ImGui::Text(" Current Format: unknown");
+
+	ImGui::Separator();
+	ImGui::Text("");
 
 	// -----------------------------
 	// [ IBL Environment ]
@@ -1104,6 +1144,93 @@ void TestApp::Render_DebugDraw()
 	}
 }
 
+bool TestApp::CheckHDRSupportAndGetMaxNits(float& outMaxNits, DXGI_FORMAT& outFormat)
+{
+	ComPtr<IDXGIFactory4> pFactory;
+	HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&pFactory));
+	if (FAILED(hr))
+	{
+		LOG_ERRORA("ERROR: DXGI Factory 생성 실패.\n");
+		return false;
+	}
+	// 2. 주 그래픽 어댑터 (0번) 열거
+	ComPtr<IDXGIAdapter1> pAdapter;
+	UINT adapterIndex = 0;
+	while (pFactory->EnumAdapters1(adapterIndex, &pAdapter) != DXGI_ERROR_NOT_FOUND)
+	{
+		DXGI_ADAPTER_DESC1 desc;
+		pAdapter->GetDesc1(&desc);
+
+		// WARP 어댑터(소프트웨어)를 건너뛰고 주 어댑터만 사용하도록 선택할 수 있습니다.
+		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+		{
+			adapterIndex++;
+			pAdapter.Reset();
+			continue;
+		}
+		break;
+	}
+
+	if (!pAdapter)
+	{
+		LOG_ERRORA("ERROR: 유효한 하드웨어 어댑터를 찾을 수 없습니다.\n");
+		return false;
+	}
+
+	// 3. 주 모니터 출력 (0번) 열거
+	ComPtr<IDXGIOutput> pOutput;
+	hr = pAdapter->EnumOutputs(0, &pOutput); // 0번 출력
+	if (FAILED(hr))
+	{
+		LOG_ERRORA("ERROR: 주 모니터 출력(Output 0)을 찾을 수 없습니다.\n");
+		return false;
+	}
+
+	// 4. HDR 정보를 얻기 위해 IDXGIOutput6으로 쿼리
+	ComPtr<IDXGIOutput6> pOutput6;
+	hr = pOutput.As(&pOutput6);
+	if (FAILED(hr))
+	{
+		printf("INFO: IDXGIOutput6 인터페이스를 얻을 수 없습니다. HDR 정보를 얻을 수 없습니다.\n");
+		outMaxNits = 100.0f;
+		outFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		return false;
+	}
+
+	// 5. DXGI_OUTPUT_DESC1에서 HDR 정보 확인
+	DXGI_OUTPUT_DESC1 desc1 = {};
+	hr = pOutput6->GetDesc1(&desc1);
+	if (FAILED(hr))
+	{
+		printf("ERROR: GetDesc1 호출 실패.\n");
+		return false;
+	}
+
+	// 6. HDR 활성화 조건 분석
+	bool isHDRColorSpace = (desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+	outMaxNits = (float)desc1.MaxLuminance;
+
+	// OS가 HDR을 켰을 때 MaxLuminance는 100 Nits(SDR 기준)를 초과합니다.
+	bool isHDRActive = outMaxNits > 100.0f;
+
+	if (isHDRColorSpace && isHDRActive)
+	{
+		// 최종 판단: HDR 지원 및 OS 활성화
+		outFormat = DXGI_FORMAT_R10G10B10A2_UNORM; // HDR 포맷 설정
+		printf("SUCCESS: HDR 활성화됨. MaxNits: %.1f, Format: R10G10B10A2_UNORM\n", outMaxNits);
+		return true;
+	}
+	else
+	{
+		// HDR 지원 안함 또는 OS에서 비활성화
+		outMaxNits = 100.0f; // SDR 기본값
+		outFormat = DXGI_FORMAT_R8G8B8A8_UNORM; // SDR 포맷 설정
+		printf("INFO: HDR 비활성화. MaxNits: 100.0, Format: R8G8B8A8_UNORM\n");
+		return false;
+	}
+	return true;
+}
+
 void TestApp::UninitScene()
 {
 	OutputDebugString(L"[TestApp::UninitScene] 실행\r\n");
@@ -1129,12 +1256,19 @@ void TestApp::UninitScene()
 	m_pIndexBuffer_Sky.Reset();
 	m_pDSState_Sky.Reset();
 	m_pRasterizerState_Sky.Reset();
-	// m_pSkyBoxSRV.Reset();
 	m_pIrradianceSRV.Reset();
 	m_pPrefilterSRV.Reset();
 	m_pBRDFLUTSRV.Reset();
 	m_pSamplerIBL.Reset();
 	m_pSamplerIBL_Clamp.Reset();
+
+	m_ToneMapCB.Reset();
+	m_pToneMapVS.Reset();
+	m_pToneMapPS_HDR.Reset();
+	m_pToneMapPS_LDR.Reset();
+	m_HDRSceneTex.Reset();
+	m_HDRSceneRTV.Reset();
+	m_HDRSceneSRV.Reset();
 
 	// 인스턴스 해제
 	m_Humans.clear();

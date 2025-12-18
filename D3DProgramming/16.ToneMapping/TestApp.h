@@ -123,12 +123,17 @@ public:
 	// HDR 
 	ComPtr<ID3D11Buffer> m_ToneMapCB;
 	ComPtr<ID3D11VertexShader> m_pToneMapVS;
-	ComPtr<ID3D11PixelShader> m_pToneMapPS;
+	ComPtr<ID3D11PixelShader> m_pToneMapPS_HDR;
+	ComPtr<ID3D11PixelShader> m_pToneMapPS_LDR;
 	ComPtr<ID3D11Texture2D> m_HDRSceneTex;
 	ComPtr<ID3D11RenderTargetView> m_HDRSceneRTV;
 	ComPtr<ID3D11ShaderResourceView> m_HDRSceneSRV;
-	float m_ExposureEV = 0.0f; // 0 = 기본 노출 (2^0 = 1) // TODO: GUI로 조정
-
+	
+	DXGI_FORMAT m_SwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	bool m_isHDRSupported = false;
+	bool m_forceLDR = false;		// WinMain에서 설정 
+	float m_ExposureEV = 0.0f;		// 0 = 기본 노출 (2^0 = 1) // TODO: GUI로 조정
+	float m_MonitorMaxNits = 0.0f;
 
 
 	// [ 셰이더에 전달할 데이터 ]
@@ -196,6 +201,11 @@ public:
 	// Uninitialize
 	void UninitScene();
 	void UninitImGUI();
+
+	// bool CheckHDRSupport();
+	//void SetHDRMode(bool enableHDR);
+
+	bool CheckHDRSupportAndGetMaxNits(float& outMaxLuminance, DXGI_FORMAT& outFormat);
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };
