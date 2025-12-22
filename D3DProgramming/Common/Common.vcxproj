@@ -139,22 +139,47 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Animation.h" />
+    <ClInclude Include="AssetKey.h" />
+    <ClInclude Include="AssetManager.h" />
+    <ClInclude Include="Bone.h" />
+    <ClInclude Include="BoneMatrixContainer.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="D3DDevice.h" />
+    <ClInclude Include="DebugDraw.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="Helper.h" />
     <ClInclude Include="InputSystem.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="MeshSection.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="SkeletalMeshAsset.h" />
+    <ClInclude Include="SkeletalMeshInstance.h" />
+    <ClInclude Include="SkeletonInfo.h" />
+    <ClInclude Include="StaticMeshAsset.h" />
+    <ClInclude Include="StaticMeshInstance.h" />
     <ClInclude Include="TimeSystem.h" />
+    <ClInclude Include="Transform.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Animation.cpp" />
+    <ClCompile Include="AssetManager.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3DDevice.cpp" />
+    <ClCompile Include="DebugDraw.cpp" />
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="Helper.cpp" />
     <ClCompile Include="InputSystem.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="MeshSection.cpp" />
     <ClCompile Include="pch.cpp" />
+    <ClCompile Include="SkeletalMeshAsset.cpp" />
+    <ClCompile Include="SkeletalMeshInstance.cpp" />
+    <ClCompile Include="SkeletonInfo.cpp" />
+    <ClCompile Include="StaticMeshAsset.cpp" />
+    <ClCompile Include="StaticMeshInstance.cpp" />
     <ClCompile Include="TimeSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

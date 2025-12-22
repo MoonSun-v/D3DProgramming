@@ -1,8 +1,8 @@
 #pragma once
 #include "../Common/GameApp.h"
 #include "../Common/D3DDevice.h"
-#include "ConstantBuffer.h"
-#include "DebugDraw.h"
+#include "../Common/ConstantBuffer.h"
+#include "../Common/DebugDraw.h"
 
 #include <directxtk/SimpleMath.h>
 #include <directxtk/CommonStates.h> 
@@ -14,8 +14,8 @@
 #include <psapi.h>  // PROCESS_MEMORY_COUNTERS_EX 정의
 #include <string>
 
-#include "SkeletalMeshInstance.h"
-#include "StaticMeshInstance.h"
+#include "../Common/SkeletalMeshInstance.h"
+#include "../Common/StaticMeshInstance.h"
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -84,7 +84,7 @@ public:
 
 	// [ 렌더링 파이프라인 객체 ]
 	ComPtr<ID3D11VertexShader> m_pVertexShader;		// MainPass
-	ComPtr<ID3D11PixelShader> m_pPixelShader;		
+	// ComPtr<ID3D11PixelShader> m_pPixelShader;		
 	ComPtr<ID3D11InputLayout> m_pInputLayout;		
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;
 
@@ -142,6 +142,19 @@ public:
 
 	bool m_EnableDistortion = false; 
 
+
+	// Deferred Shading G-Buffer
+	ComPtr<ID3D11Texture2D>        m_GBufferTex[5];
+	ComPtr<ID3D11RenderTargetView> m_GBufferRTV[5];
+	ComPtr<ID3D11ShaderResourceView> m_GBufferSRV[5];
+	ComPtr<ID3D11DepthStencilState> m_pDSState_GBuffer;
+	ComPtr<ID3D11RasterizerState> m_pRasterSolid;
+	ComPtr<ID3D11PixelShader> m_pDeferredLightingPS;
+	ComPtr<ID3D11PixelShader> m_pGBufferPS;
+
+	D3D11_VIEWPORT m_Viewport;
+
+
 	// [ 셰이더에 전달할 데이터 ]
 	ConstantBuffer cb;
 	Matrix                m_World;					// 모델		-> 월드
@@ -194,6 +207,10 @@ public:
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 
 	// Render
+	void Render_BeginGBuffer();        
+	void Render_GBufferGeometry();
+	void Render_DeferredLighting();
+
 	void Render_ShadowMap();
 	void Render_BeginSceneHDR();
 	void Render_SkyBox();
@@ -207,9 +224,6 @@ public:
 	// Uninitialize
 	void UninitScene();
 	void UninitImGUI();
-
-	// bool CheckHDRSupport();
-	//void SetHDRMode(bool enableHDR);
 
 	bool CheckHDRSupportAndGetMaxNits(float& outMaxLuminance, DXGI_FORMAT& outFormat);
 

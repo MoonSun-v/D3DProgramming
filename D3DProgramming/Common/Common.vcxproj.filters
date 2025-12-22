@@ -13,53 +13,140 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="[ 00. Main ]">
+      <UniqueIdentifier>{88338675-e849-4f3c-87d2-58bb8b48f4a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="[ 99. Utility ]">
+      <UniqueIdentifier>{14f03cda-87bf-4d19-a84c-7eb2cd98663a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="[ 02. Mesh ]">
+      <UniqueIdentifier>{f861e07b-bcbe-43a3-a36b-99a38234794b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="[ 01. System ]">
+      <UniqueIdentifier>{70cba97d-cc0d-4039-974a-3e8c1e180847}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="GameApp.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 99. Utility ]</Filter>
     </ClInclude>
     <ClInclude Include="Helper.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 99. Utility ]</Filter>
     </ClInclude>
-    <ClInclude Include="TimeSystem.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="framework.h">
+      <Filter>[ 99. Utility ]</Filter>
     </ClInclude>
-    <ClInclude Include="InputSystem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="GameApp.h">
+      <Filter>[ 00. Main ]</Filter>
     </ClInclude>
     <ClInclude Include="D3DDevice.h">
+      <Filter>[ 99. Utility ]</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>[ 01. System ]</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeSystem.h">
+      <Filter>[ 01. System ]</Filter>
+    </ClInclude>
+    <ClInclude Include="InputSystem.h">
+      <Filter>[ 01. System ]</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetKey.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Bone.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneMatrixContainer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugDraw.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshSection.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletalMeshAsset.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletalMeshInstance.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletonInfo.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshAsset.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshInstance.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBuffer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Camera.cpp">
+      <Filter>[ 01. System ]</Filter>
     </ClCompile>
     <ClCompile Include="GameApp.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Helper.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="TimeSystem.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>[ 00. Main ]</Filter>
     </ClCompile>
     <ClCompile Include="InputSystem.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>[ 01. System ]</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="TimeSystem.cpp">
+      <Filter>[ 01. System ]</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>[ 99. Utility ]</Filter>
     </ClCompile>
     <ClCompile Include="D3DDevice.cpp">
+      <Filter>[ 99. Utility ]</Filter>
+    </ClCompile>
+    <ClCompile Include="Helper.cpp">
+      <Filter>[ 99. Utility ]</Filter>
+    </ClCompile>
+    <ClCompile Include="Animation.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugDraw.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshSection.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletalMeshAsset.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletalMeshInstance.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletonInfo.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMeshAsset.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMeshInstance.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
