@@ -219,7 +219,13 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
 	cb.vLightDir = m_LightDir;
-	cb.vLightColor = m_LightColor;
+	// cb.vLightColor = m_LightColor;
+	cb.vLightColor = XMFLOAT4(
+		m_LightColor.x,
+		m_LightColor.y,
+		m_LightColor.z,
+		m_LightIntensity // 강도는 w에 담기
+	);
 	cb.vEyePos = XMFLOAT4(m_Camera.m_Position.x, m_Camera.m_Position.y, m_Camera.m_Position.z, 1.0f);
 	cb.gIsRigid = isRigid;
 
@@ -938,6 +944,16 @@ void TestApp::Render_ImGui()
 
 	// 광원 방향 
 	ImGui::DragFloat3("Light Dir", (float*)&m_LightDir, 0.01f, -1.0f, 1.0f);
+
+	// 광원 세기 (HDR 대응)
+	ImGui::DragFloat(
+		"Light Intensity",
+		&m_LightIntensity,
+		0.1f,     // step
+		0.0f,     // min
+		50.0f,    // max (HDR용)
+		"%.2f"
+	);
 
 	ImGui::Separator();
 	ImGui::Text("");

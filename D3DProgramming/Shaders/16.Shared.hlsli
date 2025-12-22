@@ -41,8 +41,8 @@ cbuffer ConstantBuffer : register(b0)
     matrix gView;
     matrix gProjection;
 
-    float4 vLightDir;
-    float4 vLightColor;
+    float4 vLightDir;       // xyz: 방향
+    float4 vLightColor;     // rgb: 색상, a: intensity
     float4 vEyePos;
   
     float4 gMetallicMultiplier;

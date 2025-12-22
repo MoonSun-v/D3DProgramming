@@ -9,7 +9,7 @@ struct /*alignas(16)*/ ConstantBuffer
 	Matrix mProjection;		// 투영 변환 행렬 : 64
 
 	Vector4 vLightDir;		// 광원 방향 : 16
-	Vector4 vLightColor;	// 광원 색상 : 16
+	Vector4 vLightColor;	// 광원 색상 : 16	 // rgb: color, a: intensity
 	Vector4 vEyePos;		// 카메라 위치 : 16
 
 	Vector4 gMetallicMultiplier; // 16

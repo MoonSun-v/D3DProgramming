@@ -187,7 +187,9 @@ float4 main(PS_INPUT input) : SV_Target
     // ----------------------------------------------------------------------
     // 8. Direct lighting 출력 조명 계산
     // ----------------------------------------------------------------------
-    float3 lightRadiance = vLightColor.rgb;
+    float lightIntensity = vLightColor.a;
+    float3 lightRadiance = vLightColor.rgb * lightIntensity;
+    
     float3 DirectLight = (diffuseBRDF + specularBRDF) * lightRadiance * cosNL * shadowFactor;
     
     

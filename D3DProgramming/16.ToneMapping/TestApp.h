@@ -172,7 +172,7 @@ public:
 	// [ 라이트 정보 ]
 	XMFLOAT4 m_LightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // 라이트 색상
 	XMFLOAT4 m_LightDir = XMFLOAT4(0.5f, -1.0f, -0.2f, 0.0f);  // 라이트 방향
-
+	float m_LightIntensity = 1.0f;
 
 	// 폰트 
 	ImFont* m_UIFont = nullptr;
