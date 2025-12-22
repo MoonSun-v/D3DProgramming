@@ -23,7 +23,6 @@ bool TestApp::Initialize()
 {
 	__super::Initialize();
 
-	
 	m_isHDRSupported = CheckHDRSupportAndGetMaxNits(m_MonitorMaxNits, m_SwapChainFormat);
 
 	if (!m_forceLDR && m_isHDRSupported)
@@ -93,6 +92,23 @@ bool TestApp::LoadAsset()
 	instance_char->transform.rotation = { 0, XMConvertToRadians(90), 0 }; // TODO : Transform 라디안 변환
 	instance_char->transform.scale = { 1.0f, 1.0f, 1.0f };
 	m_Chars.push_back(instance_char);
+
+	// 3. Tree1
+	treeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
+	auto instance_tree = std::make_shared<StaticMeshInstance>();
+	instance_tree->SetAsset(treeAsset);
+	instance_tree->transform.position = { 200, 0, 100 };
+	instance_tree->transform.rotation = { 0, XMConvertToRadians(90), 0 }; 
+	instance_tree->transform.scale = { 1.0f, 1.0f, 1.0f };
+	m_Trees.push_back(instance_tree);
+
+	// 4. Tree2
+	instance_tree = std::make_shared<StaticMeshInstance>();
+	instance_tree->SetAsset(treeAsset);
+	instance_tree->transform.position = { 200, 0, -130 };
+	instance_tree->transform.rotation = { 0, XMConvertToRadians(90), 0 };
+	instance_tree->transform.scale = { 1.0f, 1.0f, 1.0f };
+	m_Trees.push_back(instance_tree);
 
 
 	// -------------- [ Skeletal Mesh Asset 생성 ] --------------
@@ -283,17 +299,16 @@ void TestApp::Render()
 	// Mesh 렌더링 : Static Mesh Instance 
 	for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
 	for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i]); }
+	for (size_t i = 0; i < m_Trees.size(); i++) { RenderStaticMesh(*m_Trees[i]); }
 
 	// Mesh 렌더링 : Skeletal Mesh Instance 
 	for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i]); }
 	for (size_t i = 0; i < m_Vampires.size(); i++) { RenderSkeletalMesh(*m_Vampires[i]); }
 
 
-
 	// --------------------------------------------
 	// [3] Tone Mapping Pass
 	// --------------------------------------------
-
 	Render_BeginBackBuffer(); // BackBuffer RTV
 	Render_ToneMapping();     // Fullscreen Quad
 
@@ -303,8 +318,7 @@ void TestApp::Render()
 	// --------------------------------------------
 	Render_ImGui();		// UI 렌더링
 	Render_DebugDraw(); // Debug Draw 렌더링
-
-
+	
 	// --------------------------------------------
 	// [5] Present 
 	// --------------------------------------------
@@ -386,6 +400,8 @@ void TestApp::Render_ToneMapping()
 	// Exposure
 	toneMapCB.Exposure = m_ExposureEV;
 	toneMapCB.MaxHDRNits = 1000.0f; // HDR10 기준
+	toneMapCB.Time = TimeSystem::m_Instance->TotalTime();
+	toneMapCB.gEnableDistortion = m_EnableDistortion ? 1 : 0;
 	context->UpdateSubresource(m_ToneMapCB.Get(), 0, nullptr, &toneMapCB, 0, 0);
 	context->PSSetConstantBuffers(4, 1, m_ToneMapCB.GetAddressOf());
 
@@ -530,6 +546,10 @@ void TestApp::Render_ShadowMap()
 	for (size_t i = 0; i < m_Chars.size(); i++)
 	{
 		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
+	}
+	for (size_t i = 0; i < m_Trees.size(); i++)
+	{
+		RenderShadowStatic(*m_Trees[i], m_Trees[i]->GetWorld());
 	}
 
 	// RenderTarget / Viewport 복원
@@ -757,6 +777,14 @@ bool TestApp::InitScene()
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&desc, nullptr, m_ToneMapCB.GetAddressOf()));
 
 
+	// DebugDraw 깊이스텐실 상태
+	D3D11_DEPTH_STENCIL_DESC ds = {};
+	ds.DepthEnable = FALSE;
+	ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	ds.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	ds.StencilEnable = FALSE;
+	HR_T(m_D3DDevice.GetDevice()->CreateDepthStencilState(&ds, m_pDSState_DebugDraw.GetAddressOf()));
+
 
 	// ---------------------------------------------------------------
 	// 행렬(World, View, Projection) 설정
@@ -875,7 +903,7 @@ bool TestApp::InitSkyBox()
 }
 
 
-// ★ [ ImGui ] - UI 프레임 준비 및 렌더링
+// [ ImGui ] - UI 프레임 준비 및 렌더링
 void TestApp::Render_ImGui()
 {
 	// ImGui의 입력/출력 구조체를 가져온다.  (void)io; -> 사용하지 않을 때 경고 제거용
@@ -891,7 +919,7 @@ void TestApp::Render_ImGui()
 
 
 	// 초기 창 크기 지정
-	ImGui::SetNextWindowSize(ImVec2(400, 610), ImGuiCond_Always); // ImGuiCond_FirstUseEver
+	ImGui::SetNextWindowSize(ImVec2(400, 700), ImGuiCond_Always); // ImGuiCond_FirstUseEver
 
 	// [ Control UI ]
 	ImGui::Begin("Controllor");
@@ -954,9 +982,9 @@ void TestApp::Render_ImGui()
 	// [ Character Transform Control ]
 	// -----------------------------
 
-	//ImGui::Text("[ Character Transform ]");
+	// ImGui::Text("[ Character Transform ]");
 
-	//// 캐릭터가 하나라도 있을 때만 표시
+	// 캐릭터가 하나라도 있을 때만 표시
 	//if (!m_Chars.empty())
 	//{
 	//	auto& chr = m_Chars[0]; // 첫 번째 캐릭터만 제어
@@ -995,12 +1023,23 @@ void TestApp::Render_ImGui()
 	ImGui::Text("[ Display Mode ]");
 	m_isHDRSupported ? ImGui::Text(" HDR Support") : ImGui::Text(" No HDR Support");
 	if (m_SwapChainFormat == DXGI_FORMAT_R10G10B10A2_UNORM)
-		ImGui::Text(" Current Format: R10G10B10A2_UNORM (HDR ToneMapping)");
+		ImGui::Text(" Current Format : R10G10B10A2_UNORM (HDR ToneMapping)");
 	else if (m_SwapChainFormat == DXGI_FORMAT_R8G8B8A8_UNORM)
-		ImGui::Text(" Current Format: R8G8B8A8_UNORM (LDR ToneMapping)");
+		ImGui::Text(" Current Format : R8G8B8A8_UNORM (LDR ToneMapping)");
 	else
-		ImGui::Text(" Current Format: unknown");
+		ImGui::Text(" Current Format : unknown");
 
+	ImGui::DragFloat("Exposure", &m_ExposureEV, 0.1f, -5.0f, 5.0f);
+
+	ImGui::Separator();
+	ImGui::Text("");
+
+
+	// -----------------------------
+	// [ ScreenEffect ]
+	// -----------------------------
+	ImGui::Text("Screen Effect");
+	ImGui::Checkbox("Screen Distortion", &m_EnableDistortion);
 	ImGui::Separator();
 	ImGui::Text("");
 
@@ -1032,9 +1071,9 @@ void TestApp::Render_ImGui()
 	ImGui::Checkbox("Use Roughness Texture", &useTex_Rough);
 	ImGui::Checkbox("Use Normal Texture", &useTex_Normal);
 
-	if (!useTex_Base) ImGui::ColorEdit3("Manual BaseColor", (float*)&manualBaseColor);
-	if (!useTex_Metal) ImGui::SliderFloat("Manual Metallic", &manualMetallic, 0.0f, 1.0f);
-	if (!useTex_Rough) ImGui::SliderFloat("Manual Roughness", &manualRoughness, 0.0f, 1.0f);
+	if (!useTex_Base) ImGui::ColorEdit3("BaseColor", (float*)&manualBaseColor);
+	if (!useTex_Metal) ImGui::SliderFloat("Metallic", &manualMetallic, 0.0f, 1.0f);
+	if (!useTex_Rough) ImGui::SliderFloat("Roughness", &manualRoughness, 0.0f, 1.0f);
 
 	// [ 끝 ] 
 	ImGui::PopFont();
@@ -1109,39 +1148,41 @@ void TestApp::Render_ImGui()
 
 void TestApp::Render_DebugDraw()
 {
-	// [ Shadow Frustum ]
-	if (m_DrawShadowFrustum)
-	{
-		auto* context = m_D3DDevice.GetDeviceContext();
+	if (!m_DrawShadowFrustum) return;
 
-		// -----------------------------
-		// DebugDraw 전용 상태 설정
-		// -----------------------------
-		context->IASetInputLayout(m_DebugInputLayout.Get());
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	auto* context = m_D3DDevice.GetDeviceContext();
 
-		m_DebugEffect->SetView(m_View);           // 메인 카메라
-		m_DebugEffect->SetProjection(m_Projection);
-		m_DebugEffect->Apply(context);
+	context->OMSetDepthStencilState(m_pDSState_DebugDraw.Get(), 0);
 
-		m_DebugBatch->Begin();
+	// -----------------------------
+	// DebugDraw 전용 상태 설정
+	// -----------------------------
+	context->IASetInputLayout(m_DebugInputLayout.Get());
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
-		// Shadow Frustum
-		m_DebugDraw->Draw(m_DebugBatch.get(), m_ShadowFrustumWS, DirectX::Colors::Red);
+	m_DebugEffect->SetView(m_View);           // 메인 카메라
+	m_DebugEffect->SetProjection(m_Projection);
+	m_DebugEffect->Apply(context);
 
-		// Shadow Camera 위치
-		DirectX::BoundingSphere lightPos;
-		lightPos.Center = {
-			m_ShadowCameraPos.x,
-			m_ShadowCameraPos.y,
-			m_ShadowCameraPos.z
-		};
-		lightPos.Radius = 20.0f;
+	m_DebugBatch->Begin();
 
-		m_DebugDraw->Draw(m_DebugBatch.get(), lightPos, DirectX::Colors::Yellow);
+	// Shadow Frustum
+	m_DebugDraw->Draw(m_DebugBatch.get(), m_ShadowFrustumWS, DirectX::Colors::Red);
 
-		m_DebugBatch->End();
-	}
+	// Shadow Camera 위치
+	DirectX::BoundingSphere lightPos;
+	lightPos.Center = {
+		m_ShadowCameraPos.x,
+		m_ShadowCameraPos.y,
+		m_ShadowCameraPos.z
+	};
+	lightPos.Radius = 20.0f;
+
+	m_DebugDraw->Draw(m_DebugBatch.get(), lightPos, DirectX::Colors::Yellow);
+
+	m_DebugBatch->End();
+
+	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(nullptr, 0);
 }
 
 bool TestApp::CheckHDRSupportAndGetMaxNits(float& outMaxNits, DXGI_FORMAT& outFormat)

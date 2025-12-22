@@ -17,7 +17,6 @@ TextureCube txSky : register(t10);
 TextureCube txIBL_Diffuse : register(t11);  // Irradiance (Diffuse IBL)
 TextureCube txIBL_Specular : register(t12); // Prefiltered Specular Env (mipmaps represent roughness)
 Texture2D txIBL_BRDF_LUT : register(t13);   // BRDF LUT (A,B)
-// Texture2D txAO : register(t14);          // Ambient Occlusion map
 
 
 
@@ -82,7 +81,8 @@ cbuffer ToneMapCB : register(b4)
 {
     float gExposure;    // EV 기반 exposure
     float gMaxHDRNits; // HDR10 기준 (예: 1000.0)
-    float2 padding;
+    float Time;
+    float gEnableDistortion;
 };
 
 
@@ -149,3 +149,131 @@ struct PS_INPUT
     float3 Binormal : TEXCOORD3;
     float4 PositionShadow : TEXCOORD4;
 };
+
+
+// [ Hash 함수 ]
+//  0~1 사이의 난수 값 반환
+//  - dot()으로 좌표를 하나의 값으로 압축
+//  - sin()과 큰 상수를 곱해 난수처럼 보이게 변형
+//  - frac()으로 소수 부분만 남겨 0~1 범위로 제한
+float Hash(float2 p)
+{
+    return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+
+// [ Noise 함수 ]
+//  uv 좌표를 넣으면 부드러운 변화하는 랜덤 값을 반환
+//  - UV를 정수 그리드(i)와 그 안의 위치(f)로 분리
+//  - 그리드 꼭짓점 4곳에서 Hash 난수값 가져오기 
+//  - Smoothstep 보간으로 값의 급격한 변화를 제거
+//  - Bilinear interpolation(양선형 보간법)으로 사각형 내부 값을 계산
+float Noise(float2 uv)
+{
+    float2 i = floor(uv); // 현재 좌표의 정수 부분 (그리드 위치)
+    float2 f = frac(uv); // 소수 부분 (그리드 내 위치, 0~1)
+    
+    float a = Hash(i); // 왼쪽 아래
+    float b = Hash(i + float2(1, 0)); // 오른쪽 아래
+    float c = Hash(i + float2(0, 1)); // 왼쪽 위
+    float d = Hash(i + float2(1, 1)); // 오른쪽 위
+    
+    float2 u = f * f * (3.0 - 2.0 * f); // Smoothstep 보간값 계산
+
+    // bilinear interpolation (사각형 내부를 부드럽게 보간)
+    // bilinear interpolation : linear interpolation을 x축과 y축으로 두 번 적용하여 값을 유추하는 방법
+    float lerp_x0 = lerp(a, b, u.x); // 아래쪽
+    float lerp_x1 = lerp(c, d, u.x); // 위쪽
+    
+    return lerp(lerp_x0, lerp_x1, u.y); // 위아래 보간 -> 최종 값
+}
+
+
+// [ FBM (Fractional Brownian Motion) : 여러 레이어의 Noise 합성 ]
+//  입력 좌표 uv에 대해 여러 주파수/진폭의 노이즈를 합쳐 자연스러운 패턴 생성
+float FBM(float2 uv)
+{
+    float value = 0.0; // 최종 fbm 값
+    float amplitude = 0.5; // 초기 진폭
+    float frequency = 1.0; // 초기 주파수
+
+    // 여러 옥타브(Noise 레이어)를 합성
+    for (int i = 0; i < 4; i++)
+    {
+        value += amplitude * Noise(uv * frequency); // 각 레이어 Noise 합치기
+        frequency *= 2.0; // 다음 레이어는 주파수를 2배로 -> 더 세밀한 패턴
+        amplitude *= 0.5; // 진폭은 반으로 줄여서 영향력 감소
+    }
+    return value;
+}
+
+float2 Rotate2D(float2 p, float a)
+{
+    float s = sin(a);
+    float c = cos(a);
+    return float2(c * p.x - s * p.y, s * p.x + c * p.y);
+}
+
+float2 GetPoisonDistortion(float2 uv, float time)
+{
+    // 시간 기반 회전 각 (계속 변함)
+    float rot = time * 0.7 + FBM(uv * 0.8) * 3.14;
+
+    // UV 자체를 회전시켜 방향성 붕괴
+    float2 ruv = Rotate2D(uv - 0.5, rot) + 0.5;
+
+    // 1. 비선형 기본 이동 (방향이 계속 바뀜)
+    float2 advectedUV = ruv + float2(
+        FBM(ruv * 1.3 + time * 0.4),
+        FBM(ruv * 1.3 - time * 0.6)
+    ) * 0.15;
+
+    // 2. 큰 흐름 (서로 다른 시간 위상)
+    float2 largeWarp;
+    largeWarp.x = FBM(advectedUV * 0.7 + time * 0.31);
+    largeWarp.y = FBM(advectedUV * 0.9 - time * 0.27);
+
+    // 3. 작은 난류 (시간 + 공간 섞기)
+    float2 smallWarp;
+    smallWarp.x = FBM(advectedUV * 2.8 + time * 0.11 + largeWarp.y);
+    smallWarp.y = FBM(advectedUV * 2.3 - time * 0.14 + largeWarp.x);
+
+    // 4. 2차 Domain Warping (방향성 완전 붕괴)
+    float2 warp = largeWarp * 2.0 + smallWarp * 0.9;
+    warp = Rotate2D(warp, sin(time * 1.3));
+
+    // 5. 불규칙한 맥동
+    float pulse =
+        0.6 +
+        0.25 * sin(time * 2.1) +
+        0.15 * sin(time * 3.7);
+
+    return (warp - 0.5) * 0.085 * pulse;
+}
+
+//float2 GetPoisonDistortion(float2 uv, float time)
+//{
+//    // 화면 전체가 천천히 흐르는 기본 이동
+//    float2 advectedUV = uv + float2(
+//        FBM(uv * 1.2 + time * 0.6),
+//        FBM(uv * 1.2 - time * 0.6)
+//    ) * 0.12;
+
+//    // 큰 흐름 (몸이 휘청거리는 느낌)
+//    float2 largeWarp;
+//    largeWarp.x = FBM(advectedUV * 0.8 + time * 0.2);
+//    largeWarp.y = FBM(advectedUV * 0.8 - time * 0.2);
+
+//    // 작은 난류 (시야가 어지러운 느낌)
+//    float2 smallWarp;
+//    smallWarp.x = FBM(advectedUV * 2.5 + time * 0.1);
+//    smallWarp.y = FBM(advectedUV * 2.5 - time * 0.1);
+
+//    // Domain Warping 합성
+//    float2 warp = largeWarp * 2.5 + smallWarp * 0.8;
+    
+//    float pulse = 0.7 + 0.3 * sin(time * 2.0);
+
+//    // 왜곡 강도 조절 
+//    return (warp - 0.5) * 0.1 * pulse;
+//}

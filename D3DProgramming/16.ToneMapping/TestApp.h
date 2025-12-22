@@ -43,6 +43,18 @@ public:
 	TestApp();
 	~TestApp();
 
+	// [ char ]
+	std::shared_ptr<StaticMeshAsset> charAsset;
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Chars;
+
+	// [ Plane ]
+	std::shared_ptr<StaticMeshAsset> planeAsset;
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes;
+
+	// [ Tree ]
+	std::shared_ptr<StaticMeshAsset> treeAsset;
+	std::vector<std::shared_ptr<StaticMeshInstance>> m_Trees;
+
 	// [ Vampire ]
 	std::shared_ptr<SkeletalMeshAsset> VampireAsset;
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Vampires;
@@ -51,16 +63,8 @@ public:
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;               // 공유 Asset
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans; // 인스턴스 벡터
 
-	// [ char ]
-	std::shared_ptr<StaticMeshAsset> charAsset;
-	std::vector<std::shared_ptr<StaticMeshInstance>> m_Chars;
 
-	// [ Plane ]
-	std::shared_ptr<StaticMeshAsset> planeAsset;             
-	std::vector<std::shared_ptr<StaticMeshInstance>> m_Planes;     
-
-
-	// Debug draw
+	// [ Debug draw ]
 	std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_DebugBatch;
 	std::unique_ptr<DirectX::BasicEffect> m_DebugEffect;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_DebugInputLayout;
@@ -110,6 +114,8 @@ public:
 	UINT m_VertextBufferOffset_Sky = 0;
 	int m_nIndices_Sky = 0;
 
+	ComPtr<ID3D11DepthStencilState> m_pDSState_DebugDraw;
+
 	// IBL
 	ComPtr<ID3D11ShaderResourceView> m_pIrradianceSRV;		// Diffuse (Irradiance)
 	ComPtr<ID3D11ShaderResourceView> m_pPrefilterSRV;		// Specular (Prefilter)
@@ -135,6 +141,7 @@ public:
 	float m_ExposureEV = 0.0f;		// 0 = 기본 노출 (2^0 = 1) // TODO: GUI로 조정
 	float m_MonitorMaxNits = 0.0f;
 
+	bool m_EnableDistortion = false; 
 
 	// [ 셰이더에 전달할 데이터 ]
 	ConstantBuffer cb;
@@ -183,7 +190,7 @@ public:
 	bool LoadAsset();
 	bool InitSkyBox();
 	bool InitImGUI();
-	
+
 	// Update
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 

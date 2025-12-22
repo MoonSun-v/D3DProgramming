@@ -42,5 +42,6 @@ struct ToneMapConstantBuffer
 {
 	float Exposure;
 	float MaxHDRNits;
-	float Padding[2];
+	float Time;
+	float gEnableDistortion;
 };

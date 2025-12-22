@@ -67,7 +67,7 @@ LONG WINAPI CustomExceptionHandler(EXCEPTION_POINTERS* pExceptionPointers)
 }
 
 GameApp::GameApp()
-	: m_szWindowClass(L"DefaultWindowCalss"), m_szTitle(L"Moon_D3D"), m_ClientWidth(1024), m_ClientHeight(768)
+	: m_szWindowClass(L"DefaultWindowCalss"), m_szTitle(L"Moon_D3D"), m_ClientWidth(1920), m_ClientHeight(1080)
 {
 	GameApp::m_pInstance = this;
 }
