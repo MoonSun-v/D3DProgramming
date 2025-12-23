@@ -1,17 +1,17 @@
 #include "17.Shared.hlsli"
 
 //--------------------------------------------------------------------------------------
-// Shadow Vertex Shader
+// Vertex Shader
 //--------------------------------------------------------------------------------------
-
-// 라이트 시점에서 깊이만 찍는다. 
-
-PS_INPUT ShadowVS(VS_SHADOW_INPUT input)
+PS_INPUT_GBUFFER main(VS_INPUT input)
 {
-    PS_INPUT output = (PS_INPUT) 0;
+    PS_INPUT_GBUFFER output = (PS_INPUT_GBUFFER) 0;
 
     float4x4 ModelToWorld;
 
+    // ----------------------------
+    // Skinning / Rigid 분기
+    // ----------------------------
     if (gIsRigid == 1)
     {
         ModelToWorld = gWorld;
@@ -23,21 +23,33 @@ PS_INPUT ShadowVS(VS_SHADOW_INPUT input)
         OffsetPose[1] = mul(gBoneOffset[input.BoneIndices.y], gBonePose[input.BoneIndices.y]);
         OffsetPose[2] = mul(gBoneOffset[input.BoneIndices.z], gBonePose[input.BoneIndices.z]);
         OffsetPose[3] = mul(gBoneOffset[input.BoneIndices.w], gBonePose[input.BoneIndices.w]);
-        
-        float4x4 WeightedOffsetPose;
+
+        float4x4 WeightedOffsetPose = 0;
         WeightedOffsetPose = mul(input.BlendWeights.x, OffsetPose[0]);
         WeightedOffsetPose += mul(input.BlendWeights.y, OffsetPose[1]);
         WeightedOffsetPose += mul(input.BlendWeights.z, OffsetPose[2]);
         WeightedOffsetPose += mul(input.BlendWeights.w, OffsetPose[3]);
 
-        ModelToWorld = mul(WeightedOffsetPose, gWorld); // 포즈변환 + World까지 누적
+        ModelToWorld = mul(WeightedOffsetPose, gWorld);
     }
-    
+
+    // ----------------------------
+    // Position
+    // ----------------------------
     float4 worldPos = mul(float4(input.Pos, 1.0f), ModelToWorld);
-    float4 lightViewPos = mul(worldPos, mLightView); // 라이트가 보는 시점 
-    output.Pos = mul(lightViewPos, mLightProjection);
-    
-    output.Tex = input.Tex; // Opacity texture
-    
+    output.WorldPos = worldPos.xyz;
+    output.Pos = mul(mul(worldPos, gView), gProjection);
+
+    // ----------------------------
+    // Normal / TBN
+    // ----------------------------
+    float3x3 M = (float3x3) ModelToWorld;
+
+    output.Normal = normalize(mul(input.Norm, M));
+    output.Tangent = normalize(mul(input.Tangent, M));
+    output.Binormal = normalize(mul(input.Binormal, M));
+
+    output.Tex = input.Tex;
+
     return output;
-} 
+}

@@ -143,12 +143,15 @@ public:
 	bool m_EnableDistortion = false; 
 
 
-	// Deferred Shading G-Buffer
-	ComPtr<ID3D11Texture2D>        m_GBufferTex[5];
-	ComPtr<ID3D11RenderTargetView> m_GBufferRTV[5];
-	ComPtr<ID3D11ShaderResourceView> m_GBufferSRV[5];
+	// Deferred Shading G-Buffer 
+	static const int GBufferCount = 5; // G-Buffer (Position, Normal, Albedo, MR, Emissive)
+	ComPtr<ID3D11Texture2D>        m_GBufferTex[GBufferCount] = {};
+	ComPtr<ID3D11RenderTargetView> m_GBufferRTV[GBufferCount] = {};	// Geometry Pass에서 기록
+	ComPtr<ID3D11ShaderResourceView> m_GBufferSRV[GBufferCount] = {};	// Deferred Lighting에서 읽기
+	ComPtr<ID3D11DepthStencilState> m_pDSState_Deferred;
 	ComPtr<ID3D11DepthStencilState> m_pDSState_GBuffer;
 	ComPtr<ID3D11RasterizerState> m_pRasterSolid;
+	ComPtr<ID3D11VertexShader> m_pGBufferVS;
 	ComPtr<ID3D11PixelShader> m_pDeferredLightingPS;
 	ComPtr<ID3D11PixelShader> m_pGBufferPS;
 
@@ -220,6 +223,7 @@ public:
 	void Render_ToneMapping();
 	void Render_DebugDraw();
 	void Render_ImGui();
+
 
 	// Uninitialize
 	void UninitScene();

@@ -4,7 +4,7 @@
 // G-Buffer Pixel Shader
 //--------------------------------------------------------------------------------------
 
-GBUFFER_OUT main(PS_INPUT input)
+GBUFFER_OUT main(PS_INPUT_GBUFFER input)
 {
     GBUFFER_OUT o;
 
@@ -15,18 +15,18 @@ GBUFFER_OUT main(PS_INPUT input)
     float4 normalTex = txNormal.Sample(samLinear, input.Tex);
     float metalTex = txMetallic.Sample(samLinear, input.Tex).r;
     float roughTex = txRoughness.Sample(samLinear, input.Tex).r;
-    float4 opacityTex = txOpacity.Sample(samLinear, input.Tex);
+    // float4 opacityTex = txOpacity.Sample(samLinear, input.Tex);
     float3 emissive = txEmissive.Sample(samLinear, input.Tex).rgb;
     
     // ------------------------------
     // Opacity Clip
     // ------------------------------
-    clip(opacityTex.a - 0.5f);
+    // clip(opacityTex.a - 0.5f);
 
     // ------------------------------
     // Normal Mapping
     // ------------------------------
-    float3 N = normalize(input.Norm);
+    float3 N = normalize(input.Normal);
 
     if (useTexture_Normal == 1)
     {
@@ -56,16 +56,14 @@ GBUFFER_OUT main(PS_INPUT input)
     roughness = max(0.01, roughness);
     
 
-   
-
     // ------------------------------
     // G-Buffer Output
     // ------------------------------
-    o.WorldPos = float4(input.WorldPos, 1.0f);
-    o.Normal = float4(normalize(N), 1.0f);
-    o.Albedo = float4(albedo, 1.0f);
-    o.MR = float2(metallic, roughness);
-    o.Emissive = emissive;
+    o.WorldPos  = float4(input.WorldPos, 1.0f);
+    o.Normal    = float4(normalize(N), 1.0f);
+    o.Albedo    = float4(albedo, 1.0f);
+    o.MR        = float4(metallic, roughness, 0 , 0);
+    o.Emissive  = float4(emissive, 1);
 
     return o;
 }

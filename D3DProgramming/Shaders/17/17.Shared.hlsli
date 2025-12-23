@@ -86,7 +86,7 @@ cbuffer ToneMapCB : register(b4)
 // [ Shadow ]
 struct VS_SHADOW_INPUT
 {
-    float4 Pos : POSITION;
+    float3 Pos : POSITION;
     float2 Tex : TEXCOORD0;
     
     uint4 BoneIndices : BLENDINDICES;
@@ -125,7 +125,7 @@ struct VSOut
 // GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑
 struct VS_INPUT
 {
-    float4 Pos : POSITION;      // 정점 위치
+    float3 Pos : POSITION;      // 정점 위치
     float3 Norm : NORMAL;       // 정점 법선 벡터
     float2 Tex : TEXCOORD0;
     float3 Tangent : TANGENT;
@@ -148,15 +148,26 @@ struct PS_INPUT
 };
 
 
-// MRT Output
+// G-Buffer용 픽셀 셰이더 입력 구조체
+struct PS_INPUT_GBUFFER
+{
+    float4 Pos      : SV_POSITION;
+    float3 WorldPos : TEXCOORD0;
+    float3 Normal   : TEXCOORD1;
+    float2 Tex      : TEXCOORD2;
+    float3 Tangent  : TEXCOORD3;
+    float3 Binormal : TEXCOORD4;
+};
+
 struct GBUFFER_OUT
 {
     float4 WorldPos : SV_Target0;
-    float4 Normal : SV_Target1;
-    float4 Albedo : SV_Target2;
-    float2 MR : SV_Target3; // x = Metallic, y = Roughness
-    float3 Emissive : SV_Target4;
+    float4 Normal   : SV_Target1;
+    float4 Albedo   : SV_Target2;
+    float4 MR       : SV_Target3; // x = Metallic, y = Roughness
+    float4 Emissive : SV_Target4;
 };
+
 
 // Deferred Lighting PS 입력 구조체
 struct VS_OUT_FS
@@ -164,6 +175,8 @@ struct VS_OUT_FS
     float4 Pos : SV_POSITION;
     float2 uv : TEXCOORD0;
 };
+
+
 
 // ------------------------------------------------------------
 

@@ -253,9 +253,9 @@ void TestApp::UpdateConstantBuffer(const Matrix& world, int isRigid)
 //  [3] Deferred Lighting Pass (G-Buffer → HDR)
 //		- Fullscreen Quad
 //		- 단일 Directional Light + PBR + IBL
-//	[3] ToneMapping Pass(HDR → LDR)
-//	[4] UI / Debug Pass(LDR 위에: 톤매핑 이후에)
-//	[5] Present
+//	[4] ToneMapping Pass(HDR → LDR)
+//	[5] UI / Debug Pass(LDR 위에: 톤매핑 이후에)
+//	[6] Present
 
 void TestApp::Render()
 {
@@ -268,41 +268,142 @@ void TestApp::Render()
 	// --------------------------------------------
 	// [2] G-Buffer Pass
 	// --------------------------------------------
-	Render_BeginGBuffer();        
-	Render_GBufferGeometry();     
+	// 월드 위치, 법선, 알베도, MR, Emissive 등 G-Buffer에 저장  
+	Render_BeginGBuffer();      
+	Render_GBufferGeometry();   
 
 
 	// --------------------------------------------
 	// [3] Deferred Lighting Pass
 	// --------------------------------------------
-	Render_BeginSceneHDR(); // HDR RT 바인딩 
-	Render_DeferredLighting(); // Fullscreen Quad (PBR + Light + Shadow + IBL)
+	// G-Buffer → Fullscreen Quad → Lighting 계산(PBR + Shadow + IBL)
+	Render_BeginSceneHDR();		// HDR RT 바인딩 
+	Render_DeferredLighting();	// Fullscreen Quad (PBR + Light + Shadow + IBL)
 
-	Render_SkyBox();  // SkyBox 렌더링 (Depth Write OFF)
+	Render_SkyBox();			// SkyBox 렌더링 (Depth Write OFF)
+
 
 	// --------------------------------------------
-	// [3] Tone Mapping Pass
+	// [4] Tone Mapping Pass
 	// --------------------------------------------
 	Render_BeginBackBuffer(); // BackBuffer RTV
 	Render_ToneMapping();     // Fullscreen Quad
 
 
 	// --------------------------------------------
-	// [4] UI / Debug (LDR)
+	// [5] UI / Debug (LDR)
 	// --------------------------------------------
 	Render_ImGui();		// UI 렌더링
 	Render_DebugDraw(); // Debug Draw 렌더링
 	
 
 	// --------------------------------------------
-	// [5] Present 
+	// [6] Present 
 	// --------------------------------------------
 	m_D3DDevice.EndFrame(); 
 }
 
+
+// [1] Shadow Map 렌더링
+void TestApp::Render_ShadowMap()
+{
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(6, 1, nullSRV);
+
+	auto* context = m_D3DDevice.GetDeviceContext();
+
+	// ShadowMap 초기화
+	context->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	context->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
+	context->RSSetViewports(1, &m_ShadowViewport);
+
+	// b3 Shadow CB 업데이트
+	ShadowConstantBuffer shadowCB;
+	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
+	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
+
+	// b0 업데이트
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	context->IASetInputLayout(m_pShadowInputLayout.Get());
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
+	context->PSSetShader(m_pShadowPS.Get(), nullptr, 0);
+	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	auto RenderShadowStatic = [&](StaticMeshInstance& mesh, const Matrix& world)
+		{
+			cb.mWorld = XMMatrixTranspose(world);
+			cb.gIsRigid = 1;
+			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+			shadowCB.mWorld = XMMatrixTranspose(world);
+			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+
+			mesh.RenderShadow(context);
+		};
+
+	auto RenderShadowSkeletal = [&](SkeletalMeshInstance& instance, const Matrix& world)
+		{
+			cb.mWorld = XMMatrixTranspose(world);
+			cb.gIsRigid = 0;
+			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+			shadowCB.mWorld = XMMatrixTranspose(world);
+			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
+
+			instance.RenderShadow(context, 0);
+		};
+
+
+	// [ Static / Skeletal 렌더 ]
+	for (size_t i = 0; i < m_Humans.size(); i++)
+	{
+		RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
+	}
+	for (size_t i = 0; i < m_Vampires.size(); i++)
+	{
+		RenderShadowSkeletal(*m_Vampires[i], m_Vampires[i]->GetWorld());
+	}
+	for (size_t i = 0; i < m_Planes.size(); i++)
+	{
+		RenderShadowStatic(*m_Planes[i], m_Planes[i]->GetWorld());
+	}
+	for (size_t i = 0; i < m_Chars.size(); i++)
+	{
+		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
+	}
+	for (size_t i = 0; i < m_Trees.size(); i++)
+	{
+		RenderShadowStatic(*m_Trees[i], m_Trees[i]->GetWorld());
+	}
+
+	// RenderTarget / Viewport 복원
+	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
+	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
+	context->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
+}
+
+
+// [2] G-Buffer
 void TestApp::Render_BeginGBuffer()
 {
 	auto* context = m_D3DDevice.GetDeviceContext();
+
+	// Clear
+	float clearPos[4] = { 0, 0, 0, 1 };
+	float clearNormal[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	float clearAlbedo[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float clearMR[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	float clearEmissive[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	
+	context->ClearRenderTargetView(m_GBufferRTV[0].Get(), clearPos);		// Position
+	context->ClearRenderTargetView(m_GBufferRTV[1].Get(), clearNormal);		// Normal
+	context->ClearRenderTargetView(m_GBufferRTV[2].Get(), clearAlbedo);		// Albedo
+	context->ClearRenderTargetView(m_GBufferRTV[3].Get(), clearMR);			// MR
+	context->ClearRenderTargetView(m_GBufferRTV[4].Get(), clearEmissive);	// Emissive
+	context->ClearDepthStencilView(m_D3DDevice.GetDepthStencilView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	ID3D11RenderTargetView* rtvs[] =
 	{
@@ -312,38 +413,37 @@ void TestApp::Render_BeginGBuffer()
 		m_GBufferRTV[3].Get(), // MR
 		m_GBufferRTV[4].Get()  // Emissive
 	};
+	context->OMSetRenderTargets(_countof(rtvs), rtvs, m_D3DDevice.GetDepthStencilView()); 
 
-	context->OMSetRenderTargets(_countof(rtvs), rtvs,
-		m_D3DDevice.GetDepthStencilView());
-
-	// Clear
-	const float clearColor[4] = { 0,0,0,0 };
-	for (auto& rtv : rtvs)
-		context->ClearRenderTargetView(rtv, clearColor);
-
-	context->ClearDepthStencilView(
-		m_D3DDevice.GetDepthStencilView(),
-		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-		1.0f, 0);
-
-	// Viewport
 	context->RSSetViewports(1, &m_Viewport);
 
-	// Geometry Pass 전용 상태
-	context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
-	context->OMSetDepthStencilState(m_pDSState_GBuffer.Get(), 0);
-	context->RSSetState(m_pRasterSolid.Get());
+	// context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+	context->OMSetDepthStencilState(m_pDSState_GBuffer.Get(), 0);  // Depth test ON, write ON
+	context->RSSetState(m_pRasterSolid.Get()); // Cull Back or None
 
-	// Geometry Shader 세팅
-	context->IASetInputLayout(m_pInputLayout.Get());
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//m_pDeviceContext->IASetVertexBuffers(0, 1, m_pCubeVB.GetAddressOf(), &m_CubeVBStride, &m_CubeVBOffset);
+	//m_pDeviceContext->IASetIndexBuffer(m_pCubeIB.Get(), DXGI_FORMAT_R16_UINT, 0);
+	context->IASetInputLayout(m_pInputLayout.Get());
 
-	context->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	context->VSSetShader(m_pGBufferVS.Get(), nullptr, 0); // m_pVertexShader
+	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	context->PSSetShader(m_pGBufferPS.Get(), nullptr, 0);
+	context->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	// 아래 함수에서 G-Buffer SRV 해제
+	//ID3D11ShaderResourceView* nullSRV[GBufferCount] = {};
+	//context->PSSetShaderResources(20, GBufferCount, nullSRV);
+
+	//// Unbind G-Buffer RTVs before using them as SRVs in Light Pass
+	//ID3D11RenderTargetView* nullRTVs[GBufferCount] = { nullptr, nullptr, nullptr,  nullptr, nullptr };
+	//context->OMSetRenderTargets(GBufferCount, nullRTVs, nullptr);
 }
 
+
+// [2] G-Buffer
 void TestApp::Render_GBufferGeometry()
 {
 	// Static Mesh
@@ -354,8 +454,55 @@ void TestApp::Render_GBufferGeometry()
 	// Skeletal Mesh
 	for (auto& mesh : m_Humans) RenderSkeletalMesh(*mesh);
 	for (auto& mesh : m_Vampires) RenderSkeletalMesh(*mesh);
+
+	//// Mesh 렌더링 : Static Mesh Instance 
+	//for (size_t i = 0; i < m_Planes.size(); i++) { RenderStaticMesh(*m_Planes[i]); }
+	//for (size_t i = 0; i < m_Chars.size(); i++) { RenderStaticMesh(*m_Chars[i]); }
+	//for (size_t i = 0; i < m_Trees.size(); i++) { RenderStaticMesh(*m_Trees[i]); }
+
+	//// Mesh 렌더링 : Skeletal Mesh Instance 
+	//for (size_t i = 0; i < m_Humans.size(); i++) { RenderSkeletalMesh(*m_Humans[i]); }
+	//for (size_t i = 0; i < m_Vampires.size(); i++) { RenderSkeletalMesh(*m_Vampires[i]); }
+
+
+	//ID3D11ShaderResourceView* nullSRV[GBufferCount] = {};
+	//m_D3DDevice.GetDeviceContext()->PSSetShaderResources(20, GBufferCount, nullSRV);
+
+	//// Unbind G-Buffer RTVs before using them as SRVs in Light Pass
+	//ID3D11RenderTargetView* nullRTVs[GBufferCount] = { nullptr, nullptr, nullptr,  nullptr, nullptr };
+	//m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(GBufferCount, nullRTVs, nullptr);
 }
 
+
+// [3] Deferred Lighting Pass
+void TestApp::Render_BeginSceneHDR()
+{
+	// HDR RT + 기존 DepthStencil
+	ID3D11RenderTargetView* rtvs[] = { m_HDRSceneRTV.Get() };
+	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, rtvs, m_D3DDevice.GetDepthStencilView());
+
+	// Clear : Deferred Lighting은 Depth를 쓰지 않는데, 여기서 Depth를 다시 Clear 함
+	const float clearColor[4] = { 0, 0, 0, 1 };
+	m_D3DDevice.GetDeviceContext()->ClearRenderTargetView(m_HDRSceneRTV.Get(), clearColor);
+	//m_D3DDevice.GetDeviceContext()->ClearDepthStencilView(m_D3DDevice.GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	// Viewport (BackBuffer와 동일)
+	D3D11_VIEWPORT vp{};
+	vp.TopLeftX = 0.0f;
+	vp.TopLeftY = 0.0f;
+	vp.Width = (float)m_ClientWidth;
+	vp.Height = (float)m_ClientHeight;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &vp);
+
+	// G-Buffer Pass 끝
+	//ID3D11RenderTargetView* nullRTV[8] = {};
+	//m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(8, nullRTV, nullptr);
+}
+
+
+// [3] Deferred Lighting Pass
 void TestApp::Render_DeferredLighting()
 {
 	auto* context = m_D3DDevice.GetDeviceContext();
@@ -364,27 +511,22 @@ void TestApp::Render_DeferredLighting()
 	context->IASetInputLayout(nullptr);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	// HDR RT 바인딩, Depth 필요 없음
+	ID3D11RenderTargetView* rtvs[] = { m_HDRSceneRTV.Get() };
+	context->OMSetRenderTargets(1, rtvs, nullptr);
+
+	// DepthStencilState도 Depth OFF로 변경
+	context->OMSetDepthStencilState(m_pDSState_Deferred.Get(), 0);
+
 	context->VSSetShader(m_pToneMapVS.Get(), nullptr, 0);
 	context->PSSetShader(m_pDeferredLightingPS.Get(), nullptr, 0);
 
-	// Depth OFF
-	context->OMSetDepthStencilState(m_pDSState_GBuffer.Get(), 0);
-
 	// G-Buffer SRV
-	ID3D11ShaderResourceView* gbufferSRVs[] =
-	{
-		m_GBufferSRV[0].Get(), // Position
-		m_GBufferSRV[1].Get(), // Normal
-		m_GBufferSRV[2].Get(), // Albedo
-		m_GBufferSRV[3].Get(), // MR
-		m_GBufferSRV[4].Get()  // Emissive
-	};
 	context->PSSetShaderResources(20, 1, m_GBufferSRV[0].GetAddressOf()); // Position
 	context->PSSetShaderResources(21, 1, m_GBufferSRV[1].GetAddressOf()); // Normal
 	context->PSSetShaderResources(22, 1, m_GBufferSRV[2].GetAddressOf()); // Albedo
 	context->PSSetShaderResources(23, 1, m_GBufferSRV[3].GetAddressOf()); // MR
 	context->PSSetShaderResources(24, 1, m_GBufferSRV[4].GetAddressOf()); // Emissive
-
 
 	// ShadowMap
 	context->PSSetShaderResources(6, 1,m_pShadowMapSRV.GetAddressOf());
@@ -396,6 +538,13 @@ void TestApp::Render_DeferredLighting()
 		context->PSSetShaderResources(12, 1, m_IBLSet[currentIBL].prefilterSRV.GetAddressOf());
 		context->PSSetShaderResources(13, 1, m_IBLSet[currentIBL].brdfLutSRV.GetAddressOf());
 	}
+	else
+	{
+		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+		context->PSSetShaderResources(11, 1, nullSRV);
+		context->PSSetShaderResources(12, 1, nullSRV);
+		context->PSSetShaderResources(13, 1, nullSRV);
+	}
 
 	// Samplers
 	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
@@ -406,9 +555,42 @@ void TestApp::Render_DeferredLighting()
 	// Fullscreen Triangle
 	context->Draw(3, 0);
 
-	// SRV Unbind (중요!)
-	ID3D11ShaderResourceView* nullSRV[8] = {};
-	context->PSSetShaderResources(0, 8, nullSRV);
+	// SRV Unbind
+	ID3D11ShaderResourceView* nullSRV[GBufferCount] = {};
+	context->PSSetShaderResources(20, GBufferCount, nullSRV);
+
+	// Deferred Lighting 이후, SkyBox 전에 DepthStencilView 복구
+	context->OMSetRenderTargets(1, rtvs, m_D3DDevice.GetDepthStencilView());
+}
+
+void TestApp::Render_SkyBox()
+{
+	// [ 스카이박스 렌더링 전 (깊이 테스트, 래스터라이저 상태 변경) ]
+	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(m_pDSState_Sky.Get(), 1);
+	m_D3DDevice.GetDeviceContext()->RSSetState(m_pRasterizerState_Sky.Get());
+
+	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout_Sky.Get());
+	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_D3DDevice.GetDeviceContext()->IASetVertexBuffers(0, 1, m_pVertexBuffer_Sky.GetAddressOf(), &m_VertextBufferStride_Sky, &m_VertextBufferOffset_Sky);
+	m_D3DDevice.GetDeviceContext()->IASetIndexBuffer(m_pIndexBuffer_Sky.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader_Sky.Get(), nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader_Sky.Get(), nullptr, 0);
+
+	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_IBLSet[currentIBL].skyboxSRV.GetAddressOf());
+
+	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+
+	// Draw
+	m_D3DDevice.GetDeviceContext()->DrawIndexed(m_nIndices_Sky, 0, 0);
+
+	// [ 스카이박스 그린 후, 기본 상태로 복원 ]
+	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(nullptr, 0);
+	m_D3DDevice.GetDeviceContext()->RSSetState(nullptr);
 }
 
 
@@ -499,156 +681,6 @@ void TestApp::Render_ToneMapping()
 }
 
 
-// ---------------------------------------
-// SceneColor를 HDR(R16G16B16A16_FLOAT) 로 렌더
-// PBR + IBL 결과를 clamp 없이 저장
-// ---------------------------------------
-void TestApp::Render_BeginSceneHDR()
-{
-	// HDR RT + 기존 DepthStencil
-	ID3D11RenderTargetView* rtvs[] = { m_HDRSceneRTV.Get() };
-	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(1, rtvs, m_D3DDevice.GetDepthStencilView());
-
-	// Clear
-	const float clearColor[4] = { 0, 0, 0, 1 };
-	m_D3DDevice.GetDeviceContext()->ClearRenderTargetView(m_HDRSceneRTV.Get(), clearColor);
-	m_D3DDevice.GetDeviceContext()->ClearDepthStencilView(
-		m_D3DDevice.GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0 );
-
-	// Viewport (BackBuffer와 동일)
-	D3D11_VIEWPORT vp{};
-	vp.TopLeftX = 0.0f;
-	vp.TopLeftY = 0.0f;
-	vp.Width = (float)m_ClientWidth;
-	vp.Height = (float)m_ClientHeight;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	m_D3DDevice.GetDeviceContext()->RSSetViewports(1, &vp);
-
-	// G-Buffer Pass 끝
-	ID3D11RenderTargetView* nullRTV[8] = {};
-	m_D3DDevice.GetDeviceContext()->OMSetRenderTargets(8, nullRTV, nullptr);
-
-}
-
-void TestApp::Render_SkyBox()
-{
-	// [ 스카이박스 렌더링 전 (깊이 테스트, 래스터라이저 상태 변경) ]
-	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(m_pDSState_Sky.Get(), 1);
-	m_D3DDevice.GetDeviceContext()->RSSetState(m_pRasterizerState_Sky.Get());
-
-	// 설정 
-	m_D3DDevice.GetDeviceContext()->IASetInputLayout(m_pInputLayout_Sky.Get());
-	m_D3DDevice.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_D3DDevice.GetDeviceContext()->IASetVertexBuffers(0, 1, m_pVertexBuffer_Sky.GetAddressOf(), &m_VertextBufferStride_Sky, &m_VertextBufferOffset_Sky);
-	m_D3DDevice.GetDeviceContext()->IASetIndexBuffer(m_pIndexBuffer_Sky.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-	m_D3DDevice.GetDeviceContext()->VSSetShader(m_pVertexShader_Sky.Get(), nullptr, 0);
-	m_D3DDevice.GetDeviceContext()->PSSetShader(m_pPixelShader_Sky.Get(), nullptr, 0);
-
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(10, 1, m_IBLSet[currentIBL].skyboxSRV.GetAddressOf());
-
-	m_D3DDevice.GetDeviceContext()->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_D3DDevice.GetDeviceContext()->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-
-	// Draw
-	m_D3DDevice.GetDeviceContext()->DrawIndexed(m_nIndices_Sky, 0, 0);
-
-	// [ 스카이박스 그린 후, 기본 상태로 복원 ]
-	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(nullptr, 0);
-	m_D3DDevice.GetDeviceContext()->RSSetState(nullptr);
-}
-
-// -----------------------
-// Shadow Map 렌더링
-// -----------------------
-void TestApp::Render_ShadowMap()
-{
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_D3DDevice.GetDeviceContext()->PSSetShaderResources(6, 1, nullSRV);
-
-	auto* context = m_D3DDevice.GetDeviceContext();
-
-	// ShadowMap 초기화
-	context->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-	context->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
-	context->RSSetViewports(1, &m_ShadowViewport);
-
-	// b3 Shadow CB 업데이트
-	ShadowConstantBuffer shadowCB;
-	shadowCB.mLightView = XMMatrixTranspose(m_ShadowView);
-	shadowCB.mLightProjection = XMMatrixTranspose(m_ShadowProjection);
-	m_D3DDevice.GetDeviceContext()->VSSetConstantBuffers(3, 1, m_pShadowCB.GetAddressOf());
-
-	// b0 업데이트
-	context->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	// Shadow용 셰이더
-	context->IASetInputLayout(m_pShadowInputLayout.Get());
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->VSSetShader(m_pShadowVS.Get(), nullptr, 0);
-	context->PSSetShader(m_pShadowPS.Get(), nullptr, 0);
-
-	context->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-	auto RenderShadowStatic = [&](StaticMeshInstance& mesh, const Matrix& world)
-		{
-			cb.mWorld = XMMatrixTranspose(world);
-			cb.gIsRigid = 1;
-			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-			shadowCB.mWorld = XMMatrixTranspose(world);
-			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-
-			mesh.RenderShadow(context);
-		};
-
-	auto RenderShadowSkeletal = [&](SkeletalMeshInstance& instance, const Matrix& world)
-		{
-			cb.mWorld = XMMatrixTranspose(world);
-			cb.gIsRigid = 0;
-			context->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-			shadowCB.mWorld = XMMatrixTranspose(world);
-			context->UpdateSubresource(m_pShadowCB.Get(), 0, nullptr, &shadowCB, 0, 0);
-
-			instance.RenderShadow(context, 0);
-		};
-
-
-	// [ Static / Skeletal 렌더 ]
-
-	for (size_t i = 0; i < m_Humans.size(); i++)
-	{
-		RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
-	}
-	for (size_t i = 0; i < m_Vampires.size(); i++)
-	{
-		RenderShadowSkeletal(*m_Vampires[i], m_Vampires[i]->GetWorld());
-	}
-	for (size_t i = 0; i < m_Planes.size(); i++)
-	{
-		RenderShadowStatic(*m_Planes[i], m_Planes[i]->GetWorld());
-	}
-	for (size_t i = 0; i < m_Chars.size(); i++)
-	{
-		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
-	}
-	for (size_t i = 0; i < m_Trees.size(); i++)
-	{
-		RenderShadowStatic(*m_Trees[i], m_Trees[i]->GetWorld());
-	}
-
-	// RenderTarget / Viewport 복원
-	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
-	ID3D11RenderTargetView* rtv = m_D3DDevice.GetRenderTargetView();
-	context->OMSetRenderTargets(1, &rtv, m_D3DDevice.GetDepthStencilView());
-}
-
-
 // [ Scene 초기화 ] 
 bool TestApp::InitScene()
 {
@@ -670,6 +702,9 @@ bool TestApp::InitScene()
 	HR_T(CompileShaderFromFile(L"../Shaders/17/17.ToneVertexShader.hlsl", "main", "vs_4_0", ToneVSBuffer.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(ToneVSBuffer->GetBufferPointer(), ToneVSBuffer->GetBufferSize(), NULL, m_pToneMapVS.GetAddressOf()));
 
+	ComPtr<ID3DBlob> GBufferVSBuffer;
+	HR_T(CompileShaderFromFile(L"../Shaders/17/17.G_Buffer_VertexShader.hlsl", "main", "vs_4_0", GBufferVSBuffer.GetAddressOf()));
+	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(GBufferVSBuffer->GetBufferPointer(), GBufferVSBuffer->GetBufferSize(), NULL, m_pGBufferVS.GetAddressOf()));
 
 
 	// --------------------------------------------------------------
@@ -862,9 +897,7 @@ bool TestApp::InitScene()
 	hdrDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
 	HR_T(m_D3DDevice.GetDevice()->CreateTexture2D(&hdrDesc, nullptr, m_HDRSceneTex.GetAddressOf()));
-
 	HR_T(m_D3DDevice.GetDevice()->CreateRenderTargetView(m_HDRSceneTex.Get(), nullptr, m_HDRSceneRTV.GetAddressOf()));
-
 	HR_T(m_D3DDevice.GetDevice()->CreateShaderResourceView(m_HDRSceneTex.Get(), nullptr, m_HDRSceneSRV.GetAddressOf()));
 
 	// 상수버퍼 (톤맵핑용)
@@ -873,7 +906,6 @@ bool TestApp::InitScene()
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	HR_T(m_D3DDevice.GetDevice()->CreateBuffer(&desc, nullptr, m_ToneMapCB.GetAddressOf()));
-
 
 	// DebugDraw 깊이스텐실 상태
 	D3D11_DEPTH_STENCIL_DESC ds = {};
@@ -887,33 +919,63 @@ bool TestApp::InitScene()
 	// --------------------------------------------------------------
 	// Deferred Shading G-Buffer 
 	// --------------------------------------------------------------
-	DXGI_FORMAT formats[5] =
+
+	struct RTDesc
 	{
-		DXGI_FORMAT_R16G16B16A16_FLOAT, // WorldPos
-		DXGI_FORMAT_R16G16B16A16_FLOAT, // Normal
-		DXGI_FORMAT_R8G8B8A8_UNORM,     // Albedo
-		DXGI_FORMAT_R8G8_UNORM,         // Metallic / Roughness
-		DXGI_FORMAT_R11G11B10_FLOAT     // Emissive 
+		DXGI_FORMAT format;
 	};
 
-	for (int i = 0; i < 5; ++i)
+	RTDesc formats[GBufferCount] = {
+		{ DXGI_FORMAT_R16G16B16A16_FLOAT }, // WorldPos 
+		{ DXGI_FORMAT_R16G16B16A16_FLOAT }, // Normal 
+		{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },// Albedo
+		{ DXGI_FORMAT_R8G8B8A8_UNORM },     // Metallic / Roughness
+		{ DXGI_FORMAT_R11G11B10_FLOAT }		// Emissive 
+	};
+
+	for (int i = 0; i < GBufferCount; ++i)
 	{
 		D3D11_TEXTURE2D_DESC desc{};
 		desc.Width = m_ClientWidth;
 		desc.Height = m_ClientHeight;
 		desc.MipLevels = 1;
 		desc.ArraySize = 1;
-		desc.Format = formats[i];
+		desc.Format = formats[i].format;
 		desc.SampleDesc.Count = 1;
 		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags =
-			D3D11_BIND_RENDER_TARGET |
-			D3D11_BIND_SHADER_RESOURCE;
+		desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
 		HR_T(m_D3DDevice.GetDevice()->CreateTexture2D(&desc, nullptr, m_GBufferTex[i].GetAddressOf()));
 		HR_T(m_D3DDevice.GetDevice()->CreateRenderTargetView(m_GBufferTex[i].Get(), nullptr, m_GBufferRTV[i].GetAddressOf()));
 		HR_T(m_D3DDevice.GetDevice()->CreateShaderResourceView(m_GBufferTex[i].Get(), nullptr, m_GBufferSRV[i].GetAddressOf()));
 	}
+
+	D3D11_DEPTH_STENCIL_DESC dsDesc{};
+	dsDesc.DepthEnable = FALSE;
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	HR_T(m_D3DDevice.GetDevice()->CreateDepthStencilState(&dsDesc, m_pDSState_Deferred.GetAddressOf()));
+
+	D3D11_DEPTH_STENCIL_DESC dsGBuffer{};
+	dsGBuffer.DepthEnable = TRUE;							// Depth ON
+	dsGBuffer.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;	// Depth 기록
+	dsGBuffer.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;			// 일반 Depth Test
+	dsGBuffer.StencilEnable = FALSE;
+	HR_T(m_D3DDevice.GetDevice()->CreateDepthStencilState(&dsGBuffer, m_pDSState_GBuffer.GetAddressOf()));
+
+
+	D3D11_RASTERIZER_DESC rsDesc_ = {};
+	rsDesc_.FillMode = D3D11_FILL_SOLID;        // 삼각형 채우기
+	rsDesc_.CullMode = D3D11_CULL_BACK;         // 기본 Back-face culling
+	rsDesc_.FrontCounterClockwise = FALSE;      // 시계방향 = Front
+	rsDesc_.DepthBias = 0;
+	rsDesc_.DepthBiasClamp = 0.0f;
+	rsDesc_.SlopeScaledDepthBias = 0.0f;
+	rsDesc_.DepthClipEnable = TRUE;              
+	rsDesc_.ScissorEnable = FALSE;
+	rsDesc_.MultisampleEnable = FALSE;
+	rsDesc_.AntialiasedLineEnable = FALSE;
+	HR_T(m_D3DDevice.GetDevice()->CreateRasterizerState(&rsDesc_, m_pRasterSolid.GetAddressOf()));
 
 
 	// ---------------------------------------------------------------
@@ -1057,6 +1119,7 @@ void TestApp::Render_ImGui()
 	// UI용 폰트 적용
 	ImGui::PushFont(m_UIFont);
 
+
 	// -----------------------------
 	// [ Light ]
 	// -----------------------------
@@ -1118,45 +1181,7 @@ void TestApp::Render_ImGui()
 	ImGui::Separator();
 	ImGui::Text("");
 
-	// -----------------------------
-	// [ Character Transform Control ]
-	// -----------------------------
 
-	// ImGui::Text("[ Character Transform ]");
-
-	// 캐릭터가 하나라도 있을 때만 표시
-	//if (!m_Chars.empty())
-	//{
-	//	auto& chr = m_Chars[0]; // 첫 번째 캐릭터만 제어
-
-	//	// --- Position ---
-	//	ImGui::Text("Position");
-	//	ImGui::DragFloat3("Char Pos", &chr->transform.position.x, 0.1f);
-
-	//	// --- Rotation (degree) ---
-	//	Vector3 rotDeg =
-	//	{
-	//		XMConvertToDegrees(chr->transform.rotation.x),
-	//		XMConvertToDegrees(chr->transform.rotation.y),
-	//		XMConvertToDegrees(chr->transform.rotation.z)
-	//	};
-
-	//	ImGui::Text("Rotation (deg)");
-	//	if (ImGui::DragFloat3("Char Rot", &rotDeg.x, 0.5f))
-	//	{
-	//		chr->transform.rotation.x = XMConvertToRadians(rotDeg.x);
-	//		chr->transform.rotation.y = XMConvertToRadians(rotDeg.y);
-	//		chr->transform.rotation.z = XMConvertToRadians(rotDeg.z);
-	//	}
-
-	//	// --- Scale ---
-	//	ImGui::Text("Scale");
-	//	ImGui::DragFloat3("Char Scale", &chr->transform.scale.x, 0.05f, 0.01f, 100.0f);
-
-	//	ImGui::Separator();
-	//	ImGui::Text("");
-	//}
-	
 	// -----------------------------
 	// [ HDR ]
 	// -----------------------------
@@ -1217,6 +1242,46 @@ void TestApp::Render_ImGui()
 
 	// [ 끝 ] 
 	ImGui::PopFont();
+	ImGui::End();
+
+
+	// -----------------------------
+	// G-Buffer Debug View
+	// -----------------------------
+	ImGui::Begin("G-Buffer Debug View");
+
+	ImGui::BeginGroup();
+	ImGui::Text("Position");
+	ImGui::Image((ImTextureID)m_GBufferSRV[0].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+	ImGui::SameLine();
+
+	ImGui::BeginGroup();
+	ImGui::Text("Normal");
+	ImGui::Image((ImTextureID)m_GBufferSRV[1].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+	ImGui::BeginGroup();
+	ImGui::Text("Albedo");
+	ImGui::Image((ImTextureID)m_GBufferSRV[2].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+	ImGui::SameLine();
+
+	ImGui::BeginGroup();
+	ImGui::Text("M/R");
+	ImGui::Image((ImTextureID)m_GBufferSRV[3].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+
+	// -----------------------------
+	// ShadowMap
+	// -----------------------------
+	ImGui::BeginGroup();
+	ImGui::Text("ShadowMap");
+	ImGui::Image( (ImTextureID)m_pShadowMapSRV.Get(), ImVec2(256, 256), ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::EndGroup();
 	ImGui::End();
 
 
@@ -1452,6 +1517,13 @@ void TestApp::UninitScene()
 	m_HDRSceneSRV.Reset();
 
 	m_pDSState_DebugDraw.Reset();
+
+	for (int i = 0; i < GBufferCount; ++i)
+	{
+		m_GBufferSRV[i].Reset();
+		m_GBufferRTV[i].Reset();
+		m_GBufferTex[i].Reset();
+	}
 
 	// 인스턴스 해제
 	m_Humans.clear();

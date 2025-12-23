@@ -1094,6 +1094,18 @@ void TestApp::Render_ImGui()
 	ImGui::PopFont();
 	ImGui::End();
 
+	ImGui::Begin("ShadowMap Debug View");
+
+	ImGui::BeginGroup();
+	ImGui::Text("ShadowMap");
+	ImGui::Image(
+		(ImTextureID)m_pShadowMapSRV.Get(),
+		ImVec2(256, 256),
+		ImVec2(0, 0),
+		ImVec2(1, 1)
+	);
+	ImGui::EndGroup();
+	ImGui::End();
 
 	// -----------------------------
 	// 리소스 정보 출력

@@ -113,6 +113,7 @@ float4 main(VS_OUT_FS input) : SV_Target
 
     float currentDepth = shadowPos.z / shadowPos.w;
 
+    // NDC -> Texture 좌표계 변환
     float2 shadowUV = shadowPos.xy / shadowPos.w;
     shadowUV.y = -shadowUV.y;
     shadowUV = shadowUV * 0.5 + 0.5;

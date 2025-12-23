@@ -145,7 +145,6 @@ void MeshSection::Render(ID3D11DeviceContext* context, const Material& mat, ID3D
 
     // ±×¸®±â
     context->DrawIndexed(m_IndexCount, 0, 0);
-
 }
 
 void MeshSection::RenderShadow(ID3D11DeviceContext* context, int isRigid)

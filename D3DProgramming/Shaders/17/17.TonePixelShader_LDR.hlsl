@@ -62,9 +62,7 @@ float4 main(float4 pos : SV_POSITION, float2 uv : TEXCOORD0) : SV_Target
     // 3. Tone Mapping (ACES)
     float3 tonemapped = ACESFilm(hdr709);
 
-    // 4. PQ로 변환 (HDR10 출력용)
     float3 pq = LinearToSRGB(tonemapped);
-
-    // 5. 최종 PQ 인코딩된 값 [0.0, 1.0]을 R10G10B10A2_UNORM 백버퍼에 출력
+    
     return float4(pq, 1.0);
 }
