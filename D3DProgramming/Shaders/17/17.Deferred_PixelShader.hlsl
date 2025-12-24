@@ -55,6 +55,9 @@ float4 main(VS_OUT_FS input) : SV_Target
     // G-Buffer Decode
     // ------------------------------
     float3 worldPos = txPosition_G.Sample(samLinear, uv).xyz;
+    if (length(worldPos) < 1e-5)
+        discard; // SkyBox ÇÈ¼¿ ¹ö¸²
+    
     float3 N = normalize(txNormal_G.Sample(samLinear, uv).xyz);
     float3 albedo = txAlbedo_G.Sample(samLinear, uv).rgb;
     float2 mr = txMR_G.Sample(samLinear, uv).rg;
@@ -106,12 +109,13 @@ float4 main(VS_OUT_FS input) : SV_Target
     
     float shadowFactor = 1.0f;
 
-    float4 shadowPos = mul(float4(worldPos, 1.0f), mWorld);
-    shadowPos = mul(shadowPos, mLightView);
-    // float4 shadowPos = mul(float4(worldPos, 1.0f), mLightView);
+    //  float4 shadowPos = mul(float4(worldPos, 1.0f), mWorld);
+    // shadowPos = mul(shadowPos, mLightView);
+    float4 shadowPos = mul(float4(worldPos, 1.0f), mLightView);
     shadowPos = mul(shadowPos, mLightProjection);
-
+    
     float currentDepth = shadowPos.z / shadowPos.w;
+    
 
     // NDC -> Texture ÁÂÇ¥°è º¯È¯
     float2 shadowUV = shadowPos.xy / shadowPos.w;

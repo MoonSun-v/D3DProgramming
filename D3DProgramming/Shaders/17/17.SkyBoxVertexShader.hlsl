@@ -13,12 +13,15 @@ PS_INPUT_SKY main(VS_INPUT_SKY input)
     viewNoTrans._42 = 0;
     viewNoTrans._43 = 0;
 
-    // clip space 좌표
-    output.Pos = mul(input.Pos, viewNoTrans);
+    // Skybox는 월드 = 카메라 위치
+    float4 worldPos = float4(input.Pos.xyz + vEyePos.xyz, 1.0f);
+
+    // View / Projection
+    output.Pos = mul(worldPos, viewNoTrans);
     output.Pos = mul(output.Pos, gProjection);
 
-    // 월드 방향 벡터 (정규화)
-    output.WorldDir = normalize(input.Pos.xyz);
-    
+    // Cubemap 방향
+    output.WorldDir = input.Pos.xyz;
+
     return output;
 }
