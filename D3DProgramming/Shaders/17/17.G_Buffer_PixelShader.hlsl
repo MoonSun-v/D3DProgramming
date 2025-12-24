@@ -4,9 +4,9 @@
 // G-Buffer Pixel Shader
 //--------------------------------------------------------------------------------------
 
-GBUFFER_OUT main(PS_INPUT_GBUFFER input)
+PS_OUTPUT_GBUFFER main(PS_INPUT_GBUFFER input)
 {
-    GBUFFER_OUT o;
+    PS_OUTPUT_GBUFFER o;
 
     // ------------------------------
     // Texture Sampling

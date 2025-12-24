@@ -1,8 +1,8 @@
 
 SamplerState samLinear : register(s0);
 SamplerComparisonState samShadow : register(s1); 
-SamplerState samLinearIBL : register(s2); // IBL 전용 샘플러 (필요시 설정)
-SamplerState samClampIBL : register(s3);  // CLAMP 샘플러 (LUT 샘플용)
+SamplerState samLinearIBL : register(s2); 
+SamplerState samClampIBL : register(s3); 
 
 Texture2D txBaseColor : register(t0);
 Texture2D txNormal : register(t1);
@@ -16,7 +16,7 @@ Texture2D txSceneHDR : register(t7);
 
 TextureCube txSky : register(t10);
 TextureCube txIBL_Diffuse : register(t11);  // Irradiance (Diffuse IBL)
-TextureCube txIBL_Specular : register(t12); // Prefiltered Specular Env (mipmaps represent roughness)
+TextureCube txIBL_Specular : register(t12); // Prefiltered Specular Env 
 Texture2D txIBL_BRDF_LUT : register(t13);   // BRDF LUT (A,B)
 
 // G-Buffer Textures
@@ -56,12 +56,10 @@ cbuffer ConstantBuffer : register(b0)
     float2 pad0;
 }
 
-
 cbuffer BonePoseMatrix : register(b1)
 {
     matrix gBonePose[128]; 
 }
-
 cbuffer BoneOffsetMatrix : register(b2)
 {
     matrix gBoneOffset[128];
@@ -77,14 +75,50 @@ cbuffer ShadowCB : register(b3)
 cbuffer ToneMapCB : register(b4)
 {
     float gExposure;    // EV 기반 exposure
-    float gMaxHDRNits; // HDR10 기준 (예: 1000.0)
+    float gMaxHDRNits;  // HDR10 기준 (예: 1000.0)
     float Time;
     float gEnableDistortion;
 };
 
+// ------------------------------------------------------------
+// 셰이더
+// ------------------------------------------------------------
+
+// [ G-Buffer Vertex / Pixel Shader ]
+// - 조명 계산 없이 재질 정보만 G-Buffer에 기록
+
+// [ Deferred Lighting Pixel Shader ]
+// - G-Buffer에서 재질 정보를 읽어와 조명 계산 수행
+
+// [ Tone Mapping(HDR/LDR) Pixel Shader ]
+// - 최종 HDR 장면을 톤 매핑해서 화면에 출력
+
+// [ Shadow Vertex / Pixcel Shader ]
+// - 그림자 맵 생성용 셰이더
+
+
+// ------------------------------------------------------------
+// 셰이더 입출력 구조체 
+// ------------------------------------------------------------
+
+// [ IA → VS 정점 입력 ]
+// - VS_INPUT
+// - VS_INPUT_SHADOW 
+// - VS_INPUT_SKY
+
+// [ VS → PS 전달 ]
+// - PS_INPUT
+// - PS_INPUT_SKY
+// - PS_INPUT_GBUFFER
+// - VS_OUTPUT_FULL / VS_OUT_FS : Fullscreen Quad / Triangle
+
+// [ PS 출력 ]
+// - PS_OUTPUT_GBUFFER : G-Buffer 출력
+
+
 
 // [ Shadow ]
-struct VS_SHADOW_INPUT
+struct VS_INPUT_SHADOW
 {
     float3 Pos : POSITION;
     float2 Tex : TEXCOORD0;
@@ -92,20 +126,17 @@ struct VS_SHADOW_INPUT
     uint4 BoneIndices : BLENDINDICES;
     float4 BlendWeights : BLENDWEIGHT0;
 };
-
-struct VS_SHADOW_OUTPUT
+struct VS_SHADOW_OUT
 {
     float4 Pos : SV_POSITION;
-    float2 Tex : TEXCOORD0; // PS로 전달
+    float2 Tex : TEXCOORD0;
 };
-
 
 // [ SkyBox ]
 struct VS_INPUT_SKY
 {
     float4 Pos : POSITION; 
 };
-
 struct PS_INPUT_SKY
 {
     float4 Pos : SV_POSITION;     // 변환된 정점 좌표 (화면 클립 공간)
@@ -113,34 +144,31 @@ struct PS_INPUT_SKY
 };
 
 
-// [ Tone Mapping ]
-struct VSOut
+// [ Tone Mapping : Full Screan ]
+struct VS_OUTPUT_FULL
 {
     float4 Pos : SV_POSITION;
     float2 UV : TEXCOORD0;
 };
 
 
-// 정점 입력 구조체
-// GPU Input Assembler 단계에서 정점 데이터(Vertex Buffer)와 매핑
+// [ Mesh ]
 struct VS_INPUT
 {
-    float3 Pos : POSITION;      // 정점 위치
-    float3 Norm : NORMAL;       // 정점 법선 벡터
+    float3 Pos : POSITION;     
+    float3 Norm : NORMAL;       
     float2 Tex : TEXCOORD0;
     float3 Tangent : TANGENT;
-    float3 Binormal : BINORMAL;         // CPU에서 미리 지정된 Binormal 추가
-    uint4 BoneIndices : BLENDINDICES;   // 4개의 본 인덱스 
-    float4 BlendWeights : BLENDWEIGHT0; // 4개의 블렌딩 가중치 
+    float3 Binormal : BINORMAL;         
+    uint4 BoneIndices : BLENDINDICES;   
+    float4 BlendWeights : BLENDWEIGHT0; 
 };
-
-// 픽셀 셰이더 입력 구조체 (정점 셰이더 출력 -> 픽셀 셰이더 입력)
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;       // 변환된 정점 좌표 (화면 클립 공간)
     float3 Norm : NORMAL;           // 보간된 정점 법선 벡터
     float2 Tex : TEXCOORD0;
-    
+
     float3 WorldPos : TEXCOORD1;    // 월드 공간 위치 전달
     float3 Tangent : TEXCOORD2;     // 월드 공간 Tangent
     float3 Binormal : TEXCOORD3;
@@ -148,7 +176,7 @@ struct PS_INPUT
 };
 
 
-// G-Buffer용 픽셀 셰이더 입력 구조체
+// [ G-Buffer ]
 struct PS_INPUT_GBUFFER
 {
     float4 Pos      : SV_POSITION;
@@ -158,22 +186,13 @@ struct PS_INPUT_GBUFFER
     float3 Tangent  : TEXCOORD3;
     float3 Binormal : TEXCOORD4;
 };
-
-struct GBUFFER_OUT
+struct PS_OUTPUT_GBUFFER
 {
     float4 WorldPos : SV_Target0;
     float4 Normal   : SV_Target1;
     float4 Albedo   : SV_Target2;
     float4 MR       : SV_Target3; // x = Metallic, y = Roughness
     float4 Emissive : SV_Target4;
-};
-
-
-// Deferred Lighting PS 입력 구조체
-struct VS_OUT_FS
-{
-    float4 Pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
 };
 
 

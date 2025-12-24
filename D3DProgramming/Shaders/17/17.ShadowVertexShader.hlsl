@@ -6,9 +6,9 @@
 
 // 라이트 시점에서 깊이만 찍는다. 
 
-PS_INPUT ShadowVS(VS_SHADOW_INPUT input)
+VS_SHADOW_OUT ShadowVS(VS_INPUT_SHADOW input)
 {
-    PS_INPUT output = (PS_INPUT) 0;
+    VS_SHADOW_OUT output = (VS_SHADOW_OUT) 0;
 
     float4x4 ModelToWorld;
 

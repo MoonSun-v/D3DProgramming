@@ -5,22 +5,16 @@
 //--------------------------------------------------------------------------------------
 
 // 상수 값 
-static const float PI = 3.14159265; // 원주율
-static const float Epsilon = 0.00001; // 아주 작은 값 
-
+static const float PI = 3.14159265; 
+static const float Epsilon = 0.00001; 
 
 // <F> [ Fresnel효과의 Schlick 근사 (RGB 반환) ]
-// - F0: 정면에서 보는 반사율(금속/비금속에 따라 다른 값)
-// - cosTheta: 빛이 표면에 얼마나 수직으로 들어오는가?
 float3 fresnelSchlick(float3 F0, float cosTheta)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-
 // <D> [ NDF (Normal Distribution Function) - GGX ]
-// - cosNH : normal과 half-vector 사이의 각도
-// - roughness : 표면 거칠기(0 = 매끈, 1 = 거침)
 float ndfGGX(float cosNH, float roughness)
 {
     float a = roughness * roughness;
@@ -30,26 +24,24 @@ float ndfGGX(float cosNH, float roughness)
     return a2 / max(PI * denom * denom, Epsilon);
 }
 
-
 // <G> [ Schlick-GGX Geometry Term (1방향) ]
-// 표면의 미세한 요철 때문에 빛이 일부 가려지는 효과
 float G_Schlick_GGX(float cosX, float roughness)
 {
     float r = roughness + 1.0;
-    float k = (r * r) / 8.0f; // * 0.125; // (r^2)/8 : Epic Games 에서 만든 근사값  
+    float k = (r * r) / 8.0f; // (r^2)/8 : Epic Games 에서 만든 근사값  
     return cosX / max(cosX * (1.0 - k) + k, Epsilon);
 }
 
-// <G> [ Smith Geometry (양방향) ] : 두 방향의 Geometry Term 곱
+// <G> [ Smith Geometry (양방향) ]
 float G_Smith(float cosNL, float cosNV, float roughness)
 {
     return G_Schlick_GGX(cosNL, roughness) * G_Schlick_GGX(cosNV, roughness);
 }
 
 
-float4 main(VS_OUT_FS input) : SV_Target
+float4 main(VS_OUTPUT_FULL input) : SV_Target
 {
-    float2 uv = input.uv;
+    float2 uv = input.UV;
 
     // ------------------------------
     // G-Buffer Decode
@@ -70,9 +62,9 @@ float4 main(VS_OUT_FS input) : SV_Target
     // ----------------------------------------------------------------------
     // View / Light / Half 벡터 계산 
     // ----------------------------------------------------------------------
-    float3 V = normalize(vEyePos.xyz - worldPos); // 시선 방향
-    float3 L = normalize(-vLightDir.xyz); // 광원 방향
-    float3 H = normalize(V + L); // Half 벡터
+    float3 V = normalize(vEyePos.xyz - worldPos);   // 시선 방향
+    float3 L = normalize(-vLightDir.xyz);           // 광원 방향
+    float3 H = normalize(V + L);                    // Half 벡터
 
     float cosNL = saturate(dot(N, L));
     float cosNV = saturate(dot(N, V));
@@ -98,29 +90,17 @@ float4 main(VS_OUT_FS input) : SV_Target
     // ----------------------------------------------------------------------
     // 7. Shadow : PCF (WorldPos → Light VP)
     // ----------------------------------------------------------------------
-    // PositionShadow 는 Light View Projection 좌표(NDC) 기반 -> 직접 변환해야 함
-    //float shadowFactor = 1.0f;
-    //float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
-    
-    //// NDC -> Texture 좌표계 변환
-    //float2 ShadowUV = input.PositionShadow.xy / input.PositionShadow.w;
-    //ShadowUV.y = -ShadowUV.y;
-    //ShadowUV = ShadowUV * 0.5f + 0.5f;
-    
+    // PositionShadow 는 Light View Projection 좌표(NDC) 기반 -> 직접 변환해야 함    
     float shadowFactor = 1.0f;
-
-    //  float4 shadowPos = mul(float4(worldPos, 1.0f), mWorld);
-    // shadowPos = mul(shadowPos, mLightView);
+    
     float4 shadowPos = mul(float4(worldPos, 1.0f), mLightView);
     shadowPos = mul(shadowPos, mLightProjection);
     
     float currentDepth = shadowPos.z / shadowPos.w;
     
-
-    // NDC -> Texture 좌표계 변환
-    float2 shadowUV = shadowPos.xy / shadowPos.w;
-    shadowUV.y = -shadowUV.y;
-    shadowUV = shadowUV * 0.5 + 0.5;
+    // NDC -> Texture UV 변환
+    float2 shadowUV = shadowPos.xy / shadowPos.w * 0.5 + 0.5;
+    shadowUV.y = 1.0 - shadowUV.y; // DX 기준 Y 반전
     
     if (shadowUV.x >= 0.0f && shadowUV.x <= 1.0f && shadowUV.y >= 0.0f && shadowUV.y <= 1.0f) // 그림자 맵 범위 내부인지 체크
     {
@@ -136,7 +116,7 @@ float4 main(VS_OUT_FS input) : SV_Target
             for (int x = -1; x <= 1; ++x)
             {
                 float2 sampleUV = shadowUV + float2(x, y) * texelSize;
-                sum += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentDepth /*currentShadowDepth*/ - depthBias);
+                sum += txShadowMap.SampleCmpLevelZero(samShadow, sampleUV, currentDepth - depthBias);
             }
         }
         shadowFactor = sum / 9.0f; // 평균값
@@ -170,16 +150,13 @@ float4 main(VS_OUT_FS input) : SV_Target
 
     
         // [ Specular IBL ] (Prefiltered env + BRDF LUT) -------------------------
-        float3 R = 2.0 * cosNV * N - V; // float3 R = reflect(-V, N);
+        float3 R = 2.0 * cosNV * N - V; 
     
         uint specularTextureLevels, width, height;
-        txIBL_Specular.GetDimensions(0, width, height, specularTextureLevels); //  텍스쳐의 최대 LOD 개수를 구한다.	
-        
-        // Lr( View,Normal의 반사벡터) 와 거칠기를 사용하여 반사 빛을 샘플링한다. 
-        // 거칠기에 따라 뭉게진 반사 빛을 표현하기위해  LOD 선형보간이 적용된다.    
+        txIBL_Specular.GetDimensions(0, width, height, specularTextureLevels); //  텍스쳐의 최대 LOD 개수
+          
         float3 PrefilteredColor = txIBL_Specular.SampleLevel(samLinearIBL, R, roughness * (specularTextureLevels-1)).rgb;
-
-        // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
+        
         float2 brdf = txIBL_BRDF_LUT.Sample(samClampIBL, float2(cosVH, roughness)).rg;
         
         float3 specularIBL = PrefilteredColor * (F0 * brdf.x + brdf.y);

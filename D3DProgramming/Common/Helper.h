@@ -172,6 +172,10 @@ inline void HR_T_Impl(HRESULT hr, const char* file, int line, const char* func)
 
 
 
+// HDR 지원 체크 및 최대 휘도 값 얻기
+bool CheckHDRSupportAndGetMaxNits(float& outMaxNits, DXGI_FORMAT& outFormat);
+
+
 //------------------------------[ 셰이더 파일 컴파일 ]-------------------------------
 // GPU가 바로 HLSL 코드를 이해하지 못하기 때문에 컴파일 필요함
 // 
@@ -195,3 +199,4 @@ HRESULT CreateTextureFromFile(
     const wchar_t* szFileName,              // 텍스처 파일 이름
     ID3D11ShaderResourceView** textureView  // 출력 리소스 뷰
 ); 
+

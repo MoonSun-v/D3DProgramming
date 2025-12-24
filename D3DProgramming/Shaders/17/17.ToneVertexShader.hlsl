@@ -3,9 +3,9 @@
 //--------------------------------------------------------------------------------------
 // Tone Vertex Shader
 //--------------------------------------------------------------------------------------
-VSOut main(uint id : SV_VertexID)
+VS_OUTPUT_FULL main(uint id : SV_VertexID)
 {
-    VSOut o;
+    VS_OUTPUT_FULL o;
 
     float2 pos[3] =
     {
