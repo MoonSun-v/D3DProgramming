@@ -15,13 +15,13 @@ PS_OUTPUT_GBUFFER main(PS_INPUT_GBUFFER input)
     float4 normalTex = txNormal.Sample(samLinear, input.Tex);
     float metalTex = txMetallic.Sample(samLinear, input.Tex).r;
     float roughTex = txRoughness.Sample(samLinear, input.Tex).r;
-    // float4 opacityTex = txOpacity.Sample(samLinear, input.Tex);
+    float4 opacityTex = txOpacity.Sample(samLinear, input.Tex);
     float3 emissive = txEmissive.Sample(samLinear, input.Tex).rgb;
     
     // ------------------------------
     // Opacity Clip
     // ------------------------------
-    // clip(opacityTex.a - 0.5f);
+    clip(opacityTex.a - 0.5f);
 
     // ------------------------------
     // Normal Mapping
