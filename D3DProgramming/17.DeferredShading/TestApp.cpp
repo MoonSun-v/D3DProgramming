@@ -64,14 +64,14 @@ bool TestApp::Initialize()
 
 void TestApp::Uninitialize()
 {
-	UninitScene();      // 리소스 해제 
+	UninitScene();      
 	UninitImGUI();
 	m_D3DDevice.Cleanup();
 	CheckDXGIDebug();	// DirectX 리소스 누수 체크
 }
 
 
-// [ 리소스 로드 (Asset) ]
+// [ 리소스 로드 (Asset) ] TODO : AssetManager 활용
 bool TestApp::LoadAsset()
 {
 	// -------------- [ Static Mesh Asset 생성 ] --------------
@@ -79,7 +79,7 @@ bool TestApp::LoadAsset()
 	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
 	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
 	instance_plane->SetAsset(planeAsset);
-	instance_plane->transform.position = { 0, -15, 0 };
+	instance_plane->transform.position = { 100, -15, 0 };
 	instance_plane->transform.scale = { 0.5, 1, 0.5 };
 	m_Planes.push_back(instance_plane);
 
@@ -115,20 +115,30 @@ bool TestApp::LoadAsset()
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/DancingHuman.fbx"); 
 	auto instance_human = std::make_shared<SkeletalMeshInstance>();
 	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-	instance_human->transform.position = { 0, 0, 10 };
+	instance_human->transform.position = { -10, 0, 30 };
 	instance_human->transform.rotation = { 0, XMConvertToRadians(45), 0 };
 	instance_human->transform.scale = { 1.0, 1.0, 1.0 };
 	m_Humans.push_back(instance_human);
 
-	// 2. Vampire
-	VampireAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/Vampire_SkinningTest.fbx");
-	auto instance_Vampire = std::make_shared<SkeletalMeshInstance>();
-	instance_Vampire->SetAsset(m_D3DDevice.GetDevice(), VampireAsset);
-	instance_Vampire->transform.position = { 0, 0, 100 };
-	instance_Vampire->transform.rotation = { 0, XMConvertToRadians(45), 0 };
-	instance_Vampire->transform.scale = { 1.0, 1.0, 1.0 };
-	m_Vampires.push_back(instance_Vampire);
+	// 2. Human 2
+	humanAsset_2 = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/DancingHuman_2.fbx");
+	auto instance_human_2 = std::make_shared<SkeletalMeshInstance>();
+	instance_human_2->SetAsset(m_D3DDevice.GetDevice(), humanAsset_2);
+	instance_human_2->transform.position = { -40, 0, 100 };
+	instance_human_2->transform.rotation = { 0, XMConvertToRadians(45), 0 };
+	instance_human_2->transform.scale = { 1.0, 1.0, 1.0 };
+	m_Humans_2.push_back(instance_human_2);
 
+	// 3. Joyful Human
+	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/JoyfulHuman.fbx");
+	auto instance_joyHuman = std::make_shared<SkeletalMeshInstance>();
+	instance_joyHuman->SetAsset(m_D3DDevice.GetDevice(), joyHumanAsset);
+	instance_joyHuman->transform.position = { 50, 0, -130 };
+	instance_joyHuman->transform.rotation = { 0, XMConvertToRadians(45), 0 };
+	instance_joyHuman->transform.scale = { 1.0, 1.0, 1.0 };
+	m_joyHumans.push_back(instance_joyHuman);
+
+	
 
 	// -------------- [ SkyBox 리소스 ] --------------
 	m_IBLSet.resize(3);
@@ -167,7 +177,8 @@ void TestApp::Update()
 
 	// 인스턴스들 Update 호출 (업데이트된 world 전달)
 	for (size_t i = 0; i < m_Humans.size(); i++)	m_Humans[i]->Update(deltaTime);
-	for (size_t i = 0; i < m_Vampires.size(); i++)	m_Vampires[i]->Update(deltaTime);
+	for (size_t i = 0; i < m_Humans_2.size(); i++)	m_Humans_2[i]->Update(deltaTime);
+	for (size_t i = 0; i < m_joyHumans.size(); i++)	m_joyHumans[i]->Update(deltaTime);
 
 
 	// ---------------------------------------------
@@ -340,10 +351,11 @@ void TestApp::Render_ShadowMap()
 
 	// [ Static / Skeletal 렌더 ]
 	for (size_t i = 0; i < m_Humans.size(); i++)	RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
-	for (size_t i = 0; i < m_Vampires.size(); i++)	RenderShadowSkeletal(*m_Vampires[i], m_Vampires[i]->GetWorld());
+	for (size_t i = 0; i < m_Humans_2.size(); i++)	RenderShadowSkeletal(*m_Humans_2[i], m_Humans_2[i]->GetWorld());
 	for (size_t i = 0; i < m_Planes.size(); i++)	RenderShadowStatic(*m_Planes[i], m_Planes[i]->GetWorld());
 	for (size_t i = 0; i < m_Chars.size(); i++)		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
 	for (size_t i = 0; i < m_Trees.size(); i++)		RenderShadowStatic(*m_Trees[i], m_Trees[i]->GetWorld());
+	for (size_t i = 0; i < m_joyHumans.size(); i++)	RenderShadowSkeletal(*m_joyHumans[i], m_joyHumans[i]->GetWorld());
 
 
 	// RenderTarget / Viewport 복원
@@ -414,7 +426,8 @@ void TestApp::Render_GBufferGeometry()
 
 	// Skeletal Mesh
 	for (auto& mesh : m_Humans) RenderSkeletalMesh(*mesh);
-	for (auto& mesh : m_Vampires) RenderSkeletalMesh(*mesh);
+	for (auto& mesh : m_Humans_2) RenderSkeletalMesh(*mesh);
+	for (auto& mesh : m_joyHumans) RenderSkeletalMesh(*mesh);
 }
 
 
@@ -999,7 +1012,7 @@ bool TestApp::InitSkyBox()
 
 	// Vertex Shader
 	ComPtr<ID3DBlob> vertexShaderBuffer_Sky;
-	HR_T(CompileShaderFromFile(L"../Shaders/16.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/17/17.SkyBoxVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer_Sky.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreateVertexShader(vertexShaderBuffer_Sky->GetBufferPointer(), vertexShaderBuffer_Sky->GetBufferSize(), NULL, m_pVertexShader_Sky.GetAddressOf()));
 
 	// Input Layout
@@ -1007,7 +1020,7 @@ bool TestApp::InitSkyBox()
 
 	// Pixel Shader
 	ComPtr<ID3DBlob> pixelShaderBuffer_Sky;
-	HR_T(CompileShaderFromFile(L"../Shaders/16.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"../Shaders/17/17.SkyBoxPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer_Sky.GetAddressOf()));
 	HR_T(m_D3DDevice.GetDevice()->CreatePixelShader(pixelShaderBuffer_Sky->GetBufferPointer(), pixelShaderBuffer_Sky->GetBufferSize(), NULL, m_pPixelShader_Sky.GetAddressOf()));
 
 
@@ -1354,17 +1367,20 @@ void TestApp::UninitScene()
 
 	// 인스턴스 해제
 	m_Humans.clear();
+	m_Humans_2.clear();
 	m_Planes.clear();
 	m_Chars.clear();
-	m_Vampires.clear();
 	m_IBLSet.clear();
 	m_Trees.clear();
+	m_joyHumans.clear();
+	
 
 	humanAsset.reset();
+	humanAsset_2.reset();
 	charAsset.reset();
 	planeAsset.reset();
-	VampireAsset.reset();
 	treeAsset.reset();
+	joyHumanAsset.reset();
 
 	m_DebugBatch.reset();
 	m_DebugEffect.reset();

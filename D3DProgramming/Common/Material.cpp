@@ -84,8 +84,8 @@ void Material::InitializeFromAssimpMaterial(ID3D11Device* device, const aiMateri
 
     // Metallic
     bool foundMetal =
-        TryLoad(aiTextureType_METALNESS, FilePathMetallic, m_textures.MetallicSRV); /*||
-        TryLoad(aiTextureType_SPECULAR, FilePathMetallic, m_textures.MetallicSRV); */// fallback
+        TryLoad(aiTextureType_METALNESS, FilePathMetallic, m_textures.MetallicSRV) ||
+        TryLoad(aiTextureType_SPECULAR, FilePathMetallic, m_textures.MetallicSRV); // fallback
 
     // Roughness
     bool foundRough =

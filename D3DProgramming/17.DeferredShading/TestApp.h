@@ -58,14 +58,15 @@ public:
 	std::shared_ptr<StaticMeshAsset> charAsset;
 	std::shared_ptr<StaticMeshAsset> treeAsset;
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;
-	std::shared_ptr<SkeletalMeshAsset> VampireAsset;
+	std::shared_ptr<SkeletalMeshAsset> humanAsset_2;
+	std::shared_ptr<SkeletalMeshAsset> joyHumanAsset;
 
 	std::vector<std::shared_ptr<StaticMeshInstance>>   m_Planes;
 	std::vector<std::shared_ptr<StaticMeshInstance>>   m_Chars;
 	std::vector<std::shared_ptr<StaticMeshInstance>>   m_Trees;
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans;
-	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Vampires;
-
+	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans_2;
+	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_joyHumans;
 
 
 	// ------------------------------------------------------------
