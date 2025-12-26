@@ -25,6 +25,12 @@
     <Filter Include="[ 01. System ]">
       <UniqueIdentifier>{70cba97d-cc0d-4039-974a-3e8c1e180847}</UniqueIdentifier>
     </Filter>
+    <Filter Include="[ 03. Animation ]">
+      <UniqueIdentifier>{9a1673b2-ca4d-470b-b430-1a0bd4e72739}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="[ 04. Resource ]">
+      <UniqueIdentifier>{581ae79c-190e-4a74-8b9d-1550d161f2aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -51,50 +57,50 @@
     <ClInclude Include="InputSystem.h">
       <Filter>[ 01. System ]</Filter>
     </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>[ 01. System ]</Filter>
+    </ClInclude>
     <ClInclude Include="Animation.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="AssetKey.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="AssetManager.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Bone.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="BoneMatrixContainer.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 03. Animation ]</Filter>
     </ClInclude>
     <ClInclude Include="DebugDraw.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Material.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 99. Utility ]</Filter>
     </ClInclude>
     <ClInclude Include="MeshSection.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SkeletalMeshAsset.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 02. Mesh ]</Filter>
     </ClInclude>
     <ClInclude Include="SkeletalMeshInstance.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SkeletonInfo.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="StaticMeshAsset.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 02. Mesh ]</Filter>
     </ClInclude>
     <ClInclude Include="StaticMeshInstance.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 02. Mesh ]</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletonInfo.h">
+      <Filter>[ 02. Mesh ]</Filter>
     </ClInclude>
     <ClInclude Include="Transform.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 99. Utility ]</Filter>
+    </ClInclude>
+    <ClInclude Include="Bone.h">
+      <Filter>[ 02. Mesh ]</Filter>
     </ClInclude>
     <ClInclude Include="ConstantBuffer.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>[ 99. Utility ]</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneMatrixContainer.h">
+      <Filter>[ 99. Utility ]</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetKey.h">
+      <Filter>[ 04. Resource ]</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletalMeshAsset.h">
+      <Filter>[ 04. Resource ]</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshAsset.h">
+      <Filter>[ 04. Resource ]</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetManager.h">
+      <Filter>[ 04. Resource ]</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -119,35 +125,35 @@
     <ClCompile Include="Helper.cpp">
       <Filter>[ 99. Utility ]</Filter>
     </ClCompile>
-    <ClCompile Include="Animation.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Material.cpp">
+      <Filter>[ 01. System ]</Filter>
     </ClCompile>
-    <ClCompile Include="AssetManager.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Animation.cpp">
+      <Filter>[ 03. Animation ]</Filter>
     </ClCompile>
     <ClCompile Include="DebugDraw.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="MeshSection.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SkeletalMeshAsset.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>[ 99. Utility ]</Filter>
     </ClCompile>
     <ClCompile Include="SkeletalMeshInstance.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>[ 02. Mesh ]</Filter>
     </ClCompile>
-    <ClCompile Include="SkeletonInfo.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="StaticMeshAsset.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="MeshSection.cpp">
+      <Filter>[ 02. Mesh ]</Filter>
     </ClCompile>
     <ClCompile Include="StaticMeshInstance.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>[ 02. Mesh ]</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletonInfo.cpp">
+      <Filter>[ 02. Mesh ]</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMeshAsset.cpp">
+      <Filter>[ 04. Resource ]</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletalMeshAsset.cpp">
+      <Filter>[ 04. Resource ]</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetManager.cpp">
+      <Filter>[ 04. Resource ]</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

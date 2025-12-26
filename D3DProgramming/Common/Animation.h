@@ -19,7 +19,7 @@ class BoneAnimation
 public:
 	std::vector<AnimationKey> AnimationKeys;
 
-	// 특정 시간 t에 해당하는 본의 변환행렬 계산
+	// 특정 시간 t에 해당하는 본의 변환행렬 계산 : SkeletalMeshInstance Update() 
 	Matrix Evaluate(float time) const;
 	void Evaluate(float time, Vector3& outPos, Quaternion& outRot, Vector3& outScale) const; 
 };
