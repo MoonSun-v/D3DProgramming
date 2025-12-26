@@ -74,74 +74,63 @@ void TestApp::Uninitialize()
 // [ 리소스 로드 (Asset) ] TODO : AssetManager 활용
 bool TestApp::LoadAsset()
 {
-	// -------------- [ Static Mesh Asset 생성 ] --------------
-	// 1. Plane 
-	planeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Plane.fbx");
-	auto instance_plane = std::make_shared<StaticMeshInstance>(); // StaticMeshInstance 생성 후 Asset 연결
-	instance_plane->SetAsset(planeAsset);
-	instance_plane->transform.position = { 100, -15, 0 };
-	instance_plane->transform.scale = { 0.5, 1, 0.5 };
-	m_Planes.push_back(instance_plane);
+	auto* device = m_D3DDevice.GetDevice();
 
-	// 2. char
-	charAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/char/char.fbx");
-	auto instance_char = std::make_shared<StaticMeshInstance>(); 
-	instance_char->SetAsset(charAsset);
-	instance_char->transform.position = { 0, 0, -90 };
-	instance_char->transform.rotation = { 0, XMConvertToRadians(90), 0 }; // TODO : Transform 라디안 변환
-	instance_char->transform.scale = { 1.0f, 1.0f, 1.0f };
-	m_Chars.push_back(instance_char);
+	auto CreateStatic = [&](std::shared_ptr<StaticMeshAsset> asset, Vector3 pos, Vector3 rot = { 0,0,0 }, Vector3 scale = { 1,1,1 })
+		{
+			auto inst = std::make_shared<StaticMeshInstance>();
+			inst->SetAsset(asset);
+			inst->transform.position = pos;
+			inst->transform.rotation = rot;
+			inst->transform.scale = scale;
+			m_StaticMeshes.push_back(inst);
+		};
 
-	// 3. Tree1
-	treeAsset = AssetManager::Get().LoadStaticMesh(m_D3DDevice.GetDevice(), "../Resource/Tree.fbx");
-	auto instance_tree = std::make_shared<StaticMeshInstance>();
-	instance_tree->SetAsset(treeAsset);
-	instance_tree->transform.position = { 200, 0, 100 };
-	instance_tree->transform.rotation = { 0, XMConvertToRadians(90), 0 }; 
-	instance_tree->transform.scale = { 1.0f, 1.0f, 1.0f };
-	m_Trees.push_back(instance_tree);
-
-	// 4. Tree2
-	instance_tree = std::make_shared<StaticMeshInstance>();
-	instance_tree->SetAsset(treeAsset);
-	instance_tree->transform.position = { 200, 0, -130 };
-	instance_tree->transform.rotation = { 0, XMConvertToRadians(90), 0 };
-	instance_tree->transform.scale = { 1.0f, 1.0f, 1.0f };
-	m_Trees.push_back(instance_tree);
+	auto CreateSkeletal = [&](std::shared_ptr<SkeletalMeshAsset> asset, Vector3 pos, Vector3 rot = { 0,0,0 }, Vector3 scale = { 1,1,1 })
+		{
+			auto inst = std::make_shared<SkeletalMeshInstance>();
+			inst->SetAsset(device, asset);
+			inst->transform.position = pos;
+			inst->transform.rotation = rot;
+			inst->transform.scale = scale;
+			m_SkeletalMeshes.push_back(inst);
+		};
 
 
-	// -------------- [ Skeletal Mesh Asset 생성 ] --------------
-	// 1. Human
-	humanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/DancingHuman.fbx"); 
-	auto instance_human = std::make_shared<SkeletalMeshInstance>();
-	instance_human->SetAsset(m_D3DDevice.GetDevice(), humanAsset);
-	instance_human->transform.position = { -10, 0, 30 };
-	instance_human->transform.rotation = { 0, XMConvertToRadians(45), 0 };
-	instance_human->transform.scale = { 1.0, 1.0, 1.0 };
-	m_Humans.push_back(instance_human);
+	// ---------------------------------------------
+	// Static Mesh
+	// ---------------------------------------------
+	planeAsset = AssetManager::Get().LoadStaticMesh(device, "../Resource/Plane.fbx");
+	charAsset = AssetManager::Get().LoadStaticMesh(device, "../Resource/char/char.fbx");
+	treeAsset = AssetManager::Get().LoadStaticMesh(device, "../Resource/Tree.fbx");
+
+	CreateStatic(planeAsset, { 100, -15, 0 }, { 0, 0, 0 }, { 0.5f, 1.0f, 0.5f });
+	CreateStatic(charAsset, { 0, 0, -90 }, { 0, XMConvertToRadians(90), 0 });
+	CreateStatic(treeAsset, { 200, 0, 100 }, { 0, XMConvertToRadians(90), 0 });
+	CreateStatic(treeAsset, { 200, 0, -130 }, { 0, XMConvertToRadians(90), 0 });
 
 
-	// 2. Human 2
-	humanAsset_2 = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/DancingHuman_2.fbx");
-	auto instance_human_2 = std::make_shared<SkeletalMeshInstance>();
-	instance_human_2->SetAsset(m_D3DDevice.GetDevice(), humanAsset_2);
-	instance_human_2->transform.position = { -40, 0, 100 };
-	instance_human_2->transform.rotation = { 0, XMConvertToRadians(45), 0 };
-	instance_human_2->transform.scale = { 1.0, 1.0, 1.0 };
-	m_Humans_2.push_back(instance_human_2);
 
-	// 3. Joyful Human
-	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/JoyfulHuman.fbx");
-	auto instance_joyHuman = std::make_shared<SkeletalMeshInstance>();
-	instance_joyHuman->SetAsset(m_D3DDevice.GetDevice(), joyHumanAsset);
-	instance_joyHuman->transform.position = { 50, 0, -130 };
-	instance_joyHuman->transform.rotation = { 0, XMConvertToRadians(45), 0 };
-	instance_joyHuman->transform.scale = { 1.0, 1.0, 1.0 };
-	m_joyHumans.push_back(instance_joyHuman);
+	// ---------------------------------------------
+	// Skeletal Mesh 
+	// ---------------------------------------------
+	humanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman.fbx");
+	humanAsset2 = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman_2.fbx");
+	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/JoyfulHuman.fbx");
+
+	// 애니메이션 로드 (수정필요)
+	// humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
+
+	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 });
+	CreateSkeletal(humanAsset2, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 });
+	CreateSkeletal(joyHumanAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 });
 
 	
 
-	// -------------- [ SkyBox 리소스 ] --------------
+
+	// ---------------------------------------------
+	// SkyBox 리소스 
+	// ---------------------------------------------
 	m_IBLSet.resize(3);
 
 	// Sky 
@@ -176,14 +165,9 @@ void TestApp::Update()
 	m_Camera.GetViewMatrix(m_View);			// View 행렬 갱신
 
 
-	// 인스턴스들 Update 호출 (업데이트된 world 전달)
-	for (size_t i = 0; i < m_Humans.size(); i++) m_Humans[i]->Update(deltaTime);
-	//for (auto& human : m_Humans)
-	//{
-	//	human->Update(deltaTime);
-	//}
-	for (size_t i = 0; i < m_Humans_2.size(); i++)	m_Humans_2[i]->Update(deltaTime);
-	for (size_t i = 0; i < m_joyHumans.size(); i++)	m_joyHumans[i]->Update(deltaTime);
+	// Skeletal Update (업데이트된 world 전달)
+	for (auto& mesh : m_SkeletalMeshes)
+		mesh->Update(deltaTime);
 
 
 	// ---------------------------------------------
@@ -355,12 +339,11 @@ void TestApp::Render_ShadowMap()
 
 
 	// [ Static / Skeletal 렌더 ]
-	for (size_t i = 0; i < m_Humans.size(); i++)	RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
-	for (size_t i = 0; i < m_Humans_2.size(); i++)	RenderShadowSkeletal(*m_Humans_2[i], m_Humans_2[i]->GetWorld());
-	for (size_t i = 0; i < m_Planes.size(); i++)	RenderShadowStatic(*m_Planes[i], m_Planes[i]->GetWorld());
-	for (size_t i = 0; i < m_Chars.size(); i++)		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
-	for (size_t i = 0; i < m_Trees.size(); i++)		RenderShadowStatic(*m_Trees[i], m_Trees[i]->GetWorld());
-	for (size_t i = 0; i < m_joyHumans.size(); i++)	RenderShadowSkeletal(*m_joyHumans[i], m_joyHumans[i]->GetWorld());
+	for (auto& mesh : m_SkeletalMeshes)
+		RenderShadowSkeletal(*mesh, mesh->GetWorld());
+
+	for (auto& mesh : m_StaticMeshes)
+		RenderShadowStatic(*mesh, mesh->GetWorld());
 
 
 	// RenderTarget / Viewport 복원
@@ -424,15 +407,11 @@ void TestApp::Render_BeginGBuffer()
 // [2] G-Buffer
 void TestApp::Render_GBufferGeometry()
 {
-	// Static Mesh
-	for (auto& mesh : m_Planes) RenderStaticMesh(*mesh);
-	for (auto& mesh : m_Chars) RenderStaticMesh(*mesh);
-	for (auto& mesh : m_Trees) RenderStaticMesh(*mesh);
+	for (auto& mesh : m_StaticMeshes)
+		RenderStaticMesh(*mesh);
 
-	// Skeletal Mesh
-	for (auto& mesh : m_Humans) RenderSkeletalMesh(*mesh);
-	for (auto& mesh : m_Humans_2) RenderSkeletalMesh(*mesh);
-	for (auto& mesh : m_joyHumans) RenderSkeletalMesh(*mesh);
+	for (auto& mesh : m_SkeletalMeshes)
+		RenderSkeletalMesh(*mesh);
 }
 
 
@@ -1088,32 +1067,7 @@ void TestApp::Render_ImGui()
 	// [ Camera ]
 	// -----------------------------
 	ImGui::Text("[ Camera ]");
-	//ImGui::Text("Position (XYZ)");
-	//if (ImGui::DragFloat3("Position", &m_Camera.m_Position.x, 0.5f))
-	//{
-	//	m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
-	//}
 
-	//// 카메라 회전 (도 단위)
-	//Vector3 rotationDegree =
-	//{
-	//	XMConvertToDegrees(m_Camera.m_Rotation.x),
-	//	XMConvertToDegrees(m_Camera.m_Rotation.y),
-	//	XMConvertToDegrees(m_Camera.m_Rotation.z)
-	//};
-
-	//ImGui::Text("Rotation (Degrees)");
-	//if (ImGui::DragFloat3("Rotation", &rotationDegree.x, 0.5f))
-	//{
-	//	// 입력값을 라디안으로 변환하여 카메라에 적용
-	//	m_Camera.m_Rotation.x = XMConvertToRadians(rotationDegree.x);
-	//	m_Camera.m_Rotation.y = XMConvertToRadians(rotationDegree.y);
-	//	m_Camera.m_Rotation.z = XMConvertToRadians(rotationDegree.z);
-
-	//	// 회전 변경 시 World 행렬 갱신
-	//	m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
-	//}
-	// 이동 속도 조절
 	ImGui::SliderFloat("Move Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
 
 	ImGui::Separator();
@@ -1371,17 +1325,12 @@ void TestApp::UninitScene()
 	m_pDeferredLightingPS.Reset();
 
 	// 인스턴스 해제
-	m_Humans.clear();
-	m_Humans_2.clear();
-	m_Planes.clear();
-	m_Chars.clear();
 	m_IBLSet.clear();
-	m_Trees.clear();
-	m_joyHumans.clear();
-	
+	m_StaticMeshes.clear();
+	m_SkeletalMeshes.clear();
 
 	humanAsset.reset();
-	humanAsset_2.reset();
+	humanAsset2.reset();
 	charAsset.reset();
 	planeAsset.reset();
 	treeAsset.reset();

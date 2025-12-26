@@ -29,8 +29,6 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
-
-
 struct Vertex_Sky
 {
 	Vector3 Pos;
@@ -51,22 +49,21 @@ public:
 	~TestApp();
 
 
-	// ------------------------------------------------------------
-	// [ Game Object ]
-	// ------------------------------------------------------------
-	std::shared_ptr<StaticMeshAsset> planeAsset;
-	std::shared_ptr<StaticMeshAsset> charAsset;
-	std::shared_ptr<StaticMeshAsset> treeAsset;
+	// -------------------------------
+	// Assets (공유 리소스)
+	// -------------------------------
+	std::shared_ptr<StaticMeshAsset>   planeAsset;
+	std::shared_ptr<StaticMeshAsset>   charAsset;
+	std::shared_ptr<StaticMeshAsset>   treeAsset;
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;
-	std::shared_ptr<SkeletalMeshAsset> humanAsset_2;
+	std::shared_ptr<SkeletalMeshAsset> humanAsset2;
 	std::shared_ptr<SkeletalMeshAsset> joyHumanAsset;
 
-	std::vector<std::shared_ptr<StaticMeshInstance>>   m_Planes;
-	std::vector<std::shared_ptr<StaticMeshInstance>>   m_Chars;
-	std::vector<std::shared_ptr<StaticMeshInstance>>   m_Trees;
-	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans;
-	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_Humans_2;
-	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_joyHumans;
+	// -------------------------------
+	// Instances (씬 오브젝트)
+	// -------------------------------
+	std::vector<std::shared_ptr<StaticMeshInstance>>   m_StaticMeshes;
+	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_SkeletalMeshes;
 
 
 	// ------------------------------------------------------------
