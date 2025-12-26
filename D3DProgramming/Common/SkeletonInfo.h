@@ -39,7 +39,7 @@ public:
 	BoneInfo* GetBoneInfoByIndex(int index);
 	int GetBoneIndexByBoneName(const std::string& boneName);
 	int GetBoneIndexByMeshName(const std::string& meshName);
-	int GetBoneCount() { return (int)Bones.size(); }
+	int GetBoneCount() const { return (int)Bones.size(); }
 	const std::string& GetBoneName(int index) { return Bones[index].Name; }
 
 	void CountNode(int& Count, const aiNode* pNode);

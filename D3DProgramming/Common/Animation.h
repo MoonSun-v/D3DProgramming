@@ -29,9 +29,29 @@ class Animation
 public:
 	std::string Name;
 	float Duration = 0.0f;
+	float TicksPerSecond;
+
 	std::vector<BoneAnimation> BoneAnimations;  // 각 본별 키 데이터
 
 public:
 	Matrix GetBoneTransform(int boneIndex, float time) const;
+
+    void EvaluatePose(
+        float time,
+        std::vector<Matrix>& outLocalPose   // boneCount 크기
+    ) const
+    {
+        for (int i = 0; i < BoneAnimations.size(); ++i)
+        {
+            Vector3 pos, scale;
+            Quaternion rot;
+            BoneAnimations[i].Evaluate(time, pos, rot, scale);
+
+            outLocalPose[i] =
+                Matrix::CreateScale(scale) *
+                Matrix::CreateFromQuaternion(rot) *
+                Matrix::CreateTranslation(pos);
+        }
+    }
 };
 

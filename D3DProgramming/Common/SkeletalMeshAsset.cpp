@@ -153,6 +153,93 @@ bool SkeletalMeshAsset::LoadFromFBX(ID3D11Device* device, const std::string& pat
     return true;
 }
 
+// FBX에서 애니메이션 로드
+//bool SkeletalMeshAsset::LoadAnimationFromFBX(const std::string& path, const std::string& overrideName)
+//{
+//    Assimp::Importer importer;
+//    const aiScene* scene = importer.ReadFile(path, aiProcess_ConvertToLeftHanded);
+//
+//    if (!scene || scene->mNumAnimations == 0)
+//        return false;
+//
+//    aiAnimation* aiAnim = scene->mAnimations[0];
+//
+//    Animation anim;
+//
+//    if (!overrideName.empty())
+//    {
+//        anim.Name = overrideName;
+//    }
+//    else
+//    {
+//        anim.Name = fs::path(path).stem().string();
+//    }
+//
+//    anim.Duration = float(aiAnim->mDuration / aiAnim->mTicksPerSecond);
+//    anim.BoneAnimations.resize(m_Skeleton.size());
+//
+//    for (UINT c = 0; c < aiAnim->mNumChannels; ++c)
+//    {
+//        aiNodeAnim* channel = aiAnim->mChannels[c];
+//        std::string boneName = channel->mNodeName.C_Str();
+//
+//        auto it = std::find_if(
+//            m_Skeleton.begin(),
+//            m_Skeleton.end(),
+//            [&](const Bone& b) { return b.m_Name == boneName; });
+//
+//        if (it == m_Skeleton.end())
+//            continue; 
+//
+//        int boneIndex = (int)(it - m_Skeleton.begin());
+//        BoneAnimation& boneAnim = anim.BoneAnimations[boneIndex];
+//
+//        for (UINT k = 0; k < channel->mNumPositionKeys; ++k)
+//        {
+//            aiVectorKey& pk = channel->mPositionKeys[k];
+//            AnimationKey key;
+//            key.Time = static_cast<float>(pk.mTime / aiAnim->mTicksPerSecond);
+//            key.Position = Vector3(pk.mValue.x, pk.mValue.y, pk.mValue.z);
+//            boneAnim.AnimationKeys.push_back(key);
+//        }
+//
+//        for (UINT k = 0; k < channel->mNumRotationKeys; ++k)
+//        {
+//            aiQuatKey& rk = channel->mRotationKeys[k];
+//            AnimationKey& key = boneAnim.AnimationKeys[k];
+//            key.Rotation = Quaternion(rk.mValue.x, rk.mValue.y, rk.mValue.z, rk.mValue.w);
+//        }
+//
+//        for (UINT k = 0; k < channel->mNumScalingKeys; ++k)
+//        {
+//            aiVectorKey& sk = channel->mScalingKeys[k];
+//            AnimationKey& key = boneAnim.AnimationKeys[k]; 
+//            key.Scaling = Vector3(sk.mValue.x, sk.mValue.y, sk.mValue.z);
+//        }
+//    }
+//
+//    m_Animations.push_back(anim);
+//    return true;
+//}
+//
+//int SkeletalMeshAsset::FindAnimationIndexByName(const std::string& name) const
+//{
+//    for (size_t i = 0; i < m_Animations.size(); ++i)
+//    {
+//        if (m_Animations[i].Name == name)
+//            return static_cast<int>(i);
+//    }
+//    return -1;
+//}
+//
+//const Animation* SkeletalMeshAsset::GetAnimation(int index) const
+//{
+//    if (index < 0 || index >= (int)m_Animations.size())
+//        return nullptr;
+//
+//    return &m_Animations[index];
+//}
+
 void SkeletalMeshAsset::CreateSkeleton(const aiScene* scene)
 {
     if (!scene->mRootNode) return;

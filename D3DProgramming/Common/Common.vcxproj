@@ -140,6 +140,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Animation.h" />
+    <ClInclude Include="AnimationController.h" />
+    <ClInclude Include="Animator.h" />
     <ClInclude Include="AssetKey.h" />
     <ClInclude Include="AssetManager.h" />
     <ClInclude Include="Bone.h" />
@@ -165,6 +167,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Animation.cpp" />
+    <ClCompile Include="AnimationController.cpp" />
+    <ClCompile Include="Animator.cpp" />
     <ClCompile Include="AssetManager.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3DDevice.cpp" />

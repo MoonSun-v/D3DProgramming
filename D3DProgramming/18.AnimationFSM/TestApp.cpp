@@ -120,6 +120,7 @@ bool TestApp::LoadAsset()
 	instance_human->transform.scale = { 1.0, 1.0, 1.0 };
 	m_Humans.push_back(instance_human);
 
+
 	// 2. Human 2
 	humanAsset_2 = AssetManager::Get().LoadSkeletalMesh(m_D3DDevice.GetDevice(), "../Resource/Skeletal/DancingHuman_2.fbx");
 	auto instance_human_2 = std::make_shared<SkeletalMeshInstance>();
@@ -176,7 +177,11 @@ void TestApp::Update()
 
 
 	// 인스턴스들 Update 호출 (업데이트된 world 전달)
-	for (size_t i = 0; i < m_Humans.size(); i++)	m_Humans[i]->Update(deltaTime);
+	for (size_t i = 0; i < m_Humans.size(); i++) m_Humans[i]->Update(deltaTime);
+	//for (auto& human : m_Humans)
+	//{
+	//	human->Update(deltaTime);
+	//}
 	for (size_t i = 0; i < m_Humans_2.size(); i++)	m_Humans_2[i]->Update(deltaTime);
 	for (size_t i = 0; i < m_joyHumans.size(); i++)	m_joyHumans[i]->Update(deltaTime);
 

@@ -9,10 +9,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="리소스 파일">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="[ 00. Main ]">
       <UniqueIdentifier>{88338675-e849-4f3c-87d2-58bb8b48f4a3}</UniqueIdentifier>
     </Filter>
@@ -102,6 +98,12 @@
     <ClInclude Include="AssetManager.h">
       <Filter>[ 04. Resource ]</Filter>
     </ClInclude>
+    <ClInclude Include="Animator.h">
+      <Filter>[ 03. Animation ]</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationController.h">
+      <Filter>[ 03. Animation ]</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -154,6 +156,12 @@
     </ClCompile>
     <ClCompile Include="AssetManager.cpp">
       <Filter>[ 04. Resource ]</Filter>
+    </ClCompile>
+    <ClCompile Include="Animator.cpp">
+      <Filter>[ 03. Animation ]</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationController.cpp">
+      <Filter>[ 03. Animation ]</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

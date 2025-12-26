@@ -21,7 +21,20 @@ public:
 
 public:
     bool LoadFromFBX(ID3D11Device* device, const std::string& path);
+    bool LoadAnimationFromFBX(const std::string& path, const std::string& overrideName);
+	int FindAnimationIndexByName(const std::string& name) const;
+	const Animation* GetAnimation(int index) const;
     void Clear();
+
+    void AddAnimation(Animation&& anim)
+    {
+        m_Animations.push_back(std::move(anim));
+    }
+
+    const SkeletonInfo* GetSkeletonInfo() const
+    {
+        return m_pSkeletonInfo.get();
+    }
 
 private:
     void CreateSkeleton(const aiScene* scene);

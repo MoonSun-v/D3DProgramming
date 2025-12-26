@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include "SkeletalMeshAsset.h"
 #include "Transform.h"
+#include "Animator.h"
 
 class SkeletalMeshInstance
 {
@@ -16,6 +17,8 @@ public:
     BoneMatrixContainer m_SkeletonPose;
 
     ComPtr<ID3D11Buffer> m_pBonePoseBuffer; // b1
+
+    Animator m_Animator;
 
 public:
     void SetAsset(ID3D11Device* device, std::shared_ptr<SkeletalMeshAsset> asset);
