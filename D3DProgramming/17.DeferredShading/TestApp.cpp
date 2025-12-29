@@ -1082,31 +1082,7 @@ void TestApp::Render_ImGui()
 	// [ Camera ]
 	// -----------------------------
 	ImGui::Text("[ Camera ]");
-	//ImGui::Text("Position (XYZ)");
-	//if (ImGui::DragFloat3("Position", &m_Camera.m_Position.x, 0.5f))
-	//{
-	//	m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
-	//}
 
-	//// 카메라 회전 (도 단위)
-	//Vector3 rotationDegree =
-	//{
-	//	XMConvertToDegrees(m_Camera.m_Rotation.x),
-	//	XMConvertToDegrees(m_Camera.m_Rotation.y),
-	//	XMConvertToDegrees(m_Camera.m_Rotation.z)
-	//};
-
-	//ImGui::Text("Rotation (Degrees)");
-	//if (ImGui::DragFloat3("Rotation", &rotationDegree.x, 0.5f))
-	//{
-	//	// 입력값을 라디안으로 변환하여 카메라에 적용
-	//	m_Camera.m_Rotation.x = XMConvertToRadians(rotationDegree.x);
-	//	m_Camera.m_Rotation.y = XMConvertToRadians(rotationDegree.y);
-	//	m_Camera.m_Rotation.z = XMConvertToRadians(rotationDegree.z);
-
-	//	// 회전 변경 시 World 행렬 갱신
-	//	m_Camera.m_World = Matrix::CreateFromYawPitchRoll(m_Camera.m_Rotation) * Matrix::CreateTranslation(m_Camera.m_Position);
-	//}
 	// 이동 속도 조절
 	ImGui::SliderFloat("Move Speed", &m_Camera.m_MoveSpeed, 10.0f, 1000.0f, "%.1f");
 
@@ -1178,7 +1154,7 @@ void TestApp::Render_ImGui()
 
 
 	// -----------------------------
-	// Debug View
+	// Debug View : G-Buffer (Position, Normal, Albedo, MR, Emissive)
 	// -----------------------------
 	ImGui::Begin("G-Buffer Debug View");
 
@@ -1197,6 +1173,19 @@ void TestApp::Render_ImGui()
 	ImGui::BeginGroup();
 	ImGui::Text("Albedo");
 	ImGui::Image((ImTextureID)m_GBufferSRV[2].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+	ImGui::SameLine();
+
+	// 메탈릭/러프니스 G-Buffer
+	ImGui::BeginGroup();
+	ImGui::Text("Metallic / Roughness");
+	ImGui::Image((ImTextureID)m_GBufferSRV[3].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+	ImGui::BeginGroup();
+	ImGui::Text("Emissive");
+	ImGui::Image((ImTextureID)m_GBufferSRV[4].Get(), ImVec2(128, 128));
 	ImGui::EndGroup();
 
 

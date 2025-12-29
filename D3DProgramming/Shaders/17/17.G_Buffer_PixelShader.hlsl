@@ -62,7 +62,7 @@ PS_OUTPUT_GBUFFER main(PS_INPUT_GBUFFER input)
     o.WorldPos  = float4(input.WorldPos, 1.0f);
     o.Normal    = float4(normalize(N), 1.0f);
     o.Albedo    = float4(albedo, 1.0f);
-    o.MR        = float4(metallic, roughness, 0 , 0);
+    o.MR        = float4(metallic, roughness, 0 , 1);
     o.Emissive  = float4(emissive, 1);
 
     return o;

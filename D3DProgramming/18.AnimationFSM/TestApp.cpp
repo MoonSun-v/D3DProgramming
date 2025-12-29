@@ -1160,6 +1160,19 @@ void TestApp::Render_ImGui()
 	ImGui::Image((ImTextureID)m_GBufferSRV[2].Get(), ImVec2(128, 128));
 	ImGui::EndGroup();
 
+	ImGui::SameLine();
+
+	// 메탈릭/러프니스 G-Buffer
+	ImGui::BeginGroup();
+	ImGui::Text("Metallic / Roughness");
+	ImGui::Image((ImTextureID)m_GBufferSRV[3].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
+	ImGui::BeginGroup();
+	ImGui::Text("Emissive");
+	ImGui::Image((ImTextureID)m_GBufferSRV[4].Get(), ImVec2(128, 128));
+	ImGui::EndGroup();
+
 
 	// -----------------------------
 	// ShadowMap
