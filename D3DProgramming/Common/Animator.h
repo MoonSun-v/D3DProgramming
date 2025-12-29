@@ -1,5 +1,5 @@
 #pragma once
-#include "Animation.h"
+#include "AnimationClip.h"
 #include "SkeletonInfo.h"
 #include <vector>
 
@@ -8,8 +8,8 @@ class Animator
 public:
     const SkeletonInfo* m_Skeleton = nullptr;
 
-    const Animation* m_Current = nullptr;
-    const Animation* m_Next = nullptr;
+    const AnimationClip* m_Current = nullptr;
+    const AnimationClip* m_Next = nullptr;
 
     float m_Time = 0.0f;
     float m_BlendTime = 0.0f;
@@ -22,7 +22,7 @@ public:
 public:
     void Initialize(const SkeletonInfo* skeleton);
 
-    void Play(const Animation* clip, float blendTime=0.0f);
+    void Play(const AnimationClip* clip, float blendTime = 0.0f);
 
     void Update(float deltaTime);
 

@@ -352,11 +352,11 @@ void TestApp::Render_ShadowMap()
 	// [ Static / Skeletal ·»´õ ]
 	for (size_t i = 0; i < m_Humans.size(); i++)	RenderShadowSkeletal(*m_Humans[i], m_Humans[i]->GetWorld());
 	for (size_t i = 0; i < m_Humans_2.size(); i++)	RenderShadowSkeletal(*m_Humans_2[i], m_Humans_2[i]->GetWorld());
+	for (size_t i = 0; i < m_joyHumans.size(); i++)	RenderShadowSkeletal(*m_joyHumans[i], m_joyHumans[i]->GetWorld());
 	for (size_t i = 0; i < m_Planes.size(); i++)	RenderShadowStatic(*m_Planes[i], m_Planes[i]->GetWorld());
 	for (size_t i = 0; i < m_Chars.size(); i++)		RenderShadowStatic(*m_Chars[i], m_Chars[i]->GetWorld());
 	for (size_t i = 0; i < m_Trees.size(); i++)		RenderShadowStatic(*m_Trees[i], m_Trees[i]->GetWorld());
-	for (size_t i = 0; i < m_joyHumans.size(); i++)	RenderShadowSkeletal(*m_joyHumans[i], m_joyHumans[i]->GetWorld());
-
+	
 
 	// RenderTarget / Viewport º¹¿ø
 	context->RSSetViewports(1, &m_D3DDevice.GetViewport());
@@ -412,7 +412,6 @@ void TestApp::Render_BeginGBuffer()
 	ID3D11ShaderResourceView* nullSRV[GBufferCount] = {};
 	context->PSSetShaderResources(20, GBufferCount, nullSRV);
 	context->VSSetShaderResources(20, GBufferCount, nullSRV);
-
 }
 
 

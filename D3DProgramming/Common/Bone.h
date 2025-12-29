@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <DirectXMath.h>
-#include "Animation.h"  // BoneAnimation 참조용
+#include "AnimationClip.h"  // BoneAnimation 참조용
 
 using namespace DirectX;
 

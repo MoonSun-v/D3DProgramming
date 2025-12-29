@@ -5,7 +5,7 @@
 struct AnimationState
 {
     std::string Name;
-    const Animation* Clip;
+    const AnimationClip* Clip;
 };
 
 struct AnimationTransition

@@ -15,7 +15,7 @@ void Animator::Initialize(const SkeletonInfo* skeleton)
     m_FinalPose.resize(count);
 }
 
-void Animator::Play(const Animation* clip, float blendTime)
+void Animator::Play(const AnimationClip* clip, float blendTime)
 {
     if (!m_Current || blendTime <= 0.0f)
     {

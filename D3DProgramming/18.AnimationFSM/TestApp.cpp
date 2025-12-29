@@ -118,8 +118,9 @@ bool TestApp::LoadAsset()
 	humanAsset2 = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman_2.fbx");
 	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/JoyfulHuman.fbx");
 
-	// 애니메이션 로드 (수정필요)
-	// humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
+	// 애니메이션 추가 로드
+	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_1.fbx", "Dance_1");
+	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
 
 	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 });
 	CreateSkeletal(humanAsset2, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 });
@@ -134,22 +135,22 @@ bool TestApp::LoadAsset()
 	m_IBLSet.resize(3);
 
 	// Sky 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_EnvHDR.dds", m_IBLSet[0].skyboxSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_DiffuseHDR.dds", m_IBLSet[0].irradianceSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_SpecularHDR.dds", m_IBLSet[0].prefilterSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/Sky/Sky_Brdf.dds", m_IBLSet[0].brdfLutSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/Sky/Sky_EnvHDR.dds", m_IBLSet[0].skyboxSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/Sky/Sky_DiffuseHDR.dds", m_IBLSet[0].irradianceSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/Sky/Sky_SpecularHDR.dds", m_IBLSet[0].prefilterSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/Sky/Sky_Brdf.dds", m_IBLSet[0].brdfLutSRV.ReleaseAndGetAddressOf()));
 
 	// InDoor 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapEnvHDR.dds", m_IBLSet[1].skyboxSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapDiffuseHDR.dds", m_IBLSet[1].irradianceSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapSpecularHDR.dds", m_IBLSet[1].prefilterSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/cubemapBrdf.dds", m_IBLSet[1].brdfLutSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/cubemapEnvHDR.dds", m_IBLSet[1].skyboxSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/cubemapDiffuseHDR.dds", m_IBLSet[1].irradianceSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/cubemapSpecularHDR.dds", m_IBLSet[1].prefilterSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/cubemapBrdf.dds", m_IBLSet[1].brdfLutSRV.ReleaseAndGetAddressOf()));
 
 	// OutDoor 
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skyboxSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradianceSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilterSRV.ReleaseAndGetAddressOf()));
-	HR_T(CreateTextureFromFile(m_D3DDevice.GetDevice(), L"../Resource/SkyBox/_OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLutSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/_OutDoor/OutDoor_EnvHDR.dds", m_IBLSet[2].skyboxSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/_OutDoor/OutDoor_DiffuseHDR.dds", m_IBLSet[2].irradianceSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/_OutDoor/OutDoor_SpecularHDR.dds", m_IBLSet[2].prefilterSRV.ReleaseAndGetAddressOf()));
+	HR_T(CreateTextureFromFile(device, L"../Resource/SkyBox/_OutDoor/OutDoor_Brdf.dds", m_IBLSet[2].brdfLutSRV.ReleaseAndGetAddressOf()));
 
 	return true; 
 }

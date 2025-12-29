@@ -51,6 +51,7 @@ float4 main(VS_OUTPUT_FULL input) : SV_Target
         discard; // SkyBox ÇÈ¼¿ ¹ö¸²
     
     float3 N = normalize(txNormal_G.Sample(samLinear, uv).xyz);
+
     float3 albedo = txAlbedo_G.Sample(samLinear, uv).rgb;
     float2 mr = txMR_G.Sample(samLinear, uv).rg;
     float3 emissive = txEmissive_G.Sample(samLinear, uv).rgb;
