@@ -85,6 +85,8 @@ void MeshSection::CreateIndexBuffer(ID3D11Device* device)
 }
 
 // [ 본 가중치 정보 생성 ]
+//　본인덱스　매핑
+//　버택스에　가중치　넣기　
 void MeshSection::CreateBoneWeightedVertex(const aiMesh* mesh)
 {
     if (!m_pSkeletonInfo) return;

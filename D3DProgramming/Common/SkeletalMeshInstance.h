@@ -4,6 +4,7 @@
 #include "SkeletalMeshAsset.h"
 #include "Transform.h"
 #include "Animator.h"
+#include "AnimationController.h"
 
 class SkeletalMeshInstance
 {
@@ -13,8 +14,8 @@ public:
     Transform transform;
 
     Animator m_Animator;
-	float m_AnimationTime = 0.0f;   // 현재 애니메이션 시간
-	int m_AnimationIndex = 0;       // 현재 재생 중인 애니메이션 인덱스
+    AnimationController m_Controller;
+    float m_StateTime = 0.0f;
 
     BoneMatrixContainer m_SkeletonPose;
 

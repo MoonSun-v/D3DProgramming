@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
-#include <DirectXMath.h>
-#include "AnimationClip.h"  // BoneAnimation 참조용
+#include <DirectXMath.h>ㄴ
 
 using namespace DirectX;
 
@@ -11,6 +10,7 @@ public:
     // [ 변환 데이터 ]
     XMMATRIX m_Local;   // 부모 기준 상대 변환
     XMMATRIX m_Model;   // 모델 공간 기준 누적 변환
+	XMMATRIX m_BindLocal; // 런타임용 Bind
 
     // [ 스켈레톤 구조 ]
     int m_ParentIndex = -1; // 부모 본 인덱스
@@ -18,11 +18,10 @@ public:
     std::string m_Name;     // 본 이름 (FBX 노드명)
 
     // [ 애니메이션 데이터 ]
-    const class BoneAnimation* m_pBoneAnimation = nullptr; // 이 본에 대응되는 애니메이션 트랙
+    // const class BoneAnimation* m_pBoneAnimation = nullptr; // 이 본에 대응되는 애니메이션 트랙
 
 public:
     Bone() : m_Local(XMMatrixIdentity()), m_Model(XMMatrixIdentity())
     {
     }
 };
-

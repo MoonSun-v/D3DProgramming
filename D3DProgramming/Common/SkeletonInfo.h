@@ -12,7 +12,7 @@ struct BoneInfo
 {
 	std::string Name;			// 본 이름 
 	std::string ParentBoneName;	// 부모 본 이름 
-	Matrix RelativeTransform;	// 부모로부터의 상대적인 변환 
+	Matrix RelativeTransform;	// 부모로부터의 상대적인 변환: 원본 FBX 노드 기준 Bind (**Bind pose)
 
 	BoneInfo() = default;
 	BoneInfo(const aiNode* pNode)

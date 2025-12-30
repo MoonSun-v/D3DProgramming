@@ -71,7 +71,7 @@ void TestApp::Uninitialize()
 }
 
 
-// [ 리소스 로드 (Asset) ] TODO : AssetManager 활용
+// [ 리소스 로드 (Asset) ] 
 bool TestApp::LoadAsset()
 {
 	auto* device = m_D3DDevice.GetDevice();
@@ -170,7 +170,7 @@ void TestApp::Update()
 	for (auto& mesh : m_SkeletalMeshes)
 		mesh->Update(deltaTime);
 
-
+	
 	// ---------------------------------------------
 	// [ Shadow 카메라 위치 계산 (원근 투영) ] 
 	// ---------------------------------------------

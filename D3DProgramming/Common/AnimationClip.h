@@ -1,6 +1,8 @@
 #pragma once
 #include<iostream>
 
+#include "SkeletonInfo.h"
+
 #include <assimp/scene.h>
 #include <directxtk/SimpleMath.h>
 
@@ -29,7 +31,7 @@ struct ScaleKey
 };
 
 
-// ------------------- Animation Structs -------------------
+// ------------------- BoneAnimation -------------------
 
 class BoneAnimation
 {
@@ -54,10 +56,10 @@ public:
     std::string Name;
     float Duration = 0.0f;
 
-    std::vector<BoneAnimation> BoneAnimations;
+    std::vector<BoneAnimation> BoneAnimations; // 각 본별 키 데이터
 
     void EvaluatePose(
         float time,
-        std::vector<Matrix>& outLocalPose   // boneCount 크기
+        std::vector<Matrix>& outLocalPose // boneCount 크기
     ) const;
 };

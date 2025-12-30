@@ -9,9 +9,11 @@ static ValueType SampleTrack(
     float time,
     const ValueType& defaultValue)
 {
+    // 키가 없을 경우 기본값 반환
     if (keys.empty())
         return defaultValue;
 
+    // 키가 하나뿐일 경우 해당 키 값 반환
     if (keys.size() == 1 || time <= keys.front().Time)
         return keys.front().Value;
 
@@ -44,6 +46,7 @@ static ValueType SampleTrack(
     return keys.back().Value;
 }
 
+// ------------------- BoneAnimation -------------------
 
 void BoneAnimation::Evaluate(
     float time,
@@ -56,16 +59,15 @@ void BoneAnimation::Evaluate(
     outScale = SampleTrack<ScaleKey, Vector3>(Scales, time, Vector3::One);
 }
 
+// ------------------- Animation Clip -------------------
 
-
-void AnimationClip::EvaluatePose(
-    float time,
-    std::vector<Matrix>& outLocalPose) const
+void AnimationClip::EvaluatePose(float time, std::vector<Matrix>& outLocalPose) const
 {
     for (size_t i = 0; i < BoneAnimations.size(); ++i)
     {
-        Vector3 pos, scale;
-        Quaternion rot;
+        Vector3 pos = Vector3::Zero;
+        Vector3 scale = Vector3::One;
+        Quaternion rot = Quaternion::Identity;
 
         BoneAnimations[i].Evaluate(time, pos, rot, scale);
 
