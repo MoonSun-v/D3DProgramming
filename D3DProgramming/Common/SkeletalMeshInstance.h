@@ -15,7 +15,6 @@ public:
 
     Animator m_Animator;
     AnimationController m_Controller;
-    float m_StateTime = 0.0f;
 
     BoneMatrixContainer m_SkeletonPose;
 

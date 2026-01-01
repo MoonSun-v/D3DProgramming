@@ -10,7 +10,7 @@ public:
     // [ 변환 데이터 ]
     XMMATRIX m_Local;   // 부모 기준 상대 변환
     XMMATRIX m_Model;   // 모델 공간 기준 누적 변환
-	XMMATRIX m_BindLocal; // 런타임용 Bind
+    // XMMATRIX m_BindLocal; // T-pose 기준 로컬 
 
     // [ 스켈레톤 구조 ]
     int m_ParentIndex = -1; // 부모 본 인덱스

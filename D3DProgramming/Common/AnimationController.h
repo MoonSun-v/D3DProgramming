@@ -13,7 +13,10 @@ struct AnimationTransition
     std::string From;
     std::string To;
     float BlendTime;
-    std::function<bool()> Condition;
+
+    // 조건 데이터
+    // std::function<bool()> Condition;
+    float MinStateTime = 0.0f;
 };
 
 class AnimationController
@@ -21,8 +24,10 @@ class AnimationController
 public:
     std::map<std::string, AnimationState> States;
     std::vector<AnimationTransition> Transitions;
+
     std::string CurrentState;
+    float StateTime = 0.0f;
 
-    void Update(Animator& animator);
+    void Update(float dt, Animator& animator);
+    void ChangeState(const std::string& next, Animator& animator, float blend);
 };
-

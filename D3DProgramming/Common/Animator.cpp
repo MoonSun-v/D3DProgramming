@@ -17,6 +17,8 @@ void Animator::Initialize(const SkeletonInfo* skeleton)
 
 void Animator::Play(const AnimationClip* clip, float blendTime)
 {
+    if (!clip) return;
+
     if (!m_Current || blendTime <= 0.0f)
     {
         m_Current = clip;
@@ -25,6 +27,7 @@ void Animator::Play(const AnimationClip* clip, float blendTime)
         return;
     }
 
+    // 블렌딩 전환
     m_Next = clip;
     m_BlendDuration = blendTime;
     m_BlendTime = 0.0f;
@@ -37,7 +40,7 @@ void Animator::Update(float deltaTime)
     m_Time += deltaTime;
     m_Time = fmod(m_Time, m_Current->Duration);
 
-    m_Current->EvaluatePose(m_Time, m_CurrentPose);
+    m_Current->EvaluatePose(m_Time, m_Skeleton, m_CurrentPose);
 
     if (m_Next)
     {
@@ -45,7 +48,7 @@ void Animator::Update(float deltaTime)
         float t = m_BlendTime / m_BlendDuration;
         t = Clamp(t, 0.0f, 1.0f);
 
-        m_Next->EvaluatePose(m_Time, m_NextPose);
+        m_Next->EvaluatePose(m_Time, m_Skeleton, m_NextPose);
 
         // 본 단위 블렌딩
         for (int i = 0; i < m_FinalPose.size(); ++i)
@@ -58,6 +61,8 @@ void Animator::Update(float deltaTime)
             m_Current = m_Next;
             m_Next = nullptr;
         }
+
+        OutputDebugStringW(L"[Animator] m_Next 포즈 블랜딩 \n");
     }
     else
     {

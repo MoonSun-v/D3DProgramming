@@ -40,7 +40,7 @@ public:
 
 	int FindAnimationIndexByName(const std::string& name) const;
 	const AnimationClip* GetAnimation(int index) const;
-    
+    const AnimationClip* GetAnimation(const std::string& name) const;
 
     void Clear();
 };

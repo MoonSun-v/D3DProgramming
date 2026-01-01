@@ -15,13 +15,6 @@ void SkeletalMeshInstance::SetAsset(ID3D11Device* device, std::shared_ptr<Skelet
     HR_T(device->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
 
     m_Animator.Initialize(m_Asset->m_pSkeletonInfo.get());
-
-    // 임시 
-    if (!m_Asset->m_Animations.empty())
-    {
-        const AnimationClip* clip = &m_Asset->m_Animations[0];
-        m_Animator.Play(clip);
-    }
 }
 
 void SkeletalMeshInstance::Update(float deltaTime)
@@ -29,16 +22,12 @@ void SkeletalMeshInstance::Update(float deltaTime)
     if (!m_Asset || m_Asset->m_Skeleton.empty()) return;
     if (m_Asset->m_Animations.empty()) return;
 
-    m_StateTime += deltaTime;
-
     std::string prev = m_Controller.CurrentState;
 
-    // 컨트롤러 → 애니메이터 갱신
-    m_Controller.Update(m_Animator);
+    // FSM -> Animator
+    m_Controller.Update(deltaTime, m_Animator);
     m_Animator.Update(deltaTime);   
 
-    if (prev != m_Controller.CurrentState)
-        m_StateTime = 0.0f;
 
     // -------------------------------
     // 본 행렬 계산
@@ -52,13 +41,14 @@ void SkeletalMeshInstance::Update(float deltaTime)
 
         bone.m_Local = pose[i];
 
-        // 애니메이션이 있으면 pose, 없으면 BindLocal
-        //if (i < (int)pose.size())
-        //    bone.m_Local = pose[i];
-        //else
-        //    bone.m_Local = bone.m_BindLocal;
+        // pose[i] 출력 
+        //Matrix m = pose[i];
+        //OutputDebugStringA(
+        //    ("[" + bone.m_Name + "] T = (" +
+        //        std::to_string(m._41) + ", " +
+        //        std::to_string(m._42) + ", " +
+        //        std::to_string(m._43) + ")\n").c_str());
 
-        // 누적 변환
         if (bone.m_ParentIndex != -1)
         {
             bone.m_Model = bone.m_Local * m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
@@ -77,20 +67,6 @@ void SkeletalMeshInstance::Update(float deltaTime)
     {
         Matrix finalMat = m_Asset->m_Skeleton[i].m_Model;
         m_SkeletonPose.SetMatrix(i, finalMat.Transpose());
-    }
-
-    // -------------------------------
-    // 디버그 출력 
-    // -------------------------------
-    const AnimationClip* currentAnim = m_Animator.m_Current;
-    if (currentAnim)
-    {
-        std::string debugStr =
-            "[Current Animation] " + currentAnim->Name +
-            " Time: " + std::to_string(m_Animator.m_Time) +
-            " / " + std::to_string(currentAnim->Duration) + "\n";
-
-        OutputDebugStringA(debugStr.c_str());
     }
 }
 

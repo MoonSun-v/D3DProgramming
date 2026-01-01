@@ -94,6 +94,16 @@ bool TestApp::LoadAsset()
 			inst->transform.rotation = rot;
 			inst->transform.scale = scale;
 			m_SkeletalMeshes.push_back(inst);
+
+			if (auto* dance1 = asset->GetAnimation("Dance_1"))
+			{
+				inst->m_Animator.Play(dance1);
+			}
+
+			if (auto* dance2 = asset->GetAnimation("Dance_2"))
+			{
+				inst->m_Animator.Play(dance2);
+			}
 		};
 
 
@@ -120,12 +130,11 @@ bool TestApp::LoadAsset()
 
 	// 애니메이션 추가 로드
 	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_1.fbx", "Dance_1");
-	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
+	humanAsset2->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
 
 	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 });
 	CreateSkeletal(humanAsset2, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 });
 	CreateSkeletal(joyHumanAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 });
-
 	
 
 

@@ -174,7 +174,7 @@ HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName
 	// 1. DDS 텍스처 먼저 시도
 	if (extension == L"dds")
 	{
-		PrintDDSInfo(szFileName);
+		// PrintDDSInfo(szFileName);
 
 		hr = DirectX::CreateDDSTextureFromFile(d3dDevice, szFileName, nullptr, textureView);
 		return hr;
