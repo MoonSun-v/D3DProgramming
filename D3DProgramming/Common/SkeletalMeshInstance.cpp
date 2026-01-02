@@ -22,23 +22,23 @@ void SkeletalMeshInstance::SetAsset(ID3D11Device* device, std::shared_ptr<Skelet
     // 스켈레톤 기본 Pose 초기화 (T-Pose)
     // -------------------------------
 
-    XMMATRIX worldMat = transform.GetMatrix();
+    //XMMATRIX worldMat = transform.GetMatrix();
 
-    // 본 포즈 계산
-    for (auto& bone : m_Asset->m_Skeleton)
-    {
-        if (bone.m_ParentIndex != -1)
-            bone.m_Model = bone.m_Local * m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
-        else
-            bone.m_Model = bone.m_Local * worldMat;
-    }
+    //// 본 포즈 계산
+    //for (auto& bone : m_Asset->m_Skeleton)
+    //{
+    //    if (bone.m_ParentIndex != -1)
+    //        bone.m_Model = bone.m_Local * m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
+    //    else
+    //        bone.m_Model = bone.m_Local * worldMat;
+    //}
 
-    m_SkeletonPose.SetBoneCount((int)m_Asset->m_Skeleton.size());
-    for (int i = 0; i < (int)m_Asset->m_Skeleton.size(); ++i)
-    {
-        Matrix finalMat = m_Asset->m_Skeleton[i].m_Model;
-        m_SkeletonPose.SetMatrix(i, finalMat.Transpose());
-    }
+    //m_SkeletonPose.SetBoneCount((int)m_Asset->m_Skeleton.size());
+    //for (int i = 0; i < (int)m_Asset->m_Skeleton.size(); ++i)
+    //{
+    //    Matrix finalMat = m_Asset->m_Skeleton[i].m_Model;
+    //    m_SkeletonPose.SetMatrix(i, finalMat.Transpose());
+    //}
 }
 
 void SkeletalMeshInstance::Update(float deltaTime)
@@ -46,8 +46,7 @@ void SkeletalMeshInstance::Update(float deltaTime)
     if (!m_Asset || m_Asset->m_Skeleton.empty()) return;
     if (m_Asset->m_Animations.empty()) return;
 
-    std::string prev = m_Controller.CurrentState;
-
+    // OutputDebugString((L"DeltaTime: " + std::to_wstring(deltaTime) + L"\n").c_str());
 
     // -------------------------------
     // 업데이트 

@@ -95,15 +95,25 @@ bool TestApp::LoadAsset()
 			inst->transform.scale = scale;
 			m_SkeletalMeshes.push_back(inst);
 
-			if (auto* dance1 = asset->GetAnimation("Dance_1"))
-			{
-				inst->m_Animator.Play(dance1);
-			}
+			// [ 애니메이션 FSM 적용 ]
+			const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
+			const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
 
-			if (auto* dance2 = asset->GetAnimation("Dance_2"))
-			{
-				inst->m_Animator.Play(dance2);
-			}
+			if (dance1) inst->m_Controller.States["Dance_1"] = { "Dance_1", dance1 };
+			if (dance2) inst->m_Controller.States["Dance_2"] = { "Dance_2", dance2 };
+
+			// Dance_2 → Dance_1 (3초 후)
+			inst->m_Controller.Transitions.emplace_back(
+				"Dance_2",
+				"Dance_1",
+				1.0f,   // Blend
+				3.0f    // MinStateTime
+			);
+
+			// 초기 상태
+			inst->m_Controller.CurrentState = "Dance_2";
+			inst->m_Controller.StateTime = 0.0f;
+			inst->m_Animator.Play(dance2, 0.0f);
 		};
 
 
@@ -128,9 +138,9 @@ bool TestApp::LoadAsset()
 	humanAsset2 = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman_2.fbx");
 	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/JoyfulHuman.fbx");
 
-	// 애니메이션 추가 로드
+	// [ 애니메이션 추가 로드 ]
 	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_1.fbx", "Dance_1");
-	humanAsset2->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
+	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
 
 	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 });
 	CreateSkeletal(humanAsset2, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 });

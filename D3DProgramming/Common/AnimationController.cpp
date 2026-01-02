@@ -2,8 +2,11 @@
 
 void AnimationController::Update(float dt, Animator& animator)
 {
-    StateTime += dt;
+    // TODO : AnimationController 단일 객체로 만들기?
+    if (dt > 1.0f) dt = 0.0f;
 
+    StateTime += dt;
+    
     for (auto& t : Transitions)
     {
         if (t.From == CurrentState && StateTime >= t.MinStateTime)
@@ -12,6 +15,37 @@ void AnimationController::Update(float dt, Animator& animator)
             break;
         }
     }
+
+    /*for (auto& t : Transitions)
+    {
+        if (t.Condition && !t.Condition())
+            continue;
+
+        auto nextClip = States[t.To].Clip;
+        if (nextClip)
+        {
+            animator.Play(nextClip, t.BlendTime);
+            CurrentState = t.To;
+            StateTime = 0.0f;
+            break;
+        }
+    }*/
+
+
+    //for (auto& t : Transitions)
+    //{
+    //    if (t.From != CurrentState)
+    //        continue;
+
+    //    if (StateTime < t.MinStateTime)
+    //        continue;
+
+    //    if (t.Condition && !t.Condition())
+    //        continue;
+
+    //    ChangeState(t.To, animator, t.BlendTime);
+    //    break;
+    //}
 }
 
 void AnimationController::ChangeState(

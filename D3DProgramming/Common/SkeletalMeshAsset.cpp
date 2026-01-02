@@ -72,7 +72,6 @@ bool SkeletalMeshAsset::LoadFromFBX(ID3D11Device* device, const std::string& pat
         m_pSkeletonInfo = nullptr; // StaticMesh
     }
 
-    
     // [ 애니메이션 ]
     bool hasAnimation = (scene->mNumAnimations > 0);
     OutputDebugString((L"[hasAnimation] " + std::to_wstring(hasAnimation) + L"\n").c_str());

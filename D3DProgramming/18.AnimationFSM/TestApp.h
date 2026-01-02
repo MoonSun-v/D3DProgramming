@@ -80,6 +80,9 @@ public:
 	Vector3 m_ShadowCameraPos;			// 디버그용
 	bool m_DrawShadowFrustum = true;	// 토글용
 
+	// [ Animation ]
+	float m_DanceTimer = 0.0f;
+	bool  m_PlayedDance2 = false;
 
 
 private:

@@ -3,6 +3,13 @@
 #include "SkeletonInfo.h"
 #include <vector>
 
+struct TRS
+{
+    Vector3 pos;
+    Quaternion rot;
+    Vector3 scale;
+};
+
 class Animator
 {
 public:
@@ -12,6 +19,7 @@ public:
     const AnimationClip* m_Next = nullptr;
 
     float m_Time = 0.0f;
+    float m_NextTime = 0.0f;
     float m_BlendTime = 0.0f;
     float m_BlendDuration = 0.0f;
 

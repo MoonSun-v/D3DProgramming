@@ -12,15 +12,27 @@ struct AnimationTransition
 {
     std::string From;
     std::string To;
-    float BlendTime;
-
-    // 조건 데이터
-    // std::function<bool()> Condition;
+    float BlendTime = 0.2f;
     float MinStateTime = 0.0f;
+    std::function<bool()> Condition;
+    
+    AnimationTransition(
+        const std::string& from,
+        const std::string& to,
+        float blend,
+        float minTime)
+        : From(from), To(to),
+        BlendTime(blend),
+        MinStateTime(minTime)
+    {
+    }
 };
 
 class AnimationController
 {
+public:
+    AnimationController() : StateTime(0.0f) {}
+
 public:
     std::map<std::string, AnimationState> States;
     std::vector<AnimationTransition> Transitions;
