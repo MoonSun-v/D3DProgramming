@@ -24,7 +24,10 @@ void SkeletalMeshInstance::Update(float deltaTime)
 
     std::string prev = m_Controller.CurrentState;
 
-    // FSM -> Animator
+
+    // -------------------------------
+    // 업데이트 
+    // -------------------------------
     m_Controller.Update(deltaTime, m_Animator);
     m_Animator.Update(deltaTime);   
 
@@ -40,15 +43,7 @@ void SkeletalMeshInstance::Update(float deltaTime)
         auto& bone = m_Asset->m_Skeleton[i];
 
         bone.m_Local = pose[i];
-
-        // pose[i] 출력 
-        //Matrix m = pose[i];
-        //OutputDebugStringA(
-        //    ("[" + bone.m_Name + "] T = (" +
-        //        std::to_string(m._41) + ", " +
-        //        std::to_string(m._42) + ", " +
-        //        std::to_string(m._43) + ")\n").c_str());
-
+        
         if (bone.m_ParentIndex != -1)
         {
             bone.m_Model = bone.m_Local * m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
@@ -65,7 +60,7 @@ void SkeletalMeshInstance::Update(float deltaTime)
     m_SkeletonPose.SetBoneCount((int)m_Asset->m_Skeleton.size());
     for (int i = 0; i < (int)m_Asset->m_Skeleton.size(); ++i)
     {
-        Matrix finalMat = m_Asset->m_Skeleton[i].m_Model;
+        Matrix finalMat = m_Asset->m_Skeleton[i].m_Model; 
         m_SkeletonPose.SetMatrix(i, finalMat.Transpose());
     }
 }

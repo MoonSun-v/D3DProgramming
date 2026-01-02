@@ -23,8 +23,9 @@ static ValueType SampleTrack(
         return keys.front().Value;
     }
 
-    if (time >= keys.back().Time) return keys.back().Value;
+    if (time >= keys.back().Time) { return keys.back().Value; }
 
+    // OutputDebugString((L"[AnimationClip] keys.size() : " + std::to_wstring(keys.size()) + L"\n").c_str());
     for (size_t i = 0; i + 1 < keys.size(); ++i)
     {
         const auto& k0 = keys[i];
@@ -47,7 +48,6 @@ static ValueType SampleTrack(
             }
         }
     }
-    OutputDebugString((L"[AnimationClip] keys.size() : " + std::to_wstring(keys.size()) + L"\n").c_str());
 
     return keys.back().Value;
 }
@@ -72,18 +72,6 @@ void AnimationClip::EvaluatePose(float time,const SkeletonInfo* skeleton, std::v
     const int boneCount = skeleton->GetBoneCount();
     outLocalPose.resize(boneCount);
 
-    // =========================================================
-    // 1. 기본값: Bind Pose (RelativeTransform)
-    //    -> 애니메이션이 없는 본은 T-Pose 유지
-    // =========================================================
-    for (int i = 0; i < boneCount; ++i)
-    {
-        outLocalPose[i] = skeleton->Bones[i].RelativeTransform;
-    }
-
-    // =========================================================
-    // 2. 애니메이션이 존재하는 본만 덮어쓰기
-    // =========================================================
     const int animBoneCount = (int)BoneAnimations.size();
 
     for (int i = 0; i < animBoneCount; ++i)
@@ -91,22 +79,14 @@ void AnimationClip::EvaluatePose(float time,const SkeletonInfo* skeleton, std::v
         const BoneAnimation& anim = BoneAnimations[i];
 
         Vector3 pos = Vector3::Zero;
-        Vector3 scale = Vector3::One;
         Quaternion rot = Quaternion::Identity;
+        Vector3 scale = Vector3::One;
 
         anim.Evaluate(time, pos, rot, scale);
 
-        Matrix animLocal =
+        outLocalPose[i] =
             Matrix::CreateScale(scale) *
             Matrix::CreateFromQuaternion(rot) *
             Matrix::CreateTranslation(pos);
-
-        // -----------------------------------------------------
-        // FBX / Assimp 애니메이션은 대부분
-        // "Bind Pose 기준 Local" 이므로
-        //
-        // Local = AnimLocal * BindLocal
-        // -----------------------------------------------------
-        outLocalPose[i] = animLocal * skeleton->Bones[i].RelativeTransform.Transpose();
     }
 }

@@ -40,9 +40,11 @@ void Animator::Update(float deltaTime)
     m_Time += deltaTime;
     m_Time = fmod(m_Time, m_Current->Duration);
 
+    // 본별 로컬 변환 행렬 계산
     m_Current->EvaluatePose(m_Time, m_Skeleton, m_CurrentPose);
 
-    if (m_Next)
+    // [ 블렌딩 처리 ]
+    if (m_Next) 
     {
         m_BlendTime += deltaTime;
         float t = m_BlendTime / m_BlendDuration;

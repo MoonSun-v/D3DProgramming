@@ -53,9 +53,6 @@ public:
 
     std::vector<BoneAnimation> BoneAnimations; // 각 본별 키 데이터
 
-    // 애니메이션이 존재하는 본만 저장
-    // std::unordered_map<int, BoneAnimation> BoneAnimations;
-
     void EvaluatePose(
         float time,
         const SkeletonInfo* skeleton,
