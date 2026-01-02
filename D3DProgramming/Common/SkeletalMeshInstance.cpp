@@ -11,10 +11,34 @@ void SkeletalMeshInstance::SetAsset(ID3D11Device* device, std::shared_ptr<Skelet
     bdBone.ByteWidth = sizeof(BoneMatrixContainer);
     bdBone.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bdBone.CPUAccessFlags = 0;
-
     HR_T(device->CreateBuffer(&bdBone, nullptr, m_pBonePoseBuffer.GetAddressOf()));
 
+
     m_Animator.Initialize(m_Asset->m_pSkeletonInfo.get());
+    
+
+
+    // -------------------------------
+    // 스켈레톤 기본 Pose 초기화 (T-Pose)
+    // -------------------------------
+
+    XMMATRIX worldMat = transform.GetMatrix();
+
+    // 본 포즈 계산
+    for (auto& bone : m_Asset->m_Skeleton)
+    {
+        if (bone.m_ParentIndex != -1)
+            bone.m_Model = bone.m_Local * m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
+        else
+            bone.m_Model = bone.m_Local * worldMat;
+    }
+
+    m_SkeletonPose.SetBoneCount((int)m_Asset->m_Skeleton.size());
+    for (int i = 0; i < (int)m_Asset->m_Skeleton.size(); ++i)
+    {
+        Matrix finalMat = m_Asset->m_Skeleton[i].m_Model;
+        m_SkeletonPose.SetMatrix(i, finalMat.Transpose());
+    }
 }
 
 void SkeletalMeshInstance::Update(float deltaTime)

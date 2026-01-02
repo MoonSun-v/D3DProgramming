@@ -42,6 +42,9 @@ public:
 	int GetBoneCount() const { return (int)Bones.size(); }
 	const std::string& GetBoneName(int index) { return Bones[index].Name; }
 
+	Matrix GetBindPose(int index) const;
+	Matrix GetBindPose(const std::string& name) const;
+
 	void CountNode(int& Count, const aiNode* pNode);
 };
 

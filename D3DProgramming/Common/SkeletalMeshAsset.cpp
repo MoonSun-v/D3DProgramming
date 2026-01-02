@@ -134,8 +134,6 @@ bool SkeletalMeshAsset::LoadFromFBX(ID3D11Device* device, const std::string& pat
                         Vector3(sk.mValue.x, sk.mValue.y, sk.mValue.z)
                         });
                 }
-
-                // 기존에는 Skeleton의 본에 이 BoneAnimation 연결 했음.. 
             }
         }
     }

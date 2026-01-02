@@ -158,3 +158,22 @@ int SkeletonInfo::GetBoneIndexByMeshName(const std::string& meshName)
         return it->second;
     return -1;
 }
+
+// index로 바인드 포즈 반환
+Matrix SkeletonInfo::GetBindPose(int index) const
+{
+    if (index < 0 || index >= Bones.size())
+        return Matrix::Identity;
+
+    return Bones[index].RelativeTransform.Transpose();
+}
+
+// 이름으로 바인드 포즈 반환
+Matrix SkeletonInfo::GetBindPose(const std::string& name) const
+{
+    auto it = BoneMappingTable.find(name);
+    if (it == BoneMappingTable.end())
+        return Matrix::Identity;
+
+    return Bones[it->second].RelativeTransform.Transpose();
+}
