@@ -27,7 +27,14 @@ public:
         // 3초 뒤 자동 전환
         if (Time >= 3.0f)
         {
+            // 전환 
             Controller->ChangeState("Dance_2", 1.0f);
+
+            // [디버그용] 전환 기록
+            if (std::find(Transitions.begin(), Transitions.end(), "Dance_2") == Transitions.end())
+            {
+                Transitions.push_back("Dance_2");
+            }
         }
     }
 };

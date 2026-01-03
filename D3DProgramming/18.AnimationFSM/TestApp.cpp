@@ -88,9 +88,11 @@ bool TestApp::LoadAsset()
 			m_StaticMeshes.push_back(inst);
 		};
 
-	auto CreateSkeletal = [&](std::shared_ptr<SkeletalMeshAsset> asset, Vector3 pos, Vector3 rot = { 0,0,0 }, Vector3 scale = { 1,1,1 })
+	auto CreateSkeletal = [&](std::shared_ptr<SkeletalMeshAsset> asset, Vector3 pos, Vector3 rot = { 0,0,0 }, Vector3 scale = { 1,1,1 },
+		const std::string& name = "NoneName")
 		{
 			auto inst = std::make_shared<SkeletalMeshInstance>();
+			inst->m_Name = name;
 			inst->SetAsset(device, asset);
 			inst->transform.position = pos;
 			inst->transform.rotation = rot;
@@ -100,20 +102,15 @@ bool TestApp::LoadAsset()
 			const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
 			const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
 
-			if(dance1 && dance2)
+			if(dance1 && dance2 && name == "Human_1")
 			{
 				// 상태 등록
-				inst->m_Controller.AddState(
-					std::make_unique<Dance1State>(dance1, &inst->m_Controller));
-
-				inst->m_Controller.AddState(
-					std::make_unique<Dance2State>(dance2, &inst->m_Controller));
+				inst->m_Controller.AddState(std::make_unique<Dance1State>(dance1, &inst->m_Controller));
+				inst->m_Controller.AddState(std::make_unique<Dance2State>(dance2, &inst->m_Controller));
 
 				// 초기 상태
 				inst->m_Controller.ChangeState("Dance_1", 0.0f);
 			}
-
-			// m_SkeletalMeshes.push_back(inst);
 		};
 
 
@@ -135,16 +132,16 @@ bool TestApp::LoadAsset()
 	// Skeletal Mesh 
 	// ---------------------------------------------
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman.fbx");
-	humanAsset2 = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman_2.fbx");
 	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/JoyfulHuman.fbx");
 
 	// [ 애니메이션 추가 로드 ]
 	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_1.fbx", "Dance_1");
 	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
 
-	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 });
-	CreateSkeletal(humanAsset2, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 });
-	CreateSkeletal(joyHumanAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 });
+	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_1");
+	CreateSkeletal(humanAsset, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_2");
+	CreateSkeletal(joyHumanAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "JoyHuman");
+
 	
 
 
@@ -1206,17 +1203,62 @@ void TestApp::Render_ImGui()
 	// -----------------------------
 	// [ Animation Info ]
 	// -----------------------------
+	ImGui::PushFont(m_DebugFont);
 	ImGui::Begin("Animation Info");
 
-	ImGui::Text("[ Current Clip ]");
-	ImGui::Text("Name: %s", m_Animation.currentClipName.c_str());
-	ImGui::Text("Frame: %d / %d", m_Animation.currentFrame, m_Animation.totalFrames);
+	for (auto& mesh : m_SkeletalMeshes)
+	{
+		if (!mesh || !mesh->m_Asset) continue;
 
-	ImGui::Text("[ Playback ]");
-	ImGui::Checkbox("Playing", &m_Animation.isPlaying);
-	ImGui::SliderFloat("Speed", &m_Animation.playbackSpeed, 0.0f, 3.0f, "%.2f");
+		// [ Mesh 이름 표시 ]
+		ImGui::Text(" [ SkeletalMesh Name: %s ]", mesh->m_Name.c_str());
 
+		// [ 현재 애니메이션 상태 표시 ]
+		AnimationState* state = mesh->m_Controller.GetCurrentState();
+		ImGui::Text(" Current Animation: ");          
+		ImGui::SameLine();                           
+
+		if (state)	ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%s", state->Name.c_str());
+		else		ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "None");
+
+
+		// [ Bool parameters ]
+		for (auto& param : mesh->m_Controller.Params.GetAllBools())
+			ImGui::Text("   %s: %s", param.first.c_str(), param.second ? "true" : "false");
+
+		// [ Float parameters ]
+		for (auto& param : mesh->m_Controller.Params.GetAllFloats())
+			ImGui::Text("   %s: %.2f", param.first.c_str(), param.second);
+
+		ImGui::Text("");
+		
+		// [ 등록된 상태 & 전환 표시 ]
+		ImGui::Text(" Registered States & Transitions:");
+		for (auto& name : mesh->m_Controller.GetStateNames())
+		{
+			AnimationState* state = mesh->m_Controller.GetState(name);
+			if (!state) continue;
+
+			ImGui::Text(" - %s", name.c_str());
+
+			if (!state->Transitions.empty())
+			{
+				for (auto& t : state->Transitions)
+					ImGui::Text("     -> %s", t.c_str());
+			}
+			else
+			{
+				ImGui::Text("     (no transitions yet)");
+			}
+		}
+
+		ImGui::Text("");
+		ImGui::Separator();
+		ImGui::Text("");
+	}
+	ImGui::PopFont();
 	ImGui::End();
+
 
 	// -----------------------------
 	// 리소스 정보 출력
@@ -1413,7 +1455,10 @@ bool TestApp::InitImGUI()
 	m_UIFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\arial.ttf", 13.0f);
 
 	// 2. DebugText 폰트 (Consolas)
-	m_DebugFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\consola.ttf", 15.0f);
+	m_DebugFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\consola.ttf", 13.5f);
+
+	// 3. Title 폰트 
+	TitleFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 15.0f); 
 
 	// 4. 플랫폼 및 렌더러 백엔드 초기화
 	ImGui_ImplWin32_Init(m_hWnd);												// Win32 플랫폼용 초기화 (윈도우 핸들 필요)

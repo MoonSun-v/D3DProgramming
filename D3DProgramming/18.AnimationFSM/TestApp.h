@@ -210,10 +210,12 @@ public:
 	// 폰트 
 	ImFont* m_UIFont = nullptr;
 	ImFont* m_DebugFont = nullptr;
-
+	ImFont* TitleFont = nullptr;
 
 	// [ (효과) 화면 왜곡 ]
 	bool m_EnableDistortion = false;
+
+	
 
 
 public:

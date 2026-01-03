@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <string>
 
-class AnimatorParameters
+class AnimatorParameter
 {
 public:
     void SetBool(const std::string& name, bool v) { bools[name] = v; }
@@ -18,6 +18,9 @@ public:
         auto it = floats.find(name);
         return it != floats.end() ? it->second : 0.0f;
     }
+
+    const std::unordered_map<std::string, bool>& GetAllBools() const { return bools; }
+    const std::unordered_map<std::string, float>& GetAllFloats() const { return floats; }
 
 private:
     std::unordered_map<std::string, bool>  bools;

@@ -11,6 +11,9 @@ public:
     const AnimationClip* Clip = nullptr;
     AnimationController* Controller = nullptr;
 
+    // [ 디버그용 ] : 전환 가능한 상태들
+    std::vector<std::string> Transitions;
+
     AnimationState(
         const std::string& name,
         const AnimationClip* clip,
