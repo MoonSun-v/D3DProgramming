@@ -29,9 +29,7 @@ public:
 
 public:
     void Initialize(const SkeletonInfo* skeleton);
-
-    void Play(const AnimationClip* clip, float blendTime = 0.0f);
-
+    void Play(const AnimationClip* clip, float blendTime = 0.2f);
     void Update(float deltaTime);
 
     const std::vector<Matrix>& GetFinalPose() const { return m_FinalPose; }

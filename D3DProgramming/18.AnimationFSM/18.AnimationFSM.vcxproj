@@ -127,6 +127,8 @@
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Dance1State.h" />
+    <ClInclude Include="Dance2State.h" />
     <ClInclude Include="TestApp.h" />
   </ItemGroup>
   <ItemGroup>

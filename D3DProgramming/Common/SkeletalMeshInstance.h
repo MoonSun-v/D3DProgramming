@@ -21,6 +21,7 @@ public:
     ComPtr<ID3D11Buffer> m_pBonePoseBuffer; // b1
 
 public:
+    void Initialize(const SkeletonInfo* skeleton);
     void SetAsset(ID3D11Device* device, std::shared_ptr<SkeletalMeshAsset> asset);
     void Update(float deltaTime);
     void Render(ID3D11DeviceContext* context, ID3D11SamplerState* sampler, int isRigid);

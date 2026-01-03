@@ -104,6 +104,12 @@
     <ClInclude Include="AnimationClip.h">
       <Filter>[ 03. Animation ]</Filter>
     </ClInclude>
+    <ClInclude Include="AnimationState.h">
+      <Filter>[ 03. Animation ]</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimatorParameter.h">
+      <Filter>[ 03. Animation ]</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">

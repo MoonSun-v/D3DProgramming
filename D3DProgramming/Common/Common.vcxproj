@@ -141,7 +141,9 @@
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="AnimationController.h" />
+    <ClInclude Include="AnimationState.h" />
     <ClInclude Include="Animator.h" />
+    <ClInclude Include="AnimatorParameter.h" />
     <ClInclude Include="AssetKey.h" />
     <ClInclude Include="AssetManager.h" />
     <ClInclude Include="Bone.h" />

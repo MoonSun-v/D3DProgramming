@@ -6,6 +6,8 @@
 #include <Directxtk/DDSTextureLoader.h>
 #include <windows.h>
 #include <dxgi1_6.h>
+#include "Dance1State.h"
+#include "Dance2State.h"
 
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -95,25 +97,23 @@ bool TestApp::LoadAsset()
 			inst->transform.scale = scale;
 			m_SkeletalMeshes.push_back(inst);
 
-			// [ 애니메이션 FSM 적용 ]
 			const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
 			const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
 
-			if (dance1) inst->m_Controller.States["Dance_1"] = { "Dance_1", dance1 };
-			if (dance2) inst->m_Controller.States["Dance_2"] = { "Dance_2", dance2 };
+			if(dance1 && dance2)
+			{
+				// 상태 등록
+				inst->m_Controller.AddState(
+					std::make_unique<Dance1State>(dance1, &inst->m_Controller));
 
-			// Dance_2 → Dance_1 (3초 후)
-			inst->m_Controller.Transitions.emplace_back(
-				"Dance_2",
-				"Dance_1",
-				1.0f,   // Blend
-				3.0f    // MinStateTime
-			);
+				inst->m_Controller.AddState(
+					std::make_unique<Dance2State>(dance2, &inst->m_Controller));
 
-			// 초기 상태
-			inst->m_Controller.CurrentState = "Dance_2";
-			inst->m_Controller.StateTime = 0.0f;
-			inst->m_Animator.Play(dance2, 0.0f);
+				// 초기 상태
+				inst->m_Controller.ChangeState("Dance_1", 0.0f);
+			}
+
+			// m_SkeletalMeshes.push_back(inst);
 		};
 
 
@@ -1202,6 +1202,21 @@ void TestApp::Render_ImGui()
 	ImGui::EndGroup();
 	ImGui::End();
 
+
+	// -----------------------------
+	// [ Animation Info ]
+	// -----------------------------
+	ImGui::Begin("Animation Info");
+
+	ImGui::Text("[ Current Clip ]");
+	ImGui::Text("Name: %s", m_Animation.currentClipName.c_str());
+	ImGui::Text("Frame: %d / %d", m_Animation.currentFrame, m_Animation.totalFrames);
+
+	ImGui::Text("[ Playback ]");
+	ImGui::Checkbox("Playing", &m_Animation.isPlaying);
+	ImGui::SliderFloat("Speed", &m_Animation.playbackSpeed, 0.0f, 3.0f, "%.2f");
+
+	ImGui::End();
 
 	// -----------------------------
 	// 리소스 정보 출력
