@@ -155,7 +155,7 @@ bool SkeletalMeshAsset::LoadFromFBX(ID3D11Device* device, const std::string& pat
 
 
 // [ FBX에서 애니메이션 로드 ]
-bool SkeletalMeshAsset::LoadAnimationFromFBX(const std::string& path, const std::string& overrideName)
+bool SkeletalMeshAsset::LoadAnimationFromFBX(const std::string& path, const std::string& overrideName, bool loop)
 {
     // --- Assimp Importer 설정 ---
     Assimp::Importer importer;
@@ -191,6 +191,7 @@ bool SkeletalMeshAsset::LoadAnimationFromFBX(const std::string& path, const std:
             : overrideName;
 
         anim.Duration = static_cast<float>(aiAnim->mDuration / aiAnim->mTicksPerSecond);
+        anim.Loop = loop;
 
         // Skeleton 크기에 맞춰 BoneAnimation 초기화
         anim.BoneAnimations.resize(m_Skeleton.size());

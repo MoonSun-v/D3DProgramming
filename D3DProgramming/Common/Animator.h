@@ -53,5 +53,7 @@ public:
     // 다음 애니메이션 (블렌딩 중일 경우)
     const AnimationClip* GetNextClip() const { return m_Next; }
 
+    bool IsCurrentAnimationFinished() const;
+
     float GetBlendAlpha() const;
 };

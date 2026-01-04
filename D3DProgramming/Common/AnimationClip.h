@@ -61,6 +61,7 @@ class AnimationClip
 public:
     std::string Name;
     float Duration = 0.0f; // 애니메이션 총 길이
+    bool Loop = true;
 
     std::vector<BoneAnimation> BoneAnimations; // 각 본별 키 데이터
 

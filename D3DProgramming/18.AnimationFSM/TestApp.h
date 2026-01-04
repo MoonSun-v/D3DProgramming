@@ -56,7 +56,6 @@ public:
 	std::shared_ptr<StaticMeshAsset>   charAsset;
 	std::shared_ptr<StaticMeshAsset>   treeAsset;
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;
-	std::shared_ptr<SkeletalMeshAsset> humanAsset2;
 	std::shared_ptr<SkeletalMeshAsset> CharacterAsset;
 
 	// -------------------------------
@@ -79,10 +78,6 @@ public:
 	BoundingFrustum m_ShadowFrustumWS;
 	Vector3 m_ShadowCameraPos;			// 디버그용
 	bool m_DrawShadowFrustum = true;	// 토글용
-
-	// [ Animation ]
-	float m_DanceTimer = 0.0f;
-	bool  m_PlayedDance2 = false;
 
 
 private:
@@ -215,7 +210,10 @@ public:
 	// [ (효과) 화면 왜곡 ]
 	bool m_EnableDistortion = false;
 
-	
+	// [ 애니메이션 ]
+	bool bIdle;
+	bool bDance1;
+	bool bDance2;
 
 
 public:

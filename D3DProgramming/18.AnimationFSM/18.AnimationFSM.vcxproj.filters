@@ -32,5 +32,8 @@
     <ClInclude Include="Dance2State.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Human_3_State.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -80,7 +80,16 @@ void Animator::Update(float deltaTime)
     if (m_Current)
     {
         m_Time += deltaTime;
-        m_Time = fmod(m_Time, m_Current->Duration);
+        // m_Time = fmod(m_Time, m_Current->Duration);
+
+        if (m_Current->Loop)
+        {
+            m_Time = fmod(m_Time, m_Current->Duration);
+        }
+        else
+        {
+            m_Time = (((m_Time) < (m_Current->Duration)) ? (m_Time) : (m_Current->Duration)); // std::min
+        }
 
         m_Current->EvaluatePose(m_Time, m_Skeleton, m_CurrentPose);
 
@@ -143,4 +152,15 @@ float Animator::GetBlendAlpha() const
     if (!m_Next || m_BlendDuration <= 0.0f)
         return 0.0f;
     return Clamp(m_BlendTime / m_BlendDuration, 0.0f, 1.0f);
+}
+
+bool Animator::IsCurrentAnimationFinished() const
+{
+    if (!m_Current)
+        return true;
+
+    if (m_Current->Loop)
+        return false;
+
+    return m_Time >= m_Current->Duration;
 }

@@ -8,6 +8,7 @@
 #include <dxgi1_6.h>
 #include "Dance1State.h"
 #include "Dance2State.h"
+#include "Human_3_State.h"
 
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -111,6 +112,28 @@ bool TestApp::LoadAsset()
 				// 초기 상태
 				inst->m_Controller.ChangeState("Dance_1", 0.0f);
 			}
+
+			if (name == "Human_3")
+			{
+				const AnimationClip* idle = asset->GetAnimation("Idle");
+				const AnimationClip* attack = asset->GetAnimation("Attack");
+				const AnimationClip* die = asset->GetAnimation("Die");
+
+
+				// 상태 등록
+				inst->m_Controller.AddState(std::make_unique<IdleState>(idle, &inst->m_Controller));
+				inst->m_Controller.AddState(std::make_unique<AttackState>(attack, &inst->m_Controller));
+				inst->m_Controller.AddState(std::make_unique<DieState>(die, &inst->m_Controller));
+
+				// FSM 파라미터 초기화
+				auto& params = inst->m_Controller.Params;
+				params.SetBool("Idle", true);
+				params.SetBool("Attack", false);
+				params.SetBool("Die", false);
+
+				// 초기 상태
+				inst->m_Controller.ChangeState("Idle", 0.0f);
+			}
 		};
 
 
@@ -137,6 +160,9 @@ bool TestApp::LoadAsset()
 	// [ 애니메이션 로드 ]
 	humanAsset->LoadAnimationFromFBX("../Resource/Animation/Human_1_Dance1.fbx", "Dance_1");
 	humanAsset->LoadAnimationFromFBX("../Resource/Animation/Human_1_Dance2.fbx", "Dance_2");
+	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Idle.fbx", "Idle");
+	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Attack.fbx", "Attack", false);
+	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Die.fbx", "Die", false);
 
 	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_1");
 	CreateSkeletal(humanAsset, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_2");
@@ -1270,6 +1296,35 @@ void TestApp::Render_ImGui()
 			ImGui::BulletText("Dance_1 : play for 5.0 sec -> transition to Dance_2");
 			ImGui::BulletText("Dance_2 : play once        -> transition to Dance_1");
 		}
+		else if (mesh->m_Name == "Human_3")
+		{
+			ImGui::Text("Select Animation");
+
+			bool idle = mesh->m_Controller.Params.GetBool("Idle");
+			bool attack = mesh->m_Controller.Params.GetBool("Attack");
+			bool die = mesh->m_Controller.Params.GetBool("Die");
+
+			if (ImGui::RadioButton("Idle", idle))
+			{
+				mesh->m_Controller.Params.SetBool("Idle", true);
+				mesh->m_Controller.Params.SetBool("Attack", false);
+				mesh->m_Controller.Params.SetBool("Die", false);
+			}
+
+			if (ImGui::RadioButton("Attack", attack))
+			{
+				mesh->m_Controller.Params.SetBool("Idle", false);
+				mesh->m_Controller.Params.SetBool("Attack", true);
+				mesh->m_Controller.Params.SetBool("Die", false);
+			}
+
+			if (ImGui::RadioButton("Die", die))
+			{
+				mesh->m_Controller.Params.SetBool("Idle", false);
+				mesh->m_Controller.Params.SetBool("Attack", false);
+				mesh->m_Controller.Params.SetBool("Die", true);
+			}
+		}
 		else
 		{
 			ImGui::Text(" (No animation flow description)");
@@ -1444,7 +1499,6 @@ void TestApp::UninitScene()
 	m_SkeletalMeshes.clear();
 
 	humanAsset.reset();
-	humanAsset2.reset();
 	charAsset.reset();
 	planeAsset.reset();
 	treeAsset.reset();

@@ -32,7 +32,7 @@ public:
 
 
     // [ 애니메이션 ] 
-    bool LoadAnimationFromFBX(const std::string& path, const std::string& overrideName);
+    bool LoadAnimationFromFBX(const std::string& path, const std::string& overrideName, bool loop = true);
     void AddAnimation(AnimationClip&& anim)
     {
         m_Animations.push_back(std::move(anim));

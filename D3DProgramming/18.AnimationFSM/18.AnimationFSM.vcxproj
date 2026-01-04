@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClInclude Include="Dance1State.h" />
     <ClInclude Include="Dance2State.h" />
+    <ClInclude Include="Human_3_State.h" />
     <ClInclude Include="TestApp.h" />
   </ItemGroup>
   <ItemGroup>
