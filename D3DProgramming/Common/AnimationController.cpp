@@ -13,7 +13,10 @@ void AnimationController::Initialize(const SkeletonInfo* skeleton)
 void AnimationController::Update(float dt)
 {
     if (CurrentState)
+    {
+        // OutputDebugString((L"[AnimationController] Update dalta : " + std::to_wstring(dt) + L"\n").c_str());
         CurrentState->OnUpdate(dt);
+    }
 
     AnimatorInstance.Update(dt);
 }

@@ -57,7 +57,7 @@ public:
 	std::shared_ptr<StaticMeshAsset>   treeAsset;
 	std::shared_ptr<SkeletalMeshAsset> humanAsset;
 	std::shared_ptr<SkeletalMeshAsset> humanAsset2;
-	std::shared_ptr<SkeletalMeshAsset> joyHumanAsset;
+	std::shared_ptr<SkeletalMeshAsset> CharacterAsset;
 
 	// -------------------------------
 	// Instances (æ¿ ø¿∫Í¡ß∆Æ)

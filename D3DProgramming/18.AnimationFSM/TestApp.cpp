@@ -99,11 +99,11 @@ bool TestApp::LoadAsset()
 			inst->transform.scale = scale;
 			m_SkeletalMeshes.push_back(inst);
 
-			const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
-			const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
-
-			if(dance1 && dance2 && name == "Human_1")
+			if(name == "Human_1")
 			{
+				const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
+				const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
+
 				// 상태 등록
 				inst->m_Controller.AddState(std::make_unique<Dance1State>(dance1, &inst->m_Controller));
 				inst->m_Controller.AddState(std::make_unique<Dance2State>(dance2, &inst->m_Controller));
@@ -132,15 +132,15 @@ bool TestApp::LoadAsset()
 	// Skeletal Mesh 
 	// ---------------------------------------------
 	humanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/DancingHuman.fbx");
-	joyHumanAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/JoyfulHuman.fbx");
+	CharacterAsset = AssetManager::Get().LoadSkeletalMesh(device, "../Resource/Skeletal/Character.fbx");
 
-	// [ 애니메이션 추가 로드 ]
-	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_1.fbx", "Dance_1");
-	humanAsset->LoadAnimationFromFBX("../Resource/Skeletal/DancingHuman_2.fbx", "Dance_2");
+	// [ 애니메이션 로드 ]
+	humanAsset->LoadAnimationFromFBX("../Resource/Animation/Human_1_Dance1.fbx", "Dance_1");
+	humanAsset->LoadAnimationFromFBX("../Resource/Animation/Human_1_Dance2.fbx", "Dance_2");
 
 	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_1");
 	CreateSkeletal(humanAsset, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_2");
-	CreateSkeletal(joyHumanAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "JoyHuman");
+	CreateSkeletal(CharacterAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_3");
 
 	
 
@@ -1221,6 +1221,35 @@ void TestApp::Render_ImGui()
 		if (state)	ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%s", state->Name.c_str());
 		else		ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "None");
 
+		// [ Animation Playback Info ]
+		Animator& animator = mesh->m_Controller.AnimatorInstance;
+		const AnimationClip* clip = animator.GetCurrentClip();
+
+		if (clip)
+		{
+			float currentTime = animator.GetCurrentTime();
+			float duration = clip->Duration;
+
+			ImGui::Text(" Animation Time:");
+			ImGui::Text("   %.2f / %.2f sec", currentTime, duration);
+
+			float normalized = (duration > 0.0f)
+				? fmod(currentTime, duration) / duration
+				: 0.0f;
+
+			ImGui::ProgressBar(normalized, ImVec2(200, 0));
+
+			// 블렌딩 중 표시
+			if (animator.GetNextClip())
+			{
+				ImGui::SameLine();
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), " Blending...");
+			}
+		}
+		else
+		{
+			ImGui::Text(" Animation Time: None");
+		}
 
 		// [ Bool parameters ]
 		for (auto& param : mesh->m_Controller.Params.GetAllBools())
@@ -1232,24 +1261,18 @@ void TestApp::Render_ImGui()
 
 		ImGui::Text("");
 		
-		// [ 등록된 상태 & 전환 표시 ]
-		ImGui::Text(" Registered States & Transitions:");
-		for (auto& name : mesh->m_Controller.GetStateNames())
+
+		// [ Animation Flow ]
+		ImGui::Text(" Animation Flow:");
+
+		if (mesh->m_Name == "Human_1")
 		{
-			AnimationState* state = mesh->m_Controller.GetState(name);
-			if (!state) continue;
-
-			ImGui::Text(" - %s", name.c_str());
-
-			if (!state->Transitions.empty())
-			{
-				for (auto& t : state->Transitions)
-					ImGui::Text("     -> %s", t.c_str());
-			}
-			else
-			{
-				ImGui::Text("     (no transitions yet)");
-			}
+			ImGui::BulletText("Dance_1 : play for 5.0 sec -> transition to Dance_2");
+			ImGui::BulletText("Dance_2 : play once        -> transition to Dance_1");
+		}
+		else
+		{
+			ImGui::Text(" (No animation flow description)");
 		}
 
 		ImGui::Text("");
@@ -1258,6 +1281,7 @@ void TestApp::Render_ImGui()
 	}
 	ImGui::PopFont();
 	ImGui::End();
+
 
 
 	// -----------------------------
@@ -1424,7 +1448,7 @@ void TestApp::UninitScene()
 	charAsset.reset();
 	planeAsset.reset();
 	treeAsset.reset();
-	joyHumanAsset.reset();
+	CharacterAsset.reset();
 
 	m_DebugBatch.reset();
 	m_DebugEffect.reset();

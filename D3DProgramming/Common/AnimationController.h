@@ -4,10 +4,18 @@
 #include "AnimationState.h"
 #include <map>
 
+
+// ----------------------------------------------------
+// [ AnimationController ] 
+// 
+// 애니메이션 FSM의 중심 컨트롤러
+// 현재 상태를 관리하고 상태 전환에 따라 Animator에 애니메이션 재생
+// ----------------------------------------------------
+
 class AnimationController
 {
 public:
-    Animator AnimatorInstance;
+    Animator AnimatorInstance; // 실제 애니메이션 재생기
     AnimatorParameter Params;
 
 private:

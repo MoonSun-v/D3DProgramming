@@ -4,6 +4,14 @@
 class AnimationController;
 class AnimationClip;
 
+
+// ----------------------------------------------------
+// [ AnimationState ] 
+// 
+// 하나의 애니메이션 상태를 표현
+// 상태 진입-업데이트-종료 시점을 통해 전환 조건, 로직 정의
+// ----------------------------------------------------
+
 class AnimationState
 {
 public:

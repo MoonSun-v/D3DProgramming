@@ -10,7 +10,6 @@
 using namespace DirectX::SimpleMath;
 
 
-
 // ------------------- Key Structs -------------------
 struct PositionKey
 {
@@ -28,7 +27,13 @@ struct ScaleKey
     Vector3 Value = Vector3::One;
 };
 
-// ------------------- BoneAnimation -------------------
+
+// ----------------------------------------------------
+// [ BoneAnimation ] 
+// 
+// 특정 본 하나에 대한 애니메이션 트랙으로,
+// 위치·회전·스케일 키프레임을 시간에 따라 보간
+// ----------------------------------------------------
 class BoneAnimation
 {
 public:
@@ -44,12 +49,18 @@ public:
     ) const;
 };
 
-// ------------------- Animation Clip -------------------
+
+// ----------------------------------------------------
+// [ AnimationClip ] 
+// 
+// 각 본의 키프레임 정보를 통해, 특정 시간의 포즈 평가
+// (하나의 애니메이션 데이터) 
+// ----------------------------------------------------
 class AnimationClip
 {
 public:
     std::string Name;
-    float Duration = 0.0f;
+    float Duration = 0.0f; // 애니메이션 총 길이
 
     std::vector<BoneAnimation> BoneAnimations; // 각 본별 키 데이터
 

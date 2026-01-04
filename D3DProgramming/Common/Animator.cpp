@@ -137,3 +137,10 @@ void Animator::Update(float deltaTime)
         }
     }
 }
+
+float Animator::GetBlendAlpha() const
+{
+    if (!m_Next || m_BlendDuration <= 0.0f)
+        return 0.0f;
+    return Clamp(m_BlendTime / m_BlendDuration, 0.0f, 1.0f);
+}
