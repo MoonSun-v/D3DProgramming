@@ -80,7 +80,6 @@ void Animator::Update(float deltaTime)
     if (m_Current)
     {
         m_Time += deltaTime;
-        // m_Time = fmod(m_Time, m_Current->Duration);
 
         if (m_Current->Loop)
         {
