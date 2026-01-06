@@ -30,8 +30,6 @@ public:
 
     AnimationState* GetCurrentState() const { return CurrentState; }
 
-    // [ 디버그용] 
-    
 
 public: // [ 디버그용 ]
 

@@ -24,8 +24,11 @@
     <Filter Include="[ 03. Animation ]">
       <UniqueIdentifier>{9a1673b2-ca4d-470b-b430-1a0bd4e72739}</UniqueIdentifier>
     </Filter>
-    <Filter Include="[ 04. Resource ]">
+    <Filter Include="[ 05. Resource ]">
       <UniqueIdentifier>{581ae79c-190e-4a74-8b9d-1550d161f2aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="[ 04.Physics ]">
+      <UniqueIdentifier>{d8eaceb4-ba77-4e63-851a-ab6c150ea207}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -84,16 +87,16 @@
       <Filter>[ 99. Utility ]</Filter>
     </ClInclude>
     <ClInclude Include="AssetKey.h">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClInclude>
     <ClInclude Include="SkeletalMeshAsset.h">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClInclude>
     <ClInclude Include="StaticMeshAsset.h">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClInclude>
     <ClInclude Include="AssetManager.h">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClInclude>
     <ClInclude Include="Animator.h">
       <Filter>[ 03. Animation ]</Filter>
@@ -109,6 +112,12 @@
     </ClInclude>
     <ClInclude Include="AnimatorParameter.h">
       <Filter>[ 03. Animation ]</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsSystem.h">
+      <Filter>[ 04.Physics ]</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysXUtils.h">
+      <Filter>[ 04.Physics ]</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -152,13 +161,13 @@
       <Filter>[ 02. Mesh ]</Filter>
     </ClCompile>
     <ClCompile Include="StaticMeshAsset.cpp">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClCompile>
     <ClCompile Include="SkeletalMeshAsset.cpp">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClCompile>
     <ClCompile Include="AssetManager.cpp">
-      <Filter>[ 04. Resource ]</Filter>
+      <Filter>[ 05. Resource ]</Filter>
     </ClCompile>
     <ClCompile Include="Animator.cpp">
       <Filter>[ 03. Animation ]</Filter>
@@ -168,6 +177,9 @@
     </ClCompile>
     <ClCompile Include="AnimationClip.cpp">
       <Filter>[ 03. Animation ]</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsSystem.cpp">
+      <Filter>[ 04.Physics ]</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
