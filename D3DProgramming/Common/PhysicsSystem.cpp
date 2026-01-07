@@ -19,14 +19,21 @@ bool PhysicsSystem::Initialize()
         return false;
 
     // 2. PVD
-
+    m_Pvd = PxCreatePvd(*m_Foundation);
+    m_PvdTransport = PxDefaultPvdSocketTransportCreate(
+        "127.0.0.1",
+        5425,
+        10
+    );
+    m_Pvd->connect(*m_PvdTransport, PxPvdInstrumentationFlag::eALL);
 
     // 3. Physics
     m_Physics = PxCreatePhysics(
         PX_PHYSICS_VERSION,
         *m_Foundation,
         PxTolerancesScale(),
-        true
+        true,
+        m_Pvd
     );
     if (!m_Physics)
         return false;
@@ -67,6 +74,11 @@ void PhysicsSystem::Shutdown()
     PX_RELEASE(m_Dispatcher);
     PX_RELEASE(m_DefaultMaterial);
     PX_RELEASE(m_Physics);
+
+    if (m_Pvd) m_Pvd->disconnect();
+
+    PX_RELEASE(m_PvdTransport);
+    PX_RELEASE(m_Pvd);
     PX_RELEASE(m_Foundation);
 }
 

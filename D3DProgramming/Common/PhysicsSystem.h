@@ -38,4 +38,7 @@ private:
     PxMaterial* m_DefaultMaterial = nullptr;
     PxDefaultCpuDispatcher* m_Dispatcher = nullptr;
 
+    // PVD (µð¹ö±ë¿ë)
+    PxPvd* m_Pvd = nullptr;
+    PxPvdTransport* m_PvdTransport = nullptr;
 };
