@@ -1,9 +1,19 @@
 #pragma once
 #include <PxPhysicsAPI.h>
+#include <task/PxCpuDispatcher.h>
+
 using namespace physx;
+
 
 class PhysicsSystem
 {
+public:
+    static PhysicsSystem& Get() // ΩÃ±€≈Ê 
+    {
+        static PhysicsSystem instance;
+        return instance;
+    }
+
 public:
     PhysicsSystem() = default;
     ~PhysicsSystem();
@@ -18,6 +28,7 @@ public:
     PxMaterial* GetDefaultMaterial() const { return m_DefaultMaterial; }
 
 private:
+    // Core
     PxDefaultAllocator      m_Allocator;
     PxDefaultErrorCallback  m_ErrorCallback;
 
@@ -25,5 +36,6 @@ private:
     PxPhysics* m_Physics = nullptr;
     PxScene* m_Scene = nullptr;
     PxMaterial* m_DefaultMaterial = nullptr;
-    PxCpuDispatcher* m_Dispatcher = nullptr;
+    PxDefaultCpuDispatcher* m_Dispatcher = nullptr;
+
 };

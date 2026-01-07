@@ -2,6 +2,8 @@
 #include "GameApp.h"
 #include "Helper.h"
 
+#include "PhysicsSystem.h"
+
 #include <dbghelp.h>
 #include <minidumpapiset.h>
 
@@ -107,6 +109,12 @@ bool GameApp::Initialize()
 	m_currentTime = m_previousTime = (float)GetTickCount64() / 1000.0f;
 	m_Input.Initialize(m_hWnd, this);
 
+
+	if (!PhysicsSystem::Get().Initialize())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -154,12 +162,20 @@ bool GameApp::Run(HINSTANCE hInstance)
 	return true;
 }
 
+void GameApp::Uninitialize()
+{
+	PhysicsSystem::Get().Shutdown();
+}
+
 
 
 void GameApp::Update()
 {
 	m_Timer.Tick();
 	m_Input.Update(m_Timer.DeltaTime());
+
+	PhysicsSystem::Get().Simulate(m_Timer.DeltaTime());
+
 	m_Camera.Update(m_Timer.DeltaTime());
 }
 
