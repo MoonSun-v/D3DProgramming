@@ -1,5 +1,5 @@
 #pragma once
-#include <physx/PxPhysicsAPI.h>
+#include <PxPhysicsAPI.h>
 using namespace physx;
 
 class PhysicsSystem
