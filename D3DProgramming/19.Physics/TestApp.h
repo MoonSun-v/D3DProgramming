@@ -267,6 +267,9 @@ public:
 	void Render_BeginBackBuffer();
 	void Render_ToneMapping();
 	void Render_DebugDraw();
+	void DrawPhysXActors();
+	void DrawPhysXShape(PxShape* shape, const PxTransform& actorPose);
+	void DrawCharacterControllers();
 	void Render_ImGui();
 
 	// ------------------------------------------------------------

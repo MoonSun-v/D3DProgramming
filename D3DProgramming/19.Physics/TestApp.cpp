@@ -1493,10 +1493,156 @@ void TestApp::Render_DebugDraw()
 
 	m_DebugDraw->Draw(m_DebugBatch.get(), lightPos, DirectX::Colors::Yellow);
 
+	DrawPhysXActors();
+
 	m_DebugBatch->End();
 
 	m_D3DDevice.GetDeviceContext()->OMSetDepthStencilState(nullptr, 0);
 }
+
+void TestApp::DrawPhysXActors()
+{
+	PxScene* scene = PhysicsSystem::Get().GetScene();
+	if (!scene) return;
+
+	PxU32 actorCount = scene->getNbActors(
+		PxActorTypeFlag::eRIGID_STATIC |
+		PxActorTypeFlag::eRIGID_DYNAMIC
+	);
+
+	std::vector<PxActor*> actors(actorCount);
+	scene->getActors(
+		PxActorTypeFlag::eRIGID_STATIC |
+		PxActorTypeFlag::eRIGID_DYNAMIC,
+		actors.data(),
+		actorCount
+	);
+
+	// [ Actor ] 
+	for (PxActor* actor : actors)
+	{
+		PxRigidActor* rigid = actor->is<PxRigidActor>();
+		if (!rigid) return;
+
+		PxTransform actorPose = rigid->getGlobalPose();
+
+		PxU32 shapeCount = rigid->getNbShapes();
+		std::vector<PxShape*> shapes(shapeCount);
+		rigid->getShapes(shapes.data(), shapeCount);
+
+		for (PxShape* shape : shapes)
+		{
+			// [ Shape ]
+			DrawPhysXShape(shape, actorPose);
+		}
+	}
+
+	// Character Controller는 별도로 그려야 함 
+	DrawCharacterControllers();
+}
+
+void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
+{
+	PxGeometryHolder geo = shape->getGeometry();
+	PxTransform localPose = shape->getLocalPose();
+	PxTransform worldPose = actorPose * localPose;
+
+	switch (geo.getType())
+	{
+	case PxGeometryType::eBOX:
+	{
+		const PxBoxGeometry& box = geo.box();
+
+		DirectX::BoundingOrientedBox obb;
+		obb.Center = {
+			worldPose.p.x,
+			worldPose.p.y,
+			worldPose.p.z
+		};
+		obb.Extents = {
+			box.halfExtents.x,
+			box.halfExtents.y,
+			box.halfExtents.z
+		};
+		obb.Orientation = {
+			worldPose.q.x,
+			worldPose.q.y,
+			worldPose.q.z,
+			worldPose.q.w
+		};
+
+		m_DebugDraw->Draw(m_DebugBatch.get(), obb, DirectX::Colors::Green);
+		break;
+	}
+
+	case PxGeometryType::eSPHERE:
+	{
+		const PxSphereGeometry& sphere = geo.sphere();
+
+		DirectX::BoundingSphere bs;
+		bs.Center = {
+			worldPose.p.x,
+			worldPose.p.y,
+			worldPose.p.z
+		};
+		bs.Radius = sphere.radius;
+
+		m_DebugDraw->Draw(m_DebugBatch.get(), bs, DirectX::Colors::Yellow);
+		break;
+	}
+
+	case PxGeometryType::eCAPSULE:
+	{
+		const PxCapsuleGeometry& capsule = geo.capsule();
+
+		m_DebugDraw->DrawCapsule(
+			m_DebugBatch.get(),
+			worldPose.p,
+			capsule.radius,
+			capsule.halfHeight * 2.0f,
+			DirectX::Colors::Cyan,
+			worldPose.q
+		);
+		break;
+	}
+
+	default:
+		break;
+	}
+}
+
+void TestApp::DrawCharacterControllers()
+{
+	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
+	if (!mgr) return;
+
+	PxU32 count = mgr->getNbControllers();
+
+	for (PxU32 i = 0; i < count; ++i)
+	{
+		PxController* cct = mgr->getController(i);
+		if (!cct) continue;
+
+		// PhysX 5 방식 타입 체크
+		if (cct->getType() != PxControllerShapeType::eCAPSULE)
+			continue;
+
+		PxCapsuleController* capsule =
+			static_cast<PxCapsuleController*>(cct);
+
+		PxExtendedVec3 p = capsule->getPosition();
+
+		m_DebugDraw->DrawCapsule(
+			m_DebugBatch.get(),
+			PxVec3((float)p.x, (float)p.y, (float)p.z),
+			capsule->getRadius(),
+			capsule->getHeight(),
+			DirectX::Colors::Red
+		);
+	}
+}
+
+
 
 void TestApp::UninitScene()
 {
