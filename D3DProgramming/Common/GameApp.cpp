@@ -178,7 +178,15 @@ void GameApp::Update()
 
 	// [ ÀÓÀÇÀÇ fixedUpdate ] 
 	constexpr float fixedDt = 1.0f / 60.0f;
-	m_PhysicsAccumulator += m_Timer.DeltaTime();
+	if (m_Timer.DeltaTime() > 0.1f)
+	{
+		m_PhysicsAccumulator += 0.1f;
+	}
+	else 
+	{ 
+		m_PhysicsAccumulator += m_Timer.DeltaTime(); 
+	}
+
 	while (m_PhysicsAccumulator >= fixedDt)
 	{
 		PhysicsSystem::Get().Simulate(fixedDt);

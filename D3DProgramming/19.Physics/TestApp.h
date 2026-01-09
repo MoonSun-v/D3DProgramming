@@ -62,7 +62,6 @@ private:
 	PxRigidDynamic* m_Human2 = nullptr;
 
 	// -------- Controller ----------
-	PxControllerManager* m_ControllerMgr = nullptr;
 	PxController* m_Human3 = nullptr;
 
 	float m_MoveSpeed = 5.0f;

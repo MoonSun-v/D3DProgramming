@@ -1,7 +1,8 @@
 #include "DebugDraw.h"
-#include "DebugDraw.h"
+
 #include <algorithm>
 
+using namespace physx;
 using namespace DirectX;
 
 namespace
@@ -284,4 +285,48 @@ void XM_CALLCONV DebugDraw::DrawQuad(PrimitiveBatch<VertexPositionColor>* batch,
     XMStoreFloat4(&verts[4].color, color);
 
     batch->Draw(D3D_PRIMITIVE_TOPOLOGY_LINESTRIP, verts, 5);
+}
+
+void XM_CALLCONV DebugDraw::DrawCapsule(
+    PrimitiveBatch<VertexPositionColor>* batch,
+    const PxVec3& position,
+    float radius,
+    float height,
+    FXMVECTOR color,
+    const PxQuat& rotation)
+{
+    // 캡슐 중심선 Y축 기준
+    XMVECTOR pos = XMVectorSet(position.x, position.y, position.z, 1.0f);
+    XMMATRIX rotMat = XMMatrixRotationQuaternion(XMLoadFloat4(reinterpret_cast<const XMFLOAT4*>(&rotation)));
+
+    const int segments = 16;
+    float halfHeight = height * 0.5f;
+
+    // 원통 부분
+    for (int i = 0; i < segments; ++i)
+    {
+        float angle0 = (2 * XM_PI / segments) * i;
+        float angle1 = (2 * XM_PI / segments) * (i + 1);
+
+        XMVECTOR p0Top = XMVectorSet(radius * cosf(angle0), halfHeight, radius * sinf(angle0), 1.0f);
+        XMVECTOR p1Top = XMVectorSet(radius * cosf(angle1), halfHeight, radius * sinf(angle1), 1.0f);
+
+        XMVECTOR p0Bottom = XMVectorSet(radius * cosf(angle0), -halfHeight, radius * sinf(angle0), 1.0f);
+        XMVECTOR p1Bottom = XMVectorSet(radius * cosf(angle1), -halfHeight, radius * sinf(angle1), 1.0f);
+
+        // 월드 변환
+        p0Top = XMVector3Transform(p0Top, rotMat) + pos;
+        p1Top = XMVector3Transform(p1Top, rotMat) + pos;
+        p0Bottom = XMVector3Transform(p0Bottom, rotMat) + pos;
+        p1Bottom = XMVector3Transform(p1Bottom, rotMat) + pos;
+
+        // 상단 원
+        batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p1Top, color));
+        // 하단 원
+        batch->DrawLine(VertexPositionColor(p0Bottom, color), VertexPositionColor(p1Bottom, color));
+        // 측면 연결
+        batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p0Bottom, color));
+    }
+
+    // 반구는 원래 더 정밀하게 계산 가능하지만, Debug 용이라면 생략 가능
 }

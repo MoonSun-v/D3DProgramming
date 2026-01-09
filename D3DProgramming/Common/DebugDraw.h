@@ -4,8 +4,8 @@
 
 #include <directxtk/PrimitiveBatch.h>
 #include <directxtk/VertexTypes.h>
+#include <foundation/PxTransform.h>
 
-#include "DebugDraw.h"
 class DebugDraw
 {
 public:
@@ -45,4 +45,13 @@ public:
     void XM_CALLCONV DrawQuad(DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
         DirectX::FXMVECTOR pointA, DirectX::FXMVECTOR pointB, DirectX::FXMVECTOR pointC, DirectX::GXMVECTOR pointD,
         DirectX::HXMVECTOR color = DirectX::Colors::White);
+
+    // PhysX Capsule ½Ã°¢È­
+    void XM_CALLCONV DrawCapsule(
+        DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
+        const physx::PxVec3& position,
+        float radius,
+        float height,
+        DirectX::FXMVECTOR color = DirectX::Colors::White,
+        const physx::PxQuat& rotation = physx::PxQuat(physx::PxIdentity));
 };

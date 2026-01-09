@@ -47,49 +47,34 @@ bool TestApp::Initialize()
 	 auto& scene = *PhysicsSystem::Get().GetScene();
 
 	// planeAsset (바닥)
-	m_Plane = PhysicsHelper::CreateStaticBox(
-		PxVec3(0, -1, 0),
-		PxVec3(50, 1, 50)
-	);
+	m_Plane = PhysicsHelper::CreateStaticBox(PxVec3(0, -1, 0), PxVec3(50, 1, 50));
 
 	// charAsset (static)
-	m_CharAsset = PhysicsHelper::CreateStaticBox(
-		PxVec3(-5, 0, 5),
-		PxVec3(1, 2, 1)
-	);
+	m_CharAsset = PhysicsHelper::CreateStaticBox(PxVec3(-5, 0, 5), PxVec3(1, 2, 1));
 
 	// treeAsset (static)
-	m_TreeAsset = PhysicsHelper::CreateStaticBox(
-		PxVec3(5, 0, 5),
-		PxVec3(1, 3, 1)
-	);
+	m_TreeAsset = PhysicsHelper::CreateStaticBox(PxVec3(5, 0, 5), PxVec3(1, 3, 1));
 
 	// Human_1 (static 캐릭터)
-	m_Human1 = PhysicsHelper::CreateStaticBox(
-		PxVec3(-3, 0, -3),
-		PxVec3(0.5f, 1.8f, 0.5f)
-	);
+	m_Human1 = PhysicsHelper::CreateStaticBox(PxVec3(-3, 0, -3), PxVec3(0.5f, 1.8f, 0.5f));
 
 	// Human_2 (Dynamic)
-	m_Human2 = PhysicsHelper::CreateDynamicBox(
-		PxVec3(0, 5, -3),
-		PxVec3(0.5f, 1.8f, 0.5f),
-		10.0f
-	);
+	m_Human2 = PhysicsHelper::CreateDynamicBox(PxVec3(0, 5, -3), PxVec3(0.5f, 1.8f, 0.5f), 10.0f);
 
 
 	// Human_3 (Character Controller)
-	m_ControllerMgr = PxCreateControllerManager(scene);
+	m_Human3 = PhysicsSystem::Get().CreateCapsuleController(
+		PxExtendedVec3(3, 2, -3),
+		0.4f,
+		1.6f,
+		10.0f
+	);
 
-	PxCapsuleControllerDesc desc;
-	desc.height = 1.6f;
-	desc.radius = 0.4f;
-	desc.material = PhysicsSystem::Get().GetDefaultMaterial();
-	desc.position = PxExtendedVec3(3, 2, -3);
-	desc.stepOffset = 0.4f;
-	desc.slopeLimit = cosf(PxPi / 4);
-
-	m_Human3 = m_ControllerMgr->createController(desc);
+	if (!m_Human3)
+	{
+		LOG_ERRORA("CreateCapsuleController failed!");
+		return false;
+	}
 
 
 	// ------------------------------------
@@ -266,24 +251,20 @@ void TestApp::Update()
 		mesh->Update(deltaTime);
 	}
 
-	//PxVec3 move(0);
 
-	//if (GetAsyncKeyState(VK_UP) & 0x8000)
-	//	move.z -= 1;
-	//if (GetAsyncKeyState(VK_DOWN) & 0x8000)
-	//	move.z += 1;
-	//if (GetAsyncKeyState(VK_LEFT) & 0x8000)
-	//	move.x -= 1;
-	//if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
-	//	move.x += 1;
+	// [ 임시 이동 ] 
+	PxVec3 move(0);
 
-	//if (move.magnitudeSquared() > 0)
-	//	move.normalize();
+	if (GetAsyncKeyState(VK_UP) & 0x8000) move.z -= 1;
+	if (GetAsyncKeyState(VK_DOWN) & 0x8000) move.z += 1;	
+	if (GetAsyncKeyState(VK_LEFT) & 0x8000) move.x -= 1;	
+	if (GetAsyncKeyState(VK_RIGHT) & 0x8000) move.x += 1;
+	if (move.magnitudeSquared() > 0) move.normalize();
+	
+	move *= m_MoveSpeed * deltaTime;
 
-	//move *= m_MoveSpeed * deltaTime;
-
-	//PxControllerFilters filters;
-	//m_Human3->move(move, 0.01f, deltaTime, filters);
+	PxControllerFilters filters;
+	m_Human3->move(move, 0.01f, deltaTime, filters);
 
 	
 	// ---------------------------------------------

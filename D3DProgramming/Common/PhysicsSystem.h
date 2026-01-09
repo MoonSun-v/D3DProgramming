@@ -86,7 +86,7 @@ private:
     // Character Controller
     // ------------------------------------------------------
      PxControllerManager* m_ControllerManager = nullptr;
-      ControllerHitReport m_ControllerHitReport;
+     ControllerHitReport m_ControllerHitReport;
 
 
 public:

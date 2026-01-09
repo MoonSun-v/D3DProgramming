@@ -117,12 +117,12 @@ bool PhysicsSystem::Initialize()
     // ------------------------------------------------------
     // 7. Character Controller Manager
     // ------------------------------------------------------
-    //m_ControllerManager = PxCreateControllerManager(*m_Scene);
-    //if (!m_ControllerManager)
-    //{
-    //    LOG_ERRORA("PxCreateControllerManager failed!");
-    //    return false;
-    //}
+    m_ControllerManager = PxCreateControllerManager(*m_Scene);
+    if (!m_ControllerManager)
+    {
+        LOG_ERRORA("PxCreateControllerManager failed!");
+        return false;
+    }
 
 
     return true;
