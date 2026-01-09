@@ -16,9 +16,6 @@
 #include "../Common/SkeletalMeshInstance.h"
 #include "../Common/StaticMeshInstance.h"
 
-// Helper
-#include "PhysicsHelper.h"
-
 // Link Libraries
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -51,20 +48,6 @@ public:
 	TestApp();
 	~TestApp();
 
-private:
-	// -------- Static ----------
-	PxRigidStatic* m_Plane = nullptr;
-	PxRigidStatic* m_CharAsset = nullptr;
-	PxRigidStatic* m_TreeAsset = nullptr;
-	PxRigidStatic* m_Human1 = nullptr;
-
-	// -------- Dynamic ----------
-	PxRigidDynamic* m_Human2 = nullptr;
-
-	// -------- Controller ----------
-	PxController* m_Human3 = nullptr;
-
-	float m_MoveSpeed = 5.0f;
 
 public:
 	// -------------------------------
@@ -283,6 +266,22 @@ public:
 	// ------------------------------------------------------------
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
 	// bool CheckHDRSupportAndGetMaxNits(float& outMaxLuminance, DXGI_FORMAT& outFormat);
+
+	std::shared_ptr<StaticMeshInstance> CreateStaticMesh(
+		std::shared_ptr<StaticMeshAsset> asset,
+		const Vector3& pos,
+		const Vector3& rot = { 0,0,0 },
+		const Vector3& scale = { 1,1,1 }
+	);
+	std::shared_ptr<SkeletalMeshInstance> CreateSkeletalMesh(
+		ID3D11Device* device,
+		std::shared_ptr<SkeletalMeshAsset> asset,
+		const Vector3& pos,
+		const Vector3& rot = { 0,0,0 },
+		const Vector3& scale = { 1,1,1 },
+		const std::string& name = "NoneName"
+	);
+
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };

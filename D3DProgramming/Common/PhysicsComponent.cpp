@@ -9,15 +9,17 @@ PhysicsComponent::~PhysicsComponent()
 }
 
 // ------------------------------
-// 외부 API
+// 외부 API 
+// - density : 질량 
 // ------------------------------
+
+// Box 
 void PhysicsComponent::CreateStaticBox(const Vector3& half)
 {
     ColliderDesc d;
     d.halfExtents = half;
     CreateCollider(ColliderType::Box, PhysicsBodyType::Static, d);
 }
-
 void PhysicsComponent::CreateDynamicBox(const Vector3& half, float density)
 {
     ColliderDesc d;
@@ -26,13 +28,13 @@ void PhysicsComponent::CreateDynamicBox(const Vector3& half, float density)
     CreateCollider(ColliderType::Box, PhysicsBodyType::Dynamic, d);
 }
 
+// Sphere 
 void PhysicsComponent::CreateStaticSphere(float radius)
 {
     ColliderDesc d;
     d.radius = radius;
     CreateCollider(ColliderType::Sphere, PhysicsBodyType::Static, d);
 }
-
 void PhysicsComponent::CreateDynamicSphere(float radius, float density)
 {
     ColliderDesc d;
@@ -41,6 +43,14 @@ void PhysicsComponent::CreateDynamicSphere(float radius, float density)
     CreateCollider(ColliderType::Sphere, PhysicsBodyType::Dynamic, d);
 }
 
+// Capsule 
+void PhysicsComponent::CreateStaticCapsule(float radius, float height)
+{
+    ColliderDesc d;
+    d.radius = radius;
+    d.height = height;
+    CreateCollider(ColliderType::Capsule, PhysicsBodyType::Static, d);
+}
 void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float density)
 {
     ColliderDesc d;
@@ -50,13 +60,11 @@ void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float de
     CreateCollider(ColliderType::Capsule, PhysicsBodyType::Dynamic, d);
 }
 
+
 // ------------------------------
 // 내부 생성 로직
 // ------------------------------
-void PhysicsComponent::CreateCollider(
-    ColliderType collider,
-    PhysicsBodyType body,
-    const ColliderDesc& d)
+void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType body, const ColliderDesc& d)
 {
     auto& phys = PhysicsSystem::Get();
     PxPhysics* px = phys.GetPhysics();
@@ -107,15 +115,18 @@ void PhysicsComponent::CreateCollider(
     m_ColliderType = collider;
 }
 
+
 // ------------------------------
-// Sync
+// 좌표 변환
 // ------------------------------
+
+// Transform → Physics 
 void PhysicsComponent::SyncToPhysics()
 {
     if (!m_Actor || !owner) return;
 
     XMVECTOR q =
-        XMQuaternionRotationRollPitchYaw(
+        XMQuaternionRotationRollPitchYaw( // 엔진의 Euler 회전을 → Quaternion 변환 
             owner->rotation.x,
             owner->rotation.y,
             owner->rotation.z
@@ -128,6 +139,7 @@ void PhysicsComponent::SyncToPhysics()
     m_Actor->setGlobalPose(px);
 }
 
+// Physics → Transform (물리 시뮬 하고나서 매 프레임 실행)
 void PhysicsComponent::SyncFromPhysics()
 {
     if (!m_Actor || !owner) return;

@@ -1,6 +1,8 @@
 #include "TestApp.h"
 #include "../Common/AssetManager.h"
 #include "../Common/Helper.h"
+#include "../Common/PhysicsSystem.h"
+#include "../Common/PhysXUtils.h"
 
 #include <d3dcompiler.h>
 #include <Directxtk/DDSTextureLoader.h>
@@ -38,43 +40,6 @@ bool TestApp::Initialize()
 	if (!LoadAsset())	return false;
 	if (!InitSkyBox())  return false;
 	if (!InitImGUI())	return false;
-
-
-	// ------------------------------------
-	// Physics 초기화
-	// ------------------------------------
-	 auto& physics = *PhysicsSystem::Get().GetPhysics();
-	 auto& scene = *PhysicsSystem::Get().GetScene();
-
-	// planeAsset (바닥)
-	m_Plane = PhysicsHelper::CreateStaticBox(PxVec3(0, -1, 0), PxVec3(50, 1, 50));
-
-	// charAsset (static)
-	m_CharAsset = PhysicsHelper::CreateStaticBox(PxVec3(-5, 0, 5), PxVec3(1, 2, 1));
-
-	// treeAsset (static)
-	m_TreeAsset = PhysicsHelper::CreateStaticBox(PxVec3(5, 0, 5), PxVec3(1, 3, 1));
-
-	// Human_1 (static 캐릭터)
-	m_Human1 = PhysicsHelper::CreateStaticBox(PxVec3(-3, 0, -3), PxVec3(0.5f, 1.8f, 0.5f));
-
-	// Human_2 (Dynamic)
-	m_Human2 = PhysicsHelper::CreateDynamicBox(PxVec3(0, 5, -3), PxVec3(0.5f, 1.8f, 0.5f), 10.0f);
-
-
-	// Human_3 (Character Controller)
-	m_Human3 = PhysicsSystem::Get().CreateCapsuleController(
-		PxExtendedVec3(3, 2, -3),
-		0.4f,
-		1.6f,
-		10.0f
-	);
-
-	if (!m_Human3)
-	{
-		LOG_ERRORA("CreateCapsuleController failed!");
-		return false;
-	}
 
 
 	// ------------------------------------
@@ -116,63 +81,6 @@ bool TestApp::LoadAsset()
 {
 	auto* device = m_D3DDevice.GetDevice();
 
-	auto CreateStatic = [&](std::shared_ptr<StaticMeshAsset> asset, Vector3 pos, Vector3 rot = { 0,0,0 }, Vector3 scale = { 1,1,1 })
-		{
-			auto inst = std::make_shared<StaticMeshInstance>();
-			inst->SetAsset(asset);
-			inst->transform.position = pos;
-			inst->transform.rotation = rot;
-			inst->transform.scale = scale;
-			m_StaticMeshes.push_back(inst);
-		};
-
-	auto CreateSkeletal = [&](std::shared_ptr<SkeletalMeshAsset> asset, Vector3 pos, Vector3 rot = { 0,0,0 }, Vector3 scale = { 1,1,1 },
-		const std::string& name = "NoneName")
-		{
-			auto inst = std::make_shared<SkeletalMeshInstance>();
-			inst->m_Name = name;
-			inst->SetAsset(device, asset);
-			inst->transform.position = pos;
-			inst->transform.rotation = rot;
-			inst->transform.scale = scale;
-			m_SkeletalMeshes.push_back(inst);
-
-			if(name == "Human_2")
-			{
-				const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
-				const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
-
-				// 상태 등록
-				inst->m_Controller.AddState(std::make_unique<Dance1State>(dance1, &inst->m_Controller));
-				inst->m_Controller.AddState(std::make_unique<Dance2State>(dance2, &inst->m_Controller));
-
-				// 초기 상태
-				inst->m_Controller.ChangeState("Dance_1", 0.0f);
-			}
-
-			if (name == "Human_3")
-			{
-				const AnimationClip* idle = asset->GetAnimation("Idle");
-				const AnimationClip* attack = asset->GetAnimation("Attack");
-				const AnimationClip* die = asset->GetAnimation("Die");
-
-
-				// 상태 등록
-				inst->m_Controller.AddState(std::make_unique<IdleState>(idle, &inst->m_Controller));
-				inst->m_Controller.AddState(std::make_unique<AttackState>(attack, &inst->m_Controller));
-				inst->m_Controller.AddState(std::make_unique<DieState>(die, &inst->m_Controller));
-
-				// FSM 파라미터 초기화
-				auto& params = inst->m_Controller.Params;
-				params.SetBool("Idle", true);
-				params.SetBool("Attack", false);
-				params.SetBool("Die", false);
-
-				// 초기 상태
-				inst->m_Controller.ChangeState("Idle_State", 0.0f);
-			}
-		};
-
 
 	// ---------------------------------------------
 	// Static Mesh
@@ -181,10 +89,27 @@ bool TestApp::LoadAsset()
 	charAsset = AssetManager::Get().LoadStaticMesh(device, "../Resource/char/char.fbx");
 	treeAsset = AssetManager::Get().LoadStaticMesh(device, "../Resource/Tree.fbx");
 
-	CreateStatic(planeAsset, { 100, -15, 0 }, { 0, 0, 0 }, { 0.5f, 1.0f, 0.5f });
-	CreateStatic(charAsset, { 0, 0, -90 }, { 0, XMConvertToRadians(90), 0 });
-	CreateStatic(treeAsset, { 200, 0, 100 }, { 0, XMConvertToRadians(90), 0 });
-	CreateStatic(treeAsset, { 200, 0, -130 }, { 0, XMConvertToRadians(90), 0 });
+
+	// [ 바닥 ]
+	auto plane = CreateStaticMesh(planeAsset, { 100, 0, 0 }, { 0,0,0 }, { 0.5f,1.0f,0.5f });
+	plane->physics->CreateStaticBox({ 600, 1, 600 });
+	plane->physics->SyncToPhysics();
+
+	// [ 장식 캐릭터 ]
+	auto charObj = CreateStaticMesh(charAsset, { 0,10,-90 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	charObj->physics->CreateStaticCapsule(1.0f, 5.0f);
+	// charObj->physics->CreateStaticBox({ 1.0f, 3.0f, 1.0f });
+	charObj->physics->SyncToPhysics();
+
+	// [ 나무1 ]
+	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,100 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	tree1->physics->CreateStaticBox({ 1.0f, 3.0f, 1.0f });
+	tree1->physics->SyncToPhysics();
+
+	// [ 나무2 ]
+	auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-130 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	tree2->physics->CreateStaticBox({ 1.0f, 3.0f, 1.0f });
+	tree2->physics->SyncToPhysics();
 
 
 
@@ -201,9 +126,23 @@ bool TestApp::LoadAsset()
 	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Attack.fbx", "Attack", false);
 	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Die.fbx", "Die", false);
 
-	CreateSkeletal(humanAsset, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_1");
-	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_2");
-	CreateSkeletal(CharacterAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_3");
+
+	// [1] Static Box
+	auto human1 = CreateSkeletalMesh(device, humanAsset, { -40,10,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_1");
+	human1->physics->CreateStaticBox({ 0.5f, 1.0f, 0.5f });
+	human1->physics->SyncToPhysics();
+
+
+	// [2] Dynamic Capsule 
+	auto human2 = CreateSkeletalMesh(device, humanAsset, { -10,40,30 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
+	human2->physics->CreateDynamicCapsule(0.4f, 1.7f, 70.0f); // (radius, height, density)
+	human2->physics->SyncToPhysics();
+
+
+	// [3] Dynamic Capsule -> 추후 Character Controller로 수정
+	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 50,40,-130 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
+	human3->physics->CreateDynamicCapsule(0.4f, 1.7f, 70.0f);
+	human3->physics->SyncToPhysics();
 
 	
 
@@ -234,6 +173,88 @@ bool TestApp::LoadAsset()
 	return true; 
 }
 
+std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
+	std::shared_ptr<StaticMeshAsset> asset,
+	const Vector3& pos,
+	const Vector3& rot,
+	const Vector3& scale)
+{
+	auto inst = std::make_shared<StaticMeshInstance>();
+
+	inst->SetAsset(asset);
+
+	inst->transform.position = pos;
+	inst->transform.rotation = rot;
+	inst->transform.scale = scale;
+
+	// Physics
+	inst->physics = std::make_unique<PhysicsComponent>();
+	inst->physics->owner = &inst->transform;
+
+	m_StaticMeshes.push_back(inst);
+	return inst;
+}
+
+std::shared_ptr<SkeletalMeshInstance> TestApp::CreateSkeletalMesh(
+	ID3D11Device* device,
+	std::shared_ptr<SkeletalMeshAsset> asset,
+	const Vector3& pos,
+	const Vector3& rot,
+	const Vector3& scale,
+	const std::string& name)
+{
+	auto inst = std::make_shared<SkeletalMeshInstance>();
+
+	inst->m_Name = name;
+	inst->SetAsset(device, asset);
+
+	inst->transform.position = pos;
+	inst->transform.rotation = rot;
+	inst->transform.scale = scale;
+
+	// Physics (StaticMeshInstance와 완전히 동일한 구조)
+	inst->physics = std::make_unique<PhysicsComponent>();
+	inst->physics->owner = &inst->transform;
+
+	// 애니메이션 FSM 세팅
+	if (name == "Human_2")
+	{
+		const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
+		const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
+
+		inst->m_Controller.AddState(
+			std::make_unique<Dance1State>(dance1, &inst->m_Controller));
+		inst->m_Controller.AddState(
+			std::make_unique<Dance2State>(dance2, &inst->m_Controller));
+
+		inst->m_Controller.ChangeState("Dance_1", 0.0f);
+	}
+	else if (name == "Human_3")
+	{
+		const AnimationClip* idle = asset->GetAnimation("Idle");
+		const AnimationClip* attack = asset->GetAnimation("Attack");
+		const AnimationClip* die = asset->GetAnimation("Die");
+
+		inst->m_Controller.AddState(
+			std::make_unique<IdleState>(idle, &inst->m_Controller));
+		inst->m_Controller.AddState(
+			std::make_unique<AttackState>(attack, &inst->m_Controller));
+		inst->m_Controller.AddState(
+			std::make_unique<DieState>(die, &inst->m_Controller));
+
+		auto& params = inst->m_Controller.Params;
+		params.SetBool("Idle", true);
+		params.SetBool("Attack", false);
+		params.SetBool("Die", false);
+
+		inst->m_Controller.ChangeState("Idle_State", 0.0f);
+	}
+
+	m_SkeletalMeshes.push_back(inst);
+	return inst;
+}
+
+
 
 void TestApp::Update()
 {
@@ -257,18 +278,18 @@ void TestApp::Update()
 
 
 	// [ 임시 이동 ] 
-	PxVec3 move(0);
+	//PxVec3 move(0);
 
-	if (GetAsyncKeyState(VK_UP) & 0x8000) move.z -= 1;
-	if (GetAsyncKeyState(VK_DOWN) & 0x8000) move.z += 1;	
-	if (GetAsyncKeyState(VK_LEFT) & 0x8000) move.x -= 1;	
-	if (GetAsyncKeyState(VK_RIGHT) & 0x8000) move.x += 1;
-	if (move.magnitudeSquared() > 0) move.normalize();
-	
-	move *= m_MoveSpeed * deltaTime;
+	//if (GetAsyncKeyState(VK_UP) & 0x8000) move.z -= 1;
+	//if (GetAsyncKeyState(VK_DOWN) & 0x8000) move.z += 1;	
+	//if (GetAsyncKeyState(VK_LEFT) & 0x8000) move.x -= 1;	
+	//if (GetAsyncKeyState(VK_RIGHT) & 0x8000) move.x += 1;
+	//if (move.magnitudeSquared() > 0) move.normalize();
+	//
+	//move *= m_MoveSpeed * deltaTime;
 
-	PxControllerFilters filters;
-	m_Human3->move(move, 0.01f, deltaTime, filters);
+	//PxControllerFilters filters;
+	//m_Human3->move(move, 0.01f, deltaTime, filters);
 
 	
 	// ---------------------------------------------
@@ -1599,13 +1620,33 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
 	{
 		const PxCapsuleGeometry& capsule = geo.capsule();
 
+		// PhysX(X축 캡슐) → DX(Y축 캡슐) 보정
+		XMVECTOR physxToDX =
+			XMQuaternionRotationAxis(
+				XMVectorSet(0, 0, 1, 0), // Z축
+				XM_PIDIV2                // +90°
+			);
+
+		XMVECTOR worldQ =
+			XMVectorSet(
+				worldPose.q.x,
+				worldPose.q.y,
+				worldPose.q.z,
+				worldPose.q.w
+			);
+
+		// 보정 회전 * PhysX 회전
+		XMVECTOR finalQ =
+			XMQuaternionMultiply(physxToDX, worldQ);
+		PxQuat pxFinalQ = ToPxQuat(finalQ);
+
 		m_DebugDraw->DrawCapsule(
 			m_DebugBatch.get(),
 			worldPose.p,
 			capsule.radius,
 			capsule.halfHeight * 2.0f,
 			DirectX::Colors::Cyan,
-			worldPose.q
+			pxFinalQ
 		);
 		break;
 	}

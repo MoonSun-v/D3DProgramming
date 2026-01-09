@@ -36,7 +36,13 @@ struct ColliderDesc
     float density = 1.0f;          // Dynamic
 };
 
-// ------------------------------
+
+// ----------------------------------------------------
+// [ [엔진 Transform]  ←→  [PhysX RigidActor] ]
+// - 엔진 쪽 Transform (position / rotation) 을 가지고 있는 GameObject(owner) 와 
+// - PhysX 쪽 PxRigidActor(m_Actor)
+//   이 둘을 양방향으로 동기화 하는 역할 
+// ----------------------------------------------------
 class PhysicsComponent
 {
 public:
@@ -61,6 +67,7 @@ public:
     void CreateStaticSphere(float radius);
     void CreateDynamicSphere(float radius, float density = 1.0f);
 
+    void CreateStaticCapsule(float radius, float height);
     void CreateDynamicCapsule(float radius, float height, float density = 1.0f);
 
     // --------------------------
