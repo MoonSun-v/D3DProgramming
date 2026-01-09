@@ -5,13 +5,15 @@
 #include "Transform.h"
 #include "Animator.h"
 #include "AnimationController.h"
+#include "PhysicsComponent.h"
 
 class SkeletalMeshInstance
 {
 public:
     std::string m_Name;
 	std::shared_ptr<SkeletalMeshAsset> m_Asset; // 공유되는 SkeletalMeshAsset
-    
+    std::unique_ptr<PhysicsComponent> physics;
+
     Transform transform;
 
     AnimationController m_Controller;

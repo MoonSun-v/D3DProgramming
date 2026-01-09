@@ -250,6 +250,10 @@ void TestApp::Update()
 	{
 		mesh->Update(deltaTime);
 	}
+	for (auto& mesh : m_StaticMeshes)
+	{
+		mesh->Update();
+	}
 
 
 	// [ 임시 이동 ] 

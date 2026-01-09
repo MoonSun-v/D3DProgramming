@@ -174,8 +174,6 @@ void GameApp::Update()
 	m_Timer.Tick();
 	m_Input.Update(m_Timer.DeltaTime());
 
-	// PhysicsSystem::Get().Simulate(m_Timer.DeltaTime());
-
 	// [ ÀÓÀÇÀÇ fixedUpdate ] 
 	constexpr float fixedDt = 1.0f / 60.0f;
 	if (m_Timer.DeltaTime() > 0.1f)

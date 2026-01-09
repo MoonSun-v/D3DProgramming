@@ -177,6 +177,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="MeshSection.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="PhysicsComponent.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysXUtils.h" />
     <ClInclude Include="SkeletalMeshAsset.h" />
@@ -201,6 +202,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MeshSection.cpp" />
     <ClCompile Include="pch.cpp" />
+    <ClCompile Include="PhysicsComponent.cpp" />
     <ClCompile Include="PhysicsSystem.cpp" />
     <ClCompile Include="SkeletalMeshAsset.cpp" />
     <ClCompile Include="SkeletalMeshInstance.cpp" />

@@ -1,10 +1,8 @@
 #pragma once
 #include <PxPhysicsAPI.h>
 #include <task/PxCpuDispatcher.h>
-// #include <characterkinematic/PxControllerManager.h>
 
 using namespace physx;
-
 
 // ----------------------------------------------------
 // [ ControllerHitReport ] 
@@ -18,7 +16,6 @@ public:
     virtual void onControllerHit(const PxControllersHit&) override {}
     virtual void onObstacleHit(const PxControllerObstacleHit&) override {}
 };
-
 
 // ----------------------------------------------------
 // [ PhysicsSystem ] 
@@ -50,6 +47,7 @@ public:
     PxPhysics* GetPhysics() const { return m_Physics; }
     PxScene* GetScene()   const { return m_Scene; }
     PxMaterial* GetDefaultMaterial() const { return m_DefaultMaterial; }
+    PxControllerManager* GetControllerManager() const { return m_ControllerManager; }
 
 private:
     // ------------------------------------------------------
@@ -96,6 +94,4 @@ public:
         float height,
         float density = 10.0f
     );
-
-
 };

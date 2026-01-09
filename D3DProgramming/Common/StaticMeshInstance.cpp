@@ -5,6 +5,12 @@ void StaticMeshInstance::SetAsset(std::shared_ptr<StaticMeshAsset> asset)
     m_Asset = asset;
 }
 
+void StaticMeshInstance::Update()
+{
+    if (physics)
+        physics->SyncFromPhysics();
+}
+
 void StaticMeshInstance::Render(ID3D11DeviceContext* context, ID3D11SamplerState* pSampler)
 {
     if (!m_Asset) return;

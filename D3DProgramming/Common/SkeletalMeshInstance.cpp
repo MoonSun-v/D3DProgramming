@@ -21,6 +21,9 @@ void SkeletalMeshInstance::Update(float deltaTime)
     if (!m_Asset || m_Asset->m_Skeleton.empty()) return;
     if (m_Asset->m_Animations.empty()) return;
 
+    if (physics)
+        physics->SyncFromPhysics();
+
     // -------------------------------
     // 업데이트 
     // -------------------------------
