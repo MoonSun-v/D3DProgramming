@@ -41,6 +41,58 @@ bool TestApp::Initialize()
 
 
 	// ------------------------------------
+	// Physics 초기화
+	// ------------------------------------
+	 auto& physics = *PhysicsSystem::Get().GetPhysics();
+	 auto& scene = *PhysicsSystem::Get().GetScene();
+
+	// planeAsset (바닥)
+	m_Plane = PhysicsHelper::CreateStaticBox(
+		PxVec3(0, -1, 0),
+		PxVec3(50, 1, 50)
+	);
+
+	// charAsset (static)
+	m_CharAsset = PhysicsHelper::CreateStaticBox(
+		PxVec3(-5, 0, 5),
+		PxVec3(1, 2, 1)
+	);
+
+	// treeAsset (static)
+	m_TreeAsset = PhysicsHelper::CreateStaticBox(
+		PxVec3(5, 0, 5),
+		PxVec3(1, 3, 1)
+	);
+
+	// Human_1 (static 캐릭터)
+	m_Human1 = PhysicsHelper::CreateStaticBox(
+		PxVec3(-3, 0, -3),
+		PxVec3(0.5f, 1.8f, 0.5f)
+	);
+
+	// Human_2 (Dynamic)
+	m_Human2 = PhysicsHelper::CreateDynamicBox(
+		PxVec3(0, 5, -3),
+		PxVec3(0.5f, 1.8f, 0.5f),
+		10.0f
+	);
+
+
+	// Human_3 (Character Controller)
+	m_ControllerMgr = PxCreateControllerManager(scene);
+
+	PxCapsuleControllerDesc desc;
+	desc.height = 1.6f;
+	desc.radius = 0.4f;
+	desc.material = PhysicsSystem::Get().GetDefaultMaterial();
+	desc.position = PxExtendedVec3(3, 2, -3);
+	desc.stepOffset = 0.4f;
+	desc.slopeLimit = cosf(PxPi / 4);
+
+	m_Human3 = m_ControllerMgr->createController(desc);
+
+
+	// ------------------------------------
 	// DebugDraw 초기화
 	// ------------------------------------
 	m_DebugBatch = std::make_unique<DirectX::PrimitiveBatch<VertexPositionColor>>( m_D3DDevice.GetDeviceContext() );
@@ -100,7 +152,7 @@ bool TestApp::LoadAsset()
 			inst->transform.scale = scale;
 			m_SkeletalMeshes.push_back(inst);
 
-			if(name == "Human_1")
+			if(name == "Human_2")
 			{
 				const AnimationClip* dance1 = asset->GetAnimation("Dance_1");
 				const AnimationClip* dance2 = asset->GetAnimation("Dance_2");
@@ -164,8 +216,8 @@ bool TestApp::LoadAsset()
 	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Attack.fbx", "Attack", false);
 	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Die.fbx", "Die", false);
 
-	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_1");
-	CreateSkeletal(humanAsset, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_2");
+	CreateSkeletal(humanAsset, { -40, 0, 100 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_1");
+	CreateSkeletal(humanAsset, { -10, 0, 30 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_2");
 	CreateSkeletal(CharacterAsset, { 50, 0, -130 }, { 0, XMConvertToRadians(45), 0 }, { 1,1,1 }, "Human_3");
 
 	
@@ -210,7 +262,28 @@ void TestApp::Update()
 
 	// Skeletal Update (업데이트된 world 전달)
 	for (auto& mesh : m_SkeletalMeshes)
+	{
 		mesh->Update(deltaTime);
+	}
+
+	//PxVec3 move(0);
+
+	//if (GetAsyncKeyState(VK_UP) & 0x8000)
+	//	move.z -= 1;
+	//if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+	//	move.z += 1;
+	//if (GetAsyncKeyState(VK_LEFT) & 0x8000)
+	//	move.x -= 1;
+	//if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
+	//	move.x += 1;
+
+	//if (move.magnitudeSquared() > 0)
+	//	move.normalize();
+
+	//move *= m_MoveSpeed * deltaTime;
+
+	//PxControllerFilters filters;
+	//m_Human3->move(move, 0.01f, deltaTime, filters);
 
 	
 	// ---------------------------------------------

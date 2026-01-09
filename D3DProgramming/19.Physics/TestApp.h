@@ -16,6 +16,9 @@
 #include "../Common/SkeletalMeshInstance.h"
 #include "../Common/StaticMeshInstance.h"
 
+// Helper
+#include "PhysicsHelper.h"
+
 // Link Libraries
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -48,7 +51,23 @@ public:
 	TestApp();
 	~TestApp();
 
+private:
+	// -------- Static ----------
+	PxRigidStatic* m_Plane = nullptr;
+	PxRigidStatic* m_CharAsset = nullptr;
+	PxRigidStatic* m_TreeAsset = nullptr;
+	PxRigidStatic* m_Human1 = nullptr;
 
+	// -------- Dynamic ----------
+	PxRigidDynamic* m_Human2 = nullptr;
+
+	// -------- Controller ----------
+	PxControllerManager* m_ControllerMgr = nullptr;
+	PxController* m_Human3 = nullptr;
+
+	float m_MoveSpeed = 5.0f;
+
+public:
 	// -------------------------------
 	// Assets (공유 리소스)
 	// -------------------------------

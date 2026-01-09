@@ -32,6 +32,9 @@ public:
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
 
+private:
+	float m_PhysicsAccumulator = 0.0f;
+
 public:
 	// 윈도우 정보 등록,생성,보이기
 	virtual bool Initialize();

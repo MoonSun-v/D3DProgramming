@@ -174,7 +174,16 @@ void GameApp::Update()
 	m_Timer.Tick();
 	m_Input.Update(m_Timer.DeltaTime());
 
-	PhysicsSystem::Get().Simulate(m_Timer.DeltaTime());
+	// PhysicsSystem::Get().Simulate(m_Timer.DeltaTime());
+
+	// [ ÀÓÀÇÀÇ fixedUpdate ] 
+	constexpr float fixedDt = 1.0f / 60.0f;
+	m_PhysicsAccumulator += m_Timer.DeltaTime();
+	while (m_PhysicsAccumulator >= fixedDt)
+	{
+		PhysicsSystem::Get().Simulate(fixedDt);
+		m_PhysicsAccumulator -= fixedDt;
+	}
 
 	m_Camera.Update(m_Timer.DeltaTime());
 }

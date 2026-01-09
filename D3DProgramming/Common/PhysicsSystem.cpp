@@ -1,7 +1,7 @@
 #include "PhysicsSystem.h"
 #include "PhysXUtils.h"
 #include "Helper.h"
-#include <extensions/PxDefaultCpuDispatcher.h>
+// #include <extensions/PxDefaultCpuDispatcher.h>
 
 // ControllerHitReport implementation
 void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
@@ -117,12 +117,12 @@ bool PhysicsSystem::Initialize()
     // ------------------------------------------------------
     // 7. Character Controller Manager
     // ------------------------------------------------------
-    m_ControllerManager = PxCreateControllerManager(*m_Scene);
-    if (!m_ControllerManager)
-    {
-        LOG_ERRORA("PxCreateControllerManager failed!");
-        return false;
-    }
+    //m_ControllerManager = PxCreateControllerManager(*m_Scene);
+    //if (!m_ControllerManager)
+    //{
+    //    LOG_ERRORA("PxCreateControllerManager failed!");
+    //    return false;
+    //}
 
 
     return true;
@@ -182,7 +182,7 @@ PxController* PhysicsSystem::CreateCapsuleController(
 
 void PhysicsSystem::Shutdown()
 {
-    PX_RELEASE(m_ControllerManager);
+    // PX_RELEASE(m_ControllerManager);
     PX_RELEASE(m_Scene);
     PX_RELEASE(m_Dispatcher);
     PX_RELEASE(m_DefaultMaterial);

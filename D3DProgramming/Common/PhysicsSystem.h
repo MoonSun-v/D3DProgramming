@@ -1,14 +1,15 @@
 #pragma once
 #include <PxPhysicsAPI.h>
 #include <task/PxCpuDispatcher.h>
-#include <characterkinematic/PxControllerManager.h>
+// #include <characterkinematic/PxControllerManager.h>
 
 using namespace physx;
 
 
 // ----------------------------------------------------
-// [ ControllerHitReport ]
-// Character Controller가 Dynamic Actor를 밀어내기 위한 콜백
+// [ ControllerHitReport ] 
+// 엔진 공용 PhysX 콜백
+//  - Character Controller가 Dynamic Actor를 밀어내기 위한 콜백
 // ----------------------------------------------------
 class ControllerHitReport : public PxUserControllerHitReport
 {
@@ -84,8 +85,8 @@ private:
     // ------------------------------------------------------
     // Character Controller
     // ------------------------------------------------------
-    PxControllerManager* m_ControllerManager = nullptr;
-    ControllerHitReport m_ControllerHitReport;
+     PxControllerManager* m_ControllerManager = nullptr;
+      ControllerHitReport m_ControllerHitReport;
 
 
 public:
