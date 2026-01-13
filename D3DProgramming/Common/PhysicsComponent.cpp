@@ -83,6 +83,9 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
 
     case ColliderType::Capsule:
         m_Shape = px->createShape(PxCapsuleGeometry(d.radius, d.height * 0.5f),*mat);
+    
+        PxQuat q(PxHalfPi, PxVec3(0, 0, 1));// XÃà Ä¸½¶ ¡æ YÃà Ä¸½¶·Î È¸Àü // ZÃà +90µµ
+        m_Shape->setLocalPose(PxTransform(PxVec3(0, 0, 0), q));
         break;
     }
 

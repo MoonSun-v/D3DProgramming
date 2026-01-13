@@ -136,14 +136,14 @@ bool TestApp::LoadAsset()
 	// [2] Dynamic Capsule 
 	auto human2 = CreateSkeletalMesh(device, humanAsset, { 200,40,0 }, { 0, 0, 0 }, { 1,1,1 }, "Human_2");
 	// human2->physics->CreateDynamicBox({ 10.0f, 50.0f, 10.0f });
-	human2->physics->CreateDynamicCapsule(10.0f, 10.0f, 70.0f); // (radius, height, density)
+	human2->physics->CreateDynamicCapsule(10.0f, 50.0f, 70.0f); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
 	// [3] Dynamic Capsule -> ÃßÈÄ Character Controller·Î ¼öÁ¤
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	// human2->physics->CreateDynamicBox({ 10.0f, 30.0f, 10.0f });
-	human3->physics->CreateDynamicCapsule(10.0f, 10.0f, 70.0f);
+	human3->physics->CreateDynamicCapsule(10.0f, 50.0f, 70.0f);
 	human3->physics->SyncToPhysics();
 
 	
@@ -1621,12 +1621,12 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
 		break;
 	}
 
-	case PxGeometryType::eCAPSULE:
+	case PxGeometryType::eCAPSULE: // Ä¸½¶ ±×¸± ¶§´Â ¼öµ¿À¸·Î º¸Á¤ÇØ¾ßÇÔ 
 	{
 		const PxCapsuleGeometry& capsule = geo.capsule();
 
-		// PhysX(XÃà Ä¸½¶) ¡æ DX(YÃà Ä¸½¶) º¸Á¤
-		XMVECTOR physxToDX =
+		// PhysX Ä¸½¶(XÃà) ¡æ DebugDraw Ä¸½¶(YÃà)
+		XMVECTOR physxCapsuleToY =
 			XMQuaternionRotationAxis(
 				XMVectorSet(0, 0, 1, 0), // ZÃà
 				XM_PIDIV2                // +90¡Æ
@@ -1640,10 +1640,10 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
 				worldPose.q.w
 			);
 
-		// º¸Á¤ È¸Àü * PhysX È¸Àü
-		XMVECTOR finalQ =
-			XMQuaternionMultiply(physxToDX, worldQ);
-		PxQuat pxFinalQ = ToPxQuat(finalQ);
+		XMVECTOR debugQ =
+			XMQuaternionMultiply(physxCapsuleToY, worldQ);
+
+		PxQuat finalQ = ToPxQuat(debugQ);
 
 		m_DebugDraw->DrawCapsule(
 			m_DebugBatch.get(),
@@ -1651,7 +1651,7 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
 			capsule.radius,
 			capsule.halfHeight * 2.0f,
 			DirectX::Colors::Cyan,
-			pxFinalQ
+			finalQ
 		);
 		break;
 	}

@@ -328,5 +328,31 @@ void XM_CALLCONV DebugDraw::DrawCapsule(
         batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p0Bottom, color));
     }
 
-    // 반구는 원래 더 정밀하게 계산 가능하지만, Debug 용이라면 생략 가능
+    // -----------------------------
+    // 반구(Sphere) 추가
+    // -----------------------------
+
+    // 캡슐의 로컬 Y축 → 월드 방향
+    XMVECTOR up =
+        XMVector3TransformNormal(
+            XMVectorSet(0, 1, 0, 0),
+            rotMat
+        );
+
+    // 위 / 아래 반구 중심
+    XMVECTOR topCenter = pos + up * halfHeight;
+    XMVECTOR bottomCenter = pos - up * halfHeight;
+
+    // BoundingSphere로 그리기
+    BoundingSphere topSphere;
+    XMStoreFloat3(&topSphere.Center, topCenter);
+    topSphere.Radius = radius;
+
+    BoundingSphere bottomSphere;
+    XMStoreFloat3(&bottomSphere.Center, bottomCenter);
+    bottomSphere.Radius = radius;
+
+    // DebugDraw::Draw(BoundingSphere) 사용
+    Draw(batch, topSphere, color);
+    Draw(batch, bottomSphere, color);
 }
