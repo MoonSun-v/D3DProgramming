@@ -14,49 +14,55 @@ PhysicsComponent::~PhysicsComponent()
 // ------------------------------
 
 // Box 
-void PhysicsComponent::CreateStaticBox(const Vector3& half)
+void PhysicsComponent::CreateStaticBox(const Vector3& half, const Vector3& localOffset)
 {
     ColliderDesc d;
     d.halfExtents = half;
+    d.localOffset = localOffset;
     CreateCollider(ColliderType::Box, PhysicsBodyType::Static, d);
 }
-void PhysicsComponent::CreateDynamicBox(const Vector3& half, float density)
+void PhysicsComponent::CreateDynamicBox(const Vector3& half, float density, const Vector3& localOffset)
 {
     ColliderDesc d;
     d.halfExtents = half;
     d.density = density;
+    d.localOffset = localOffset;
     CreateCollider(ColliderType::Box, PhysicsBodyType::Dynamic, d);
 }
 
 // Sphere 
-void PhysicsComponent::CreateStaticSphere(float radius)
+void PhysicsComponent::CreateStaticSphere(float radius, const Vector3& localOffset)
 {
     ColliderDesc d;
     d.radius = radius;
+    d.localOffset = localOffset;
     CreateCollider(ColliderType::Sphere, PhysicsBodyType::Static, d);
 }
-void PhysicsComponent::CreateDynamicSphere(float radius, float density)
+void PhysicsComponent::CreateDynamicSphere(float radius, float density, const Vector3& localOffset)
 {
     ColliderDesc d;
     d.radius = radius;
     d.density = density;
+    d.localOffset = localOffset;
     CreateCollider(ColliderType::Sphere, PhysicsBodyType::Dynamic, d);
 }
 
 // Capsule 
-void PhysicsComponent::CreateStaticCapsule(float radius, float height)
+void PhysicsComponent::CreateStaticCapsule(float radius, float height, const Vector3& localOffset)
 {
     ColliderDesc d;
     d.radius = radius;
     d.height = height;
+    d.localOffset = localOffset;
     CreateCollider(ColliderType::Capsule, PhysicsBodyType::Static, d);
 }
-void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float density)
+void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float density, const Vector3& localOffset)
 {
     ColliderDesc d;
     d.radius = radius;
     d.height = height;
     d.density = density;
+    d.localOffset = localOffset;
     CreateCollider(ColliderType::Capsule, PhysicsBodyType::Dynamic, d);
 }
 
@@ -70,22 +76,29 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     PxPhysics* px = phys.GetPhysics();
     PxMaterial* mat = phys.GetDefaultMaterial();
 
+    PxTransform localPose;
+    localPose.p = ToPx(d.localOffset);
+    localPose.q = ToPxQuat(XMLoadFloat4(&d.localRotation));
+
     // [ Shape ]
     switch (collider)
     {
     case ColliderType::Box:
         m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z),*mat);
+        m_Shape->setLocalPose(localPose);
         break;
 
     case ColliderType::Sphere:
         m_Shape = px->createShape(PxSphereGeometry(d.radius),*mat);
+        m_Shape->setLocalPose(localPose);
         break;
 
     case ColliderType::Capsule:
         m_Shape = px->createShape(PxCapsuleGeometry(d.radius, d.height * 0.5f),*mat);
     
-        PxQuat q(PxHalfPi, PxVec3(0, 0, 1));// XÃà Ä¸½¶ ¡æ YÃà Ä¸½¶·Î È¸Àü // ZÃà +90µµ
-        m_Shape->setLocalPose(PxTransform(PxVec3(0, 0, 0), q));
+        PxQuat capsuleRot(PxHalfPi, PxVec3(0, 0, 1));// XÃà Ä¸½¶ ¡æ YÃà Ä¸½¶·Î È¸Àü // ZÃà +90µµ
+        localPose.q = capsuleRot * localPose.q;
+        m_Shape->setLocalPose(localPose);
         break;
     }
 

@@ -251,7 +251,7 @@ public:
 	void Render_ToneMapping();
 	void Render_DebugDraw();
 	void DrawPhysXActors();
-	void DrawPhysXShape(PxShape* shape, const PxTransform& actorPose);
+	void DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVECTOR color);
 	// void DrawCharacterControllers();
 	void Render_ImGui();
 

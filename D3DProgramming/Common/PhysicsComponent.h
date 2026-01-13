@@ -34,6 +34,9 @@ struct ColliderDesc
     float radius = 0.5f;           // Sphere / Capsule
     float height = 1.0f;           // Capsule
     float density = 1.0f;          // Dynamic
+
+    Vector3 localOffset = { 0, 0, 0 };    
+    Quaternion localRotation = Quaternion::Identity; // 회전 아직 적용X 
 };
 
 
@@ -61,14 +64,14 @@ public:
     // --------------------------
     // 외부 API 
     // --------------------------
-    void CreateStaticBox(const Vector3& half);
-    void CreateDynamicBox(const Vector3& half, float density = 1.0f);
+    void CreateStaticBox(const Vector3& half, const Vector3& localOffset = { 0,0,0 });
+    void CreateDynamicBox(const Vector3& half, float density = 1.0f, const Vector3& localOffset = { 0,0,0 });
 
-    void CreateStaticSphere(float radius);
-    void CreateDynamicSphere(float radius, float density = 1.0f);
+    void CreateStaticSphere(float radius, const Vector3& localOffset = { 0,0,0 });
+    void CreateDynamicSphere(float radius, float density = 1.0f, const Vector3& localOffset = { 0,0,0 });
 
-    void CreateStaticCapsule(float radius, float height);
-    void CreateDynamicCapsule(float radius, float height, float density = 1.0f);
+    void CreateStaticCapsule(float radius, float height, const Vector3& localOffset = {0,0,0});
+    void CreateDynamicCapsule(float radius, float height, float density = 1.0f, const Vector3& localOffset = {0,0,0});
 
     // --------------------------
     // Sync
