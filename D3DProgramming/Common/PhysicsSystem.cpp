@@ -117,12 +117,12 @@ bool PhysicsSystem::Initialize()
     // ------------------------------------------------------
     // 7. Character Controller Manager
     // ------------------------------------------------------
-    m_ControllerManager = PxCreateControllerManager(*m_Scene);
-    if (!m_ControllerManager)
-    {
-        LOG_ERRORA("PxCreateControllerManager failed!");
-        return false;
-    }
+    //m_ControllerManager = PxCreateControllerManager(*m_Scene);
+    //if (!m_ControllerManager)
+    //{
+    //    LOG_ERRORA("PxCreateControllerManager failed!");
+    //    return false;
+    //}
 
 
     return true;
@@ -138,45 +138,46 @@ void PhysicsSystem::Simulate(float dt)
     m_Scene->fetchResults(true); // 결과가 끝날 때까지 대기 후 적용
 }
 
-PxController* PhysicsSystem::CreateCapsuleController(
-    const PxExtendedVec3& position,
-    float radius,
-    float height,
-    float density)
-{
-    if (!m_ControllerManager || !m_DefaultMaterial)
-        return nullptr;
 
-    PxCapsuleControllerDesc desc;
-    desc.position = position;
-    desc.radius = radius;
-    desc.height = height;
-    desc.material = m_DefaultMaterial;
-    desc.density = density;
-    desc.climbingMode = PxCapsuleClimbingMode::eEASY;
-    desc.slopeLimit = cosf(PxPi / 4); // 45도
-    desc.stepOffset = 0.5f;
-    desc.contactOffset = 0.1f;
-    desc.reportCallback = &m_ControllerHitReport;
-
-    PxController* controller = m_ControllerManager->createController(desc);
-    if (!controller)
-        return nullptr;
-
-    // Controller Actor 충돌 설정
-    if (PxRigidDynamic* actor = controller->getActor())
-    {
-        PxShape* shapes[8];
-        PxU32 count = actor->getShapes(shapes, 8);
-        for (PxU32 i = 0; i < count; ++i)
-        {
-            shapes[i]->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
-            shapes[i]->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
-        }
-    }
-
-    return controller;
-}
+//PxController* PhysicsSystem::CreateCapsuleController(
+//    const PxExtendedVec3& position,
+//    float radius,
+//    float height,
+//    float density)
+//{
+//    if (!m_ControllerManager || !m_DefaultMaterial)
+//        return nullptr;
+//
+//    PxCapsuleControllerDesc desc;
+//    desc.position = position;
+//    desc.radius = radius;
+//    desc.height = height;
+//    desc.material = m_DefaultMaterial;
+//    desc.density = density;
+//    desc.climbingMode = PxCapsuleClimbingMode::eEASY;
+//    desc.slopeLimit = cosf(PxPi / 4); // 45도
+//    desc.stepOffset = 0.5f;
+//    desc.contactOffset = 0.1f;
+//    desc.reportCallback = &m_ControllerHitReport;
+//
+//    PxController* controller = m_ControllerManager->createController(desc);
+//    if (!controller)
+//        return nullptr;
+//
+//    // Controller Actor 충돌 설정
+//    if (PxRigidDynamic* actor = controller->getActor())
+//    {
+//        PxShape* shapes[8];
+//        PxU32 count = actor->getShapes(shapes, 8);
+//        for (PxU32 i = 0; i < count; ++i)
+//        {
+//            shapes[i]->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+//            shapes[i]->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+//        }
+//    }
+//
+//    return controller;
+//}
 
 
 

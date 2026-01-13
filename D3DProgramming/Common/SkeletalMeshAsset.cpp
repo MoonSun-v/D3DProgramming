@@ -328,8 +328,7 @@ void SkeletalMeshAsset::CreateSkeleton(const aiScene* scene)
                     transform.a4, transform.b4, transform.c4, transform.d4
                 );
 
-                // bone.m_Local = bone.m_BindLocal;
-                bone.m_Model = bone.m_Local; // 바인드 포즈에서는 누적 X 
+                bone.m_Model = bone.m_Local; 
 
                 // 이 Bone 의 인덱스 설정
                 bone.m_Index = (int)m_Skeleton.size();

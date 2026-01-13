@@ -91,24 +91,23 @@ bool TestApp::LoadAsset()
 
 
 	// [ 바닥 ]
-	auto plane = CreateStaticMesh(planeAsset, { 100, 0, 0 }, { 0,0,0 }, { 0.5f,1.0f,0.5f });
+	auto plane = CreateStaticMesh(planeAsset, { 0, 0, 0 }, { 0,0,0 }, { 0.5f,1.0f,0.5f });
 	plane->physics->CreateStaticBox({ 600, 1, 600 });
 	plane->physics->SyncToPhysics();
 
 	// [ 장식 캐릭터 ]
-	auto charObj = CreateStaticMesh(charAsset, { 0,10,-90 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
-	charObj->physics->CreateStaticCapsule(1.0f, 5.0f);
-	// charObj->physics->CreateStaticBox({ 1.0f, 3.0f, 1.0f });
+	auto charObj = CreateStaticMesh(charAsset, { 0,10,0 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
 	charObj->physics->SyncToPhysics();
 
 	// [ 나무1 ]
-	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,100 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
-	tree1->physics->CreateStaticBox({ 1.0f, 3.0f, 1.0f });
+	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	tree1->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree1->physics->SyncToPhysics();
 
 	// [ 나무2 ]
-	auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-130 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
-	tree2->physics->CreateStaticBox({ 1.0f, 3.0f, 1.0f });
+	auto tree2 = CreateStaticMesh(treeAsset, { -300,10,200 }, { 0, 90/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree2->physics->SyncToPhysics();
 
 
@@ -128,20 +127,23 @@ bool TestApp::LoadAsset()
 
 
 	// [1] Static Box
-	auto human1 = CreateSkeletalMesh(device, humanAsset, { -40,10,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_1");
-	human1->physics->CreateStaticBox({ 0.5f, 1.0f, 0.5f });
+	auto human1 = CreateSkeletalMesh(device, humanAsset, { -250,10,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_1");
+	// human1->physics->CreateStaticBox({ 10.5f, 40.0f, 10.5f });
+	human1->physics->CreateStaticCapsule(20.0f, 20.0f);
 	human1->physics->SyncToPhysics();
 
 
 	// [2] Dynamic Capsule 
-	auto human2 = CreateSkeletalMesh(device, humanAsset, { -10,40,30 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
-	human2->physics->CreateDynamicCapsule(0.4f, 1.7f, 70.0f); // (radius, height, density)
+	auto human2 = CreateSkeletalMesh(device, humanAsset, { 100,40,0 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
+	// human2->physics->CreateDynamicBox({ 10.0f, 50.0f, 10.0f });
+	human2->physics->CreateDynamicCapsule(10.0f, 10.0f, 70.0f); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
 	// [3] Dynamic Capsule -> 추후 Character Controller로 수정
-	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 50,40,-130 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
-	human3->physics->CreateDynamicCapsule(0.4f, 1.7f, 70.0f);
+	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 200,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
+	// human2->physics->CreateDynamicBox({ 10.0f, 30.0f, 10.0f });
+	human3->physics->CreateDynamicCapsule(10.0f, 10.0f, 70.0f);
 	human3->physics->SyncToPhysics();
 
 	
@@ -176,7 +178,7 @@ bool TestApp::LoadAsset()
 std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
 	std::shared_ptr<StaticMeshAsset> asset,
 	const Vector3& pos,
-	const Vector3& rot,
+	const Vector3& rot, 
 	const Vector3& scale)
 {
 	auto inst = std::make_shared<StaticMeshInstance>();
@@ -184,12 +186,13 @@ std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
 	inst->SetAsset(asset);
 
 	inst->transform.position = pos;
-	inst->transform.rotation = rot;
+	// inst->transform.rotation = rot;
+	inst->transform.SetRotationDegree(rot); // Degree -> Quaternion 
 	inst->transform.scale = scale;
 
 	// Physics
 	inst->physics = std::make_unique<PhysicsComponent>();
-	inst->physics->owner = &inst->transform;
+	inst->physics->transform = &inst->transform;
 
 	m_StaticMeshes.push_back(inst);
 	return inst;
@@ -209,12 +212,12 @@ std::shared_ptr<SkeletalMeshInstance> TestApp::CreateSkeletalMesh(
 	inst->SetAsset(device, asset);
 
 	inst->transform.position = pos;
-	inst->transform.rotation = rot;
+	// inst->transform.rotation = rot;
+	inst->transform.SetRotationDegree(rot); // Degree -> Quaternion 
 	inst->transform.scale = scale;
 
-	// Physics (StaticMeshInstance와 완전히 동일한 구조)
 	inst->physics = std::make_unique<PhysicsComponent>();
-	inst->physics->owner = &inst->transform;
+	inst->physics->transform = &inst->transform;
 
 	// 애니메이션 FSM 세팅
 	if (name == "Human_2")
@@ -312,7 +315,7 @@ void TestApp::Update()
 	m_ShadowView = XMMatrixLookAtLH(shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 300.0f, 9000.f);
+	m_ShadowProjection = XMMatrixPerspectiveFovLH(2.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 500.0f, 10000.f);
 
 
 	// ------------------------------------
@@ -1023,8 +1026,10 @@ bool TestApp::InitScene()
 
 	m_World = XMMatrixIdentity(); // 단위 행렬 
 
-	m_Camera.m_Position = Vector3(-600.0f, 150.0f, -100.0f);
-	m_Camera.m_Rotation = Vector3(0.0f, XMConvertToRadians(90.0f), 0.0f);
+	//m_Camera.m_Position = Vector3(-600.0f, 150.0f, -100.0f);
+	//m_Camera.m_Rotation = Vector3(0.0f, XMConvertToRadians(90.0f), 0.0f);
+	m_Camera.m_Position = Vector3(0.0f, 150.0f, -600.0f);
+	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 	m_Camera.SetSpeed(400.0f);
 
@@ -1563,7 +1568,7 @@ void TestApp::DrawPhysXActors()
 	}
 
 	// Character Controller는 별도로 그려야 함 
-	DrawCharacterControllers();
+	// DrawCharacterControllers();
 }
 
 void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
@@ -1656,36 +1661,36 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose)
 	}
 }
 
-void TestApp::DrawCharacterControllers()
-{
-	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
-	if (!mgr) return;
-
-	PxU32 count = mgr->getNbControllers();
-
-	for (PxU32 i = 0; i < count; ++i)
-	{
-		PxController* cct = mgr->getController(i);
-		if (!cct) continue;
-
-		// PhysX 5 방식 타입 체크
-		if (cct->getType() != PxControllerShapeType::eCAPSULE)
-			continue;
-
-		PxCapsuleController* capsule =
-			static_cast<PxCapsuleController*>(cct);
-
-		PxExtendedVec3 p = capsule->getPosition();
-
-		m_DebugDraw->DrawCapsule(
-			m_DebugBatch.get(),
-			PxVec3((float)p.x, (float)p.y, (float)p.z),
-			capsule->getRadius(),
-			capsule->getHeight(),
-			DirectX::Colors::Red
-		);
-	}
-}
+//void TestApp::DrawCharacterControllers()
+//{
+//	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
+//	if (!mgr) return;
+//
+//	PxU32 count = mgr->getNbControllers();
+//
+//	for (PxU32 i = 0; i < count; ++i)
+//	{
+//		PxController* cct = mgr->getController(i);
+//		if (!cct) continue;
+//
+//		// PhysX 5 방식 타입 체크
+//		if (cct->getType() != PxControllerShapeType::eCAPSULE)
+//			continue;
+//
+//		PxCapsuleController* capsule =
+//			static_cast<PxCapsuleController*>(cct);
+//
+//		PxExtendedVec3 p = capsule->getPosition();
+//
+//		m_DebugDraw->DrawCapsule(
+//			m_DebugBatch.get(),
+//			PxVec3((float)p.x, (float)p.y, (float)p.z),
+//			capsule->getRadius(),
+//			capsule->getHeight(),
+//			DirectX::Colors::Red
+//		);
+//	}
+//}
 
 
 

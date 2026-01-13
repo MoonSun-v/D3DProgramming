@@ -32,12 +32,19 @@ void SkeletalMeshInstance::Update(float deltaTime)
     // -------------------------------
     m_Controller.Update(deltaTime);
 
+    // -------------------------------
+    //  월드 행렬 계산
+    // -------------------------------
+    // Transform (Quaternion 기반)
+    XMMATRIX worldMat = transform.GetMatrix();
+
+    // FBX Root Bone 축 보정 (필요한 경우)
+    XMMATRIX rootCorrection = XMMatrixIdentity();
 
     // -------------------------------
     // 본 행렬 계산
     // -------------------------------
     const auto& pose = m_Controller.AnimatorInstance.GetFinalPose();
-    XMMATRIX worldMat = transform.GetMatrix();
 
     for (int i = 0; i < (int)m_Asset->m_Skeleton.size(); ++i)
     {

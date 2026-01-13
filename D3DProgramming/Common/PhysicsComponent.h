@@ -46,7 +46,7 @@ struct ColliderDesc
 class PhysicsComponent
 {
 public:
-    Transform* owner = nullptr;
+    Transform* transform = nullptr;
 
 private:
     PxRigidActor* m_Actor = nullptr;

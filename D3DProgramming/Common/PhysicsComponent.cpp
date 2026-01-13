@@ -62,7 +62,7 @@ void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float de
 
 
 // ------------------------------
-// 내부 생성 로직
+// 내부 생성 
 // ------------------------------
 void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType body, const ColliderDesc& d)
 {
@@ -70,29 +70,24 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     PxPhysics* px = phys.GetPhysics();
     PxMaterial* mat = phys.GetDefaultMaterial();
 
-    // Shape
+    // [ Shape ]
     switch (collider)
     {
     case ColliderType::Box:
-        m_Shape = px->createShape(
-            PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z),
-            *mat);
+        m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z),*mat);
         break;
 
     case ColliderType::Sphere:
-        m_Shape = px->createShape(
-            PxSphereGeometry(d.radius),
-            *mat);
+        m_Shape = px->createShape(PxSphereGeometry(d.radius),*mat);
         break;
 
     case ColliderType::Capsule:
-        m_Shape = px->createShape(
-            PxCapsuleGeometry(d.radius, d.height * 0.5f),
-            *mat);
+        m_Shape = px->createShape(PxCapsuleGeometry(d.radius, d.height * 0.5f),*mat);
         break;
     }
 
-    // Actor
+
+    // [ Actor ]
     if (body == PhysicsBodyType::Static)
     {
         m_Actor = px->createRigidStatic(PxTransform(PxIdentity));
@@ -102,14 +97,16 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
         PxRigidDynamic* dyn = px->createRigidDynamic(PxTransform(PxIdentity));
 
         if (body == PhysicsBodyType::Kinematic)
+        {
             dyn->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+        }
 
-        PxRigidBodyExt::updateMassAndInertia(*dyn, d.density);
+        PxRigidBodyExt::updateMassAndInertia(*dyn, d.density); // 질량 계산 : Shape 부피 × density
         m_Actor = dyn;
     }
 
     m_Actor->attachShape(*m_Shape);
-    phys.GetScene()->addActor(*m_Actor);
+    phys.GetScene()->addActor(*m_Actor); // 물리 씬에 추가 
 
     m_BodyType = body;
     m_ColliderType = collider;
@@ -120,21 +117,15 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
 // 좌표 변환
 // ------------------------------
 
-// Transform → Physics 
+// Transform → Physics  
+//                      ** Dynamic에는 매 프레임 쓰면 안 됨
 void PhysicsComponent::SyncToPhysics()
 {
-    if (!m_Actor || !owner) return;
-
-    XMVECTOR q =
-        XMQuaternionRotationRollPitchYaw( // 엔진의 Euler 회전을 → Quaternion 변환 
-            owner->rotation.x,
-            owner->rotation.y,
-            owner->rotation.z
-        );
+    if (!m_Actor || !transform) return;
 
     PxTransform px;
-    px.p = ToPx(owner->position);
-    px.q = ToPxQuat(q);
+    px.p = ToPx(transform->position);
+    px.q = ToPxQuat(XMLoadFloat4(&transform->rotation)); // Quaternion 그대로
 
     m_Actor->setGlobalPose(px);
 }
@@ -142,14 +133,10 @@ void PhysicsComponent::SyncToPhysics()
 // Physics → Transform (물리 시뮬 하고나서 매 프레임 실행)
 void PhysicsComponent::SyncFromPhysics()
 {
-    if (!m_Actor || !owner) return;
+    if (!m_Actor || !transform) return;
 
     PxTransform px = m_Actor->getGlobalPose();
-    owner->position = ToDX(px.p);
 
-    XMVECTOR q = ToDXQuat(px.q);
-    XMFLOAT4 rot;
-    XMStoreFloat4(&rot, q);
-
-    owner->rotation = { rot.x, rot.y, rot.z };
+    transform->position = ToDX(px.p);       // 위치 변환
+    transform->rotation = ToDXQuatF4(px.q); // Quaternion 그대로
 }

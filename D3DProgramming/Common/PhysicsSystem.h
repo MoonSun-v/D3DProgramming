@@ -20,7 +20,7 @@ public:
 // ----------------------------------------------------
 // [ PhysicsSystem ] 
 // 
-// PhysX 기반 물리 시스템을 엔진 전역에서 관리하는 싱글톤 클래스
+// PhysX 기반 물리 시스템을 관리하는 싱글톤 클래스
 //  - PhysX Foundation / Physics / Scene 생성 및 관리
 //  - 물리 시뮬레이션 업데이트 
 //  - PVD(PhysX Visual Debugger) 연결
@@ -47,7 +47,7 @@ public:
     PxPhysics* GetPhysics() const { return m_Physics; }
     PxScene* GetScene()   const { return m_Scene; }
     PxMaterial* GetDefaultMaterial() const { return m_DefaultMaterial; }
-    PxControllerManager* GetControllerManager() const { return m_ControllerManager; }
+    // PxControllerManager* GetControllerManager() const { return m_ControllerManager; }
 
 private:
     // ------------------------------------------------------
@@ -83,15 +83,15 @@ private:
     // ------------------------------------------------------
     // Character Controller
     // ------------------------------------------------------
-     PxControllerManager* m_ControllerManager = nullptr;
-     ControllerHitReport m_ControllerHitReport;
+     //PxControllerManager* m_ControllerManager = nullptr;
+     //ControllerHitReport m_ControllerHitReport;
 
 
 public:
-    PxController* CreateCapsuleController(
-        const PxExtendedVec3& position,
-        float radius,
-        float height,
-        float density = 10.0f
-    );
+    //PxController* CreateCapsuleController(
+    //    const PxExtendedVec3& position,
+    //    float radius,
+    //    float height,
+    //    float density = 10.0f
+    //);
 };
