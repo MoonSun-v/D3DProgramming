@@ -51,14 +51,12 @@ void SkeletalMeshInstance::Update(float deltaTime)
         auto& bone = m_Asset->m_Skeleton[i];
 
         bone.m_Local = pose[i];
-        
+
+        bone.m_Model = bone.m_Local;
+
         if (bone.m_ParentIndex != -1)
         {
-            bone.m_Model = bone.m_Local * m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
-        }
-        else
-        {
-            bone.m_Model = bone.m_Local * worldMat;
+            bone.m_Model *= m_Asset->m_Skeleton[bone.m_ParentIndex].m_Model;
         }
     }
 

@@ -96,17 +96,17 @@ bool TestApp::LoadAsset()
 	plane->physics->SyncToPhysics();
 
 	// [ 장식 캐릭터 ]
-	auto charObj = CreateStaticMesh(charAsset, { 0,10,0 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	auto charObj = CreateStaticMesh(charAsset, { 0,10,0 }, { 0, 0, 0 }, { 1,1,1 });
 	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
 	charObj->physics->SyncToPhysics();
 
 	// [ 나무1 ]
-	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0, 0 }, { 1,1,1 });
 	tree1->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree1->physics->SyncToPhysics();
 
 	// [ 나무2 ]
-	auto tree2 = CreateStaticMesh(treeAsset, { -300,10,200 }, { 0, 90/*XMConvertToRadians(90)*/, 0 }, { 1,1,1 });
+	auto tree2 = CreateStaticMesh(treeAsset, { -300,10,200 }, { 0, 90, 0 }, { 1,1,1 });
 	tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree2->physics->SyncToPhysics();
 
@@ -127,21 +127,21 @@ bool TestApp::LoadAsset()
 
 
 	// [1] Static Box
-	auto human1 = CreateSkeletalMesh(device, humanAsset, { -250,10,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_1");
+	auto human1 = CreateSkeletalMesh(device, humanAsset, { -250,10,50 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
 	// human1->physics->CreateStaticBox({ 10.5f, 40.0f, 10.5f });
 	human1->physics->CreateStaticCapsule(20.0f, 20.0f);
 	human1->physics->SyncToPhysics();
 
 
 	// [2] Dynamic Capsule 
-	auto human2 = CreateSkeletalMesh(device, humanAsset, { 100,40,0 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
+	auto human2 = CreateSkeletalMesh(device, humanAsset, { 200,40,0 }, { 0, 0, 0 }, { 1,1,1 }, "Human_2");
 	// human2->physics->CreateDynamicBox({ 10.0f, 50.0f, 10.0f });
 	human2->physics->CreateDynamicCapsule(10.0f, 10.0f, 70.0f); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
 	// [3] Dynamic Capsule -> 추후 Character Controller로 수정
-	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 200,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
+	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	// human2->physics->CreateDynamicBox({ 10.0f, 30.0f, 10.0f });
 	human3->physics->CreateDynamicCapsule(10.0f, 10.0f, 70.0f);
 	human3->physics->SyncToPhysics();
