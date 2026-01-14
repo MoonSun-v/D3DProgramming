@@ -1514,6 +1514,9 @@ void TestApp::Render_DebugDraw()
 
 	m_DebugBatch->Begin();
 
+	// CCT Actor 수집 
+	CollectCCTActors();
+
 	// Shadow Frustum
 	m_DebugDraw->Draw(m_DebugBatch.get(), m_ShadowFrustumWS, DirectX::Colors::Red);
 
@@ -1574,6 +1577,10 @@ void TestApp::DrawPhysXActors()
 	{
 		PxRigidActor* rigid = actor->is<PxRigidActor>();
 		if (!rigid) return;
+
+		// CCT Actor는 Scene Debug Draw에서 제외
+		if (m_CCTActors.find(rigid) != m_CCTActors.end()) // if (m_CCTActors.contains(rigid)) 없음 
+			continue;
 
 		const XMVECTOR debugColor = GetActorDebugColor(rigid);
 		PxTransform actorPose = rigid->getGlobalPose();
@@ -1715,6 +1722,26 @@ void TestApp::DrawCharacterControllers()
 	}
 }
 
+// [ CCT Actor 수집 함수 ]
+void TestApp::CollectCCTActors()
+{
+	m_CCTActors.clear();
+
+	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
+	if (!mgr) return;
+
+	PxU32 count = mgr->getNbControllers();
+	for (PxU32 i = 0; i < count; ++i)
+	{
+		PxController* cct = mgr->getController(i);
+		if (!cct) continue;
+
+		if (PxRigidActor* actor = cct->getActor())
+		{
+			m_CCTActors.insert(actor);
+		}
+	}
+}
 
 
 void TestApp::UninitScene()

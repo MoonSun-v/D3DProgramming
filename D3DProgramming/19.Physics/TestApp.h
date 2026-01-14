@@ -65,8 +65,12 @@ public:
 	std::vector<std::shared_ptr<StaticMeshInstance>>   m_StaticMeshes;
 	std::vector<std::shared_ptr<SkeletalMeshInstance>> m_SkeletalMeshes;
 
-	// 플레이어 캐릭터 (씬에 있는 것 중 하나를 참조)
-	SkeletalMeshInstance* m_Player = nullptr;
+
+	// -------------------------------
+	// [ Physics ]
+	// -------------------------------
+	SkeletalMeshInstance* m_Player = nullptr; // 플레이어 캐릭터
+	std::unordered_set<PxRigidActor*> m_CCTActors;
 
 
 	// ------------------------------------------------------------
@@ -256,6 +260,7 @@ public:
 	void DrawPhysXActors();
 	void DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVECTOR color);
 	void DrawCharacterControllers();
+	void CollectCCTActors();
 	void Render_ImGui();
 
 	// ------------------------------------------------------------
