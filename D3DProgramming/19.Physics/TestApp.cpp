@@ -133,15 +133,24 @@ bool TestApp::LoadAsset()
 
 
 	// [2] Dynamic Capsule 
-	auto human2 = CreateSkeletalMesh(device, humanAsset, { 200,40,0 }, { 0, 0, 0 }, { 1,1,1 }, "Human_2");
+	auto human2 = CreateSkeletalMesh(device, humanAsset, { 200,40,0 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
 	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
-	// [3] Dynamic Capsule -> 추후 Character Controller로 수정
-	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
-	human3->physics->CreateDynamicCapsule(20.0f, 100.0f, 70.0f, { 0, 70.0f, 0 });
-	human3->physics->SyncToPhysics();
+	//// [3] Dynamic Capsule -> 추후 Character Controller로 수정
+	//auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
+	//human3->physics->CreateDynamicCapsule(20.0f, 100.0f, 70.0f, { 0, 70.0f, 0 });
+	//human3->physics->SyncToPhysics();
+
+	// [3] Character Controller (Player)
+	OutputDebugString(L"[TestApp::LoadAsset] human3 생성 \n");
+	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
+	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
+	// human3->physics->SyncToPhysics();
+
+	// 플레이어로 지정 (소유 X, 참조만)
+	m_Player = human3.get();
 
 	
 
@@ -278,18 +287,17 @@ void TestApp::Update()
 
 
 	// [ 임시 이동 ] 
-	//PxVec3 move(0);
+	if (m_Player)
+	{
+		Vector3 input(0, 0, 0);
 
-	//if (GetAsyncKeyState(VK_UP) & 0x8000) move.z -= 1;
-	//if (GetAsyncKeyState(VK_DOWN) & 0x8000) move.z += 1;	
-	//if (GetAsyncKeyState(VK_LEFT) & 0x8000) move.x -= 1;	
-	//if (GetAsyncKeyState(VK_RIGHT) & 0x8000) move.x += 1;
-	//if (move.magnitudeSquared() > 0) move.normalize();
-	//
-	//move *= m_MoveSpeed * deltaTime;
+		if (GetAsyncKeyState(VK_UP) & 0x8000)    input.z -= 1;
+		if (GetAsyncKeyState(VK_DOWN) & 0x8000)  input.z += 1;
+		if (GetAsyncKeyState(VK_LEFT) & 0x8000)  input.x -= 1;
+		if (GetAsyncKeyState(VK_RIGHT) & 0x8000) input.x += 1;
 
-	//PxControllerFilters filters;
-	//m_Human3->move(move, 0.01f, deltaTime, filters);
+		m_Player->physics->MoveCharacter(input, deltaTime);
+	}
 
 	
 	// ---------------------------------------------
@@ -1582,7 +1590,7 @@ void TestApp::DrawPhysXActors()
 	}
 
 	// Character Controller는 별도로 그려야 함 
-	// DrawCharacterControllers();
+	DrawCharacterControllers();
 }
 
 
@@ -1676,36 +1684,36 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 	}
 }
 
-//void TestApp::DrawCharacterControllers()
-//{
-//	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
-//	if (!mgr) return;
-//
-//	PxU32 count = mgr->getNbControllers();
-//
-//	for (PxU32 i = 0; i < count; ++i)
-//	{
-//		PxController* cct = mgr->getController(i);
-//		if (!cct) continue;
-//
-//		// PhysX 5 방식 타입 체크
-//		if (cct->getType() != PxControllerShapeType::eCAPSULE)
-//			continue;
-//
-//		PxCapsuleController* capsule =
-//			static_cast<PxCapsuleController*>(cct);
-//
-//		PxExtendedVec3 p = capsule->getPosition();
-//
-//		m_DebugDraw->DrawCapsule(
-//			m_DebugBatch.get(),
-//			PxVec3((float)p.x, (float)p.y, (float)p.z),
-//			capsule->getRadius(),
-//			capsule->getHeight(),
-//			DirectX::Colors::Red
-//		);
-//	}
-//}
+void TestApp::DrawCharacterControllers()
+{
+	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
+	if (!mgr) return;
+
+	PxU32 count = mgr->getNbControllers();
+
+	for (PxU32 i = 0; i < count; ++i)
+	{
+		PxController* cct = mgr->getController(i);
+		if (!cct) continue;
+
+		// PhysX 5 방식 타입 체크
+		if (cct->getType() != PxControllerShapeType::eCAPSULE)
+			continue;
+
+		PxCapsuleController* capsule =
+			static_cast<PxCapsuleController*>(cct);
+
+		PxExtendedVec3 p = capsule->getPosition();
+
+		m_DebugDraw->DrawCapsule(
+			m_DebugBatch.get(),
+			PxVec3((float)p.x, (float)p.y, (float)p.z),
+			capsule->getRadius(),
+			capsule->getHeight(),
+			DirectX::Colors::Red
+		);
+	}
+}
 
 
 
@@ -1773,6 +1781,8 @@ void TestApp::UninitScene()
 	m_DebugEffect.reset();
 	m_DebugDraw.reset();
 	m_DebugInputLayout.Reset();
+
+	m_Player = nullptr;
 
 
 	AssetManager::Get().UnloadAll();

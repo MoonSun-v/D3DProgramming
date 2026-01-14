@@ -47,7 +47,7 @@ public:
     PxPhysics* GetPhysics() const { return m_Physics; }
     PxScene* GetScene()   const { return m_Scene; }
     PxMaterial* GetDefaultMaterial() const { return m_DefaultMaterial; }
-    // PxControllerManager* GetControllerManager() const { return m_ControllerManager; }
+    PxControllerManager* GetControllerManager() const { return m_ControllerManager; }
 
 private:
     // ------------------------------------------------------
@@ -83,15 +83,15 @@ private:
     // ------------------------------------------------------
     // Character Controller
     // ------------------------------------------------------
-     //PxControllerManager* m_ControllerManager = nullptr;
-     //ControllerHitReport m_ControllerHitReport;
+     PxControllerManager* m_ControllerManager = nullptr;
+     ControllerHitReport m_ControllerHitReport;
 
 
 public:
-    //PxController* CreateCapsuleController(
-    //    const PxExtendedVec3& position,
-    //    float radius,
-    //    float height,
-    //    float density = 10.0f
-    //);
+    PxController* CreateCapsuleController(
+        const PxExtendedVec3& position,
+        float radius,
+        float height,
+        float density = 10.0f
+    );
 };

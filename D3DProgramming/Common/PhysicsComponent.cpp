@@ -72,25 +72,28 @@ void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float de
 // ------------------------------
 void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType body, const ColliderDesc& d)
 {
+    OutputDebugStringA("[Physics] CreateCollider called\n");
+
     auto& phys = PhysicsSystem::Get();
     PxPhysics* px = phys.GetPhysics();
     PxMaterial* mat = phys.GetDefaultMaterial();
 
+
+    // ----------------------
+    // Shape 생성
+    // ----------------------
     PxTransform localPose;
     localPose.p = ToPx(d.localOffset);
     localPose.q = ToPxQuat(XMLoadFloat4(&d.localRotation));
 
-    // [ Shape ]
     switch (collider)
     {
     case ColliderType::Box:
         m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z),*mat);
-        m_Shape->setLocalPose(localPose);
         break;
 
     case ColliderType::Sphere:
         m_Shape = px->createShape(PxSphereGeometry(d.radius),*mat);
-        m_Shape->setLocalPose(localPose);
         break;
 
     case ColliderType::Capsule:
@@ -98,12 +101,15 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     
         PxQuat capsuleRot(PxHalfPi, PxVec3(0, 0, 1));// X축 캡슐 → Y축 캡슐로 회전 // Z축 +90도
         localPose.q = capsuleRot * localPose.q;
-        m_Shape->setLocalPose(localPose);
         break;
     }
+    m_Shape->setLocalPose(localPose);
 
 
-    // [ Actor ]
+
+    // ----------------------
+    // Actor 생성
+    // ----------------------
     if (body == PhysicsBodyType::Static)
     {
         m_Actor = px->createRigidStatic(PxTransform(PxIdentity));
@@ -117,11 +123,22 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
             dyn->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
         }
 
-        PxRigidBodyExt::updateMassAndInertia(*dyn, d.density); // 질량 계산 : Shape 부피 × density
         m_Actor = dyn;
     }
 
+    // ----------------------
+    // 연결 & 질량
+    // ----------------------
     m_Actor->attachShape(*m_Shape);
+
+    if (body == PhysicsBodyType::Dynamic)
+    {
+        PxRigidBodyExt::updateMassAndInertia( // 질량 계산 : Shape 부피 × density
+            *static_cast<PxRigidDynamic*>(m_Actor),
+            d.density
+        );
+    }
+
     phys.GetScene()->addActor(*m_Actor); // 물리 씬에 추가 
 
     m_BodyType = body;
@@ -134,9 +151,11 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
 // ------------------------------
 
 // Transform → Physics  
-//                      ** Dynamic에는 매 프레임 쓰면 안 됨
+//                      **  Dynamic에는 매 프레임 쓰면 안 됨
+//                      *** Controller는 여기서 처리 안 함 (캐릭터에 쓰면 안됨)
 void PhysicsComponent::SyncToPhysics()
 {
+    if (m_Controller) return;
     if (!m_Actor || !transform) return;
 
     PxTransform px;
@@ -149,10 +168,109 @@ void PhysicsComponent::SyncToPhysics()
 // Physics → Transform (물리 시뮬 하고나서 매 프레임 실행)
 void PhysicsComponent::SyncFromPhysics()
 {
-    if (!m_Actor || !transform) return;
+    if (!transform) return;
 
-    PxTransform px = m_Actor->getGlobalPose();
+    if (m_Controller)
+    {
+        PxExtendedVec3 p = m_Controller->getPosition();
 
-    transform->position = ToDX(px.p);       // 위치 변환
-    transform->rotation = ToDXQuatF4(px.q); // Quaternion 그대로
+        // [ Offset ] offset을 다시 빼서 Transform 위치 복원
+        transform->position = {
+            (float)p.x - m_ControllerOffset.x,
+            (float)p.y - m_ControllerOffset.y,
+            (float)p.z - m_ControllerOffset.z
+        };
+        // 회전은 Transform 유지
+    }
+
+    if (m_Actor)
+    {
+        PxTransform px = m_Actor->getGlobalPose();
+        transform->position = ToDX(px.p);       // 위치 변환
+        transform->rotation = ToDXQuatF4(px.q); // Quaternion 그대로
+    }
+}
+
+
+// ------------------------------
+// CCT (Character Controller)
+// ------------------------------
+void PhysicsComponent::CreateCharacterCapsule(float radius, float height, const Vector3& localOffset)
+{
+    OutputDebugStringA("[Physics] CreateCharacterCapsule called\n");
+
+    if (m_Actor)
+    {
+        PhysicsSystem::Get().GetScene()->removeActor(*m_Actor);
+        PX_RELEASE(m_Actor);
+        m_Actor = nullptr;
+    }
+
+    auto& phys = PhysicsSystem::Get();
+
+    m_ControllerOffset = localOffset;
+
+    // [ Offset ] PhysX에는 offset 없는 위치 전달 -> SyncFromPhysics에서 반대로 보정할 예정 
+    PxExtendedVec3 pos(
+        transform->position.x + localOffset.x,
+        transform->position.y + localOffset.y,
+        transform->position.z + localOffset.z
+    );
+
+    m_Controller = phys.CreateCapsuleController(
+        pos,
+        radius,
+        height,
+        10.0f   // density (사실상 무의미) density는 반드시 > 0
+    );
+}
+
+void PhysicsComponent::MoveCharacter(
+    const Vector3& input,
+    float deltaTime)
+{
+    if (!m_Controller) return;
+
+    // --------------------
+    // 입력 이동
+    // --------------------
+    PxVec3 move(input.x, 0, input.z);
+    if (move.magnitudeSquared() > 0)
+        move.normalize();
+
+    move *= 6.0f * deltaTime;
+
+    // --------------------
+    // Controller 상태 얻기
+    // --------------------
+    PxControllerState state;
+    m_Controller->getState(state);
+
+    // --------------------
+    // 중력 처리
+    // --------------------
+    static float verticalVel = 0.0f;
+
+    bool isGrounded =
+        state.collisionFlags & PxControllerCollisionFlag::eCOLLISION_DOWN;
+
+    if (isGrounded)
+    {
+        if (verticalVel < 0)
+            verticalVel = 0.0f;
+
+        // 바닥 접촉 유지용 미세 하강
+        move.y = -0.01f;
+    }
+    else
+    {
+        verticalVel += -9.8f * deltaTime;
+        move.y = verticalVel * deltaTime;
+    }
+
+    // --------------------
+    // 이동
+    // --------------------
+    PxControllerFilters filters;
+    m_Controller->move(move, 0.01f, deltaTime, filters);
 }

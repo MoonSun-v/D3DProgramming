@@ -53,10 +53,15 @@ public:
 
 private:
     PxRigidActor* m_Actor = nullptr;
+	PxController* m_Controller = nullptr; // 임시 캐릭터 컨트롤러 용도 (추후 분리 예정)
+
     PxShape* m_Shape = nullptr;
 
     PhysicsBodyType m_BodyType;
     ColliderType m_ColliderType;
+
+    Vector3 m_ControllerOffset = { 0, 0, 0 }; // CCT 전용 오프셋 (추후 분리 예정)
+    /*constexpr */ const float kMinDown = -0.001f;
 
 public:
     ~PhysicsComponent();
@@ -73,6 +78,10 @@ public:
     void CreateStaticCapsule(float radius, float height, const Vector3& localOffset = {0,0,0});
     void CreateDynamicCapsule(float radius, float height, float density = 1.0f, const Vector3& localOffset = {0,0,0});
 
+    // -------------- CCT 임시 --------------
+    void CreateCharacterCapsule(float radius, float height, const Vector3& localOffset); // Character Controller -> 캡슐 컨트롤러 생성
+    void MoveCharacter(const Vector3& input, float deltaTime);   // 이동 
+
     // --------------------------
     // Sync
     // --------------------------
@@ -84,9 +93,5 @@ private:
     // --------------------------
     // 내부 생성기
     // --------------------------
-    void CreateCollider(
-        ColliderType collider,
-        PhysicsBodyType body,
-        const ColliderDesc& desc
-    );
+    void CreateCollider(ColliderType collider, PhysicsBodyType body, const ColliderDesc& desc);
 };
