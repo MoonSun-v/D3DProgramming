@@ -60,9 +60,9 @@ private:
     PhysicsBodyType m_BodyType;
     ColliderType m_ColliderType;
 
-    Vector3 m_ControllerOffset = { 0, 0, 0 }; // CCT 전용 오프셋 (추후 분리 예정)
-    const float kMinDown = -0.001f;
-    const float kMoveSpeed = 50.0f;
+    Vector3 m_ControllerOffset = { 0, 0, 0 };   // CCT 전용 오프셋 (추후 분리 예정)
+    const float m_MinDown = -1.0f;              // 바닥 접촉 유지용 미세 하강
+    const float m_MoveSpeed = 200.0f;
 
 public:
     ~PhysicsComponent();
@@ -81,7 +81,7 @@ public:
 
     // -------------- CCT 임시 --------------
     void CreateCharacterCapsule(float radius, float height, const Vector3& localOffset); // Character Controller -> 캡슐 컨트롤러 생성
-    void MoveCharacter(const Vector3& input, float deltaTime);   // 이동 
+    void MoveCharacter(const Vector3& wishDir, float fixedDt);   // 이동 
 
     // --------------------------
     // Sync

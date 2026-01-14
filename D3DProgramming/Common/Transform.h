@@ -30,6 +30,30 @@ public:
         XMStoreFloat4(&rotation, q);
     }
 
+    void SetRotationY(float yaw)
+    {
+        rotation = Quaternion::CreateFromYawPitchRoll(yaw, 0.0f, 0.0f);
+    }
+
+    float GetYaw() const
+    {
+        using namespace DirectX;
+
+        XMVECTOR q = XMLoadFloat4(&rotation);
+
+        // 회전을 행렬로 변환
+        XMMATRIX m = XMMatrixRotationQuaternion(q);
+
+        // Forward 벡터 추출 (Z+ Forward)
+        XMVECTOR forward = m.r[2]; // Z축 Forward
+        forward = XMVector3Normalize(forward);
+
+        // Yaw 계산
+        float yaw = atan2f(XMVectorGetX(forward), XMVectorGetZ(forward));
+
+        return yaw;
+    }
+
     // ----------------------------
     // 내부 계산용
     // ----------------------------

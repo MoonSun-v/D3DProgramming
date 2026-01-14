@@ -1,10 +1,5 @@
 #include "Animator.h"
-
-template<typename T>
-T Clamp(T v, T min, T max)
-{
-    return (v < min) ? min : (v > max) ? max : v;
-}
+#include "Helper.h"
 
 static TRS DecomposeTRS(const Matrix& m)
 {

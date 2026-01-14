@@ -225,52 +225,53 @@ void PhysicsComponent::CreateCharacterCapsule(float radius, float height, const 
     );
 }
 
-void PhysicsComponent::MoveCharacter(
-    const Vector3& input,
-    float deltaTime)
+void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
 {
     if (!m_Controller) return;
 
     // --------------------
-    // 입력 이동
+    // 1. 수평 이동 (입력)
     // --------------------
-    PxVec3 move(input.x, 0, input.z);
-    if (move.magnitudeSquared() > 0)
-        move.normalize();
+    PxVec3 horizontal(0, 0, 0);
 
-    move *= kMoveSpeed * deltaTime;
+    if (wishDir.LengthSquared() > 0)
+    {
+        horizontal.x = wishDir.x * m_MoveSpeed;
+        horizontal.z = wishDir.z * m_MoveSpeed;
+    }
 
-    // --------------------
-    // Controller 상태 얻기
-    // --------------------
-    PxControllerState state;
-    m_Controller->getState(state);
 
     // --------------------
-    // 중력 처리
+    // 2. 중력 처리 (항상)
     // --------------------
     static float verticalVel = 0.0f;
 
-    bool isGrounded =
-        state.collisionFlags & PxControllerCollisionFlag::eCOLLISION_DOWN;
+    // Controller 상태 얻기
+    PxControllerState state;
+    m_Controller->getState(state);
+
+    bool isGrounded = state.collisionFlags & PxControllerCollisionFlag::eCOLLISION_DOWN;
 
     if (isGrounded)
     {
         if (verticalVel < 0)
             verticalVel = 0.0f;
 
-        // 바닥 접촉 유지용 미세 하강
-        move.y = kMinDown;
+        verticalVel = m_MinDown; 
     }
     else
     {
-        verticalVel += -9.8f * deltaTime;
-        move.y = verticalVel * deltaTime;
+        verticalVel += -9.8f * fixedDt;
     }
+
+    // --------------------
+    // 3. 최종 이동 벡터
+    // --------------------
+    PxVec3 move(horizontal.x * fixedDt, verticalVel * fixedDt, horizontal.z * fixedDt);
 
     // --------------------
     // 이동
     // --------------------
     PxControllerFilters filters;
-    m_Controller->move(move, 0.01f, deltaTime, filters);
+    m_Controller->move(move, 0.01f, fixedDt, filters);
 }

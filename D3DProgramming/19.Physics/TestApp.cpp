@@ -144,10 +144,8 @@ bool TestApp::LoadAsset()
 	//human3->physics->SyncToPhysics();
 
 	// [3] Character Controller (Player)
-	OutputDebugString(L"[TestApp::LoadAsset] human3 생성 \n");
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
 	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
-	// human3->physics->SyncToPhysics();
 
 	// 플레이어로 지정 (소유 X, 참조만)
 	m_Player = human3.get();
@@ -192,7 +190,6 @@ std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
 	inst->SetAsset(asset);
 
 	inst->transform.position = pos;
-	// inst->transform.rotation = rot;
 	inst->transform.SetRotationDegree(rot); // Degree -> Quaternion 
 	inst->transform.scale = scale;
 
@@ -218,7 +215,6 @@ std::shared_ptr<SkeletalMeshInstance> TestApp::CreateSkeletalMesh(
 	inst->SetAsset(device, asset);
 
 	inst->transform.position = pos;
-	// inst->transform.rotation = rot;
 	inst->transform.SetRotationDegree(rot); // Degree -> Quaternion 
 	inst->transform.scale = scale;
 
@@ -269,12 +265,44 @@ void TestApp::FixedUpdate(float fixedDt)
 	{
 		Vector3 input(0, 0, 0);
 
-		if (GetAsyncKeyState(VK_UP) & 0x8000)    input.z -= 1;
-		if (GetAsyncKeyState(VK_DOWN) & 0x8000)  input.z += 1;
+		if (GetAsyncKeyState(VK_UP) & 0x8000)    input.z += 1;
+		if (GetAsyncKeyState(VK_DOWN) & 0x8000)  input.z -= 1;
 		if (GetAsyncKeyState(VK_LEFT) & 0x8000)  input.x -= 1;
 		if (GetAsyncKeyState(VK_RIGHT) & 0x8000) input.x += 1;
 
-		m_Player->physics->MoveCharacter(input, fixedDt);
+		Vector3 wishDir(0, 0, 0);
+		if (input.LengthSquared() > 0)
+		{
+			Vector3 camForward = m_Camera.GetForward();
+			Vector3 camRight = m_Camera.GetRight();
+			camForward.y = 0;
+			camRight.y = 0;
+			camForward.Normalize();
+			camRight.Normalize();
+
+			wishDir = camForward * input.z + camRight * input.x;
+			wishDir.Normalize();
+		}
+
+		// 입력 없어도 항상 호출 !!
+		m_Player->physics->MoveCharacter(wishDir, fixedDt);
+
+		// 회전 보간 
+		if (wishDir.LengthSquared() > 0)
+		{
+			float targetYaw = atan2f(wishDir.x, wishDir.z) + DirectX::XM_PI;
+			float currentYaw = m_Player->transform.GetYaw();
+
+			float angleDiff = targetYaw - currentYaw;
+			while (angleDiff > DirectX::XM_PI)  angleDiff -= DirectX::XM_2PI;
+			while (angleDiff < -DirectX::XM_PI) angleDiff += DirectX::XM_2PI;
+
+			float turnSpeed = 8.0f; // rad/s
+			float deltaYaw = Clamp(angleDiff, -turnSpeed * fixedDt, turnSpeed * fixedDt);
+
+			float newYaw = currentYaw + deltaYaw;
+			m_Player->transform.SetRotationY(newYaw);
+		}
 	}
 }
 

@@ -12,6 +12,12 @@
 #include <directxtk/SimpleMath.h>
 using namespace DirectX::SimpleMath;
 
+template<typename T>
+T Clamp(T v, T min, T max)
+{
+    return (v < min) ? min : (v > max) ? max : v;
+}
+
 
 // ANSI 문자열 -> 유니코드 문자열 변환
 inline std::wstring ToWString(const std::string& str)
