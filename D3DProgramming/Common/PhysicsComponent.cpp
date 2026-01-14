@@ -238,7 +238,7 @@ void PhysicsComponent::MoveCharacter(
     if (move.magnitudeSquared() > 0)
         move.normalize();
 
-    move *= 6.0f * deltaTime;
+    move *= kMoveSpeed * deltaTime;
 
     // --------------------
     // Controller 상태 얻기
@@ -260,7 +260,7 @@ void PhysicsComponent::MoveCharacter(
             verticalVel = 0.0f;
 
         // 바닥 접촉 유지용 미세 하강
-        move.y = -0.01f;
+        move.y = kMinDown;
     }
     else
     {

@@ -187,6 +187,8 @@ void GameApp::Update()
 
 	while (m_PhysicsAccumulator >= fixedDt)
 	{
+		FixedUpdate(fixedDt);
+
 		PhysicsSystem::Get().Simulate(fixedDt);
 		m_PhysicsAccumulator -= fixedDt;
 	}

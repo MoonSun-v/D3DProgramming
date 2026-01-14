@@ -231,6 +231,7 @@ public:
 	bool Initialize() override;
 	void Uninitialize() override;
 	void Update() override;
+	void FixedUpdate(float fixedDt) override;
 	void Render() override;
 
 public:

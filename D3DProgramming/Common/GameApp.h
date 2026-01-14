@@ -41,6 +41,7 @@ public:
 	virtual void Uninitialize();
 	virtual bool Run(HINSTANCE hInstance);
 	virtual void Update();		// 상속 받은 클래스에서 구현
+	virtual void FixedUpdate(float fixedDt) {};
 	virtual void Render();		// 상속 받은 클래스에서 구현
 
 	virtual void OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker,

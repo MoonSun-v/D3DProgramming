@@ -263,11 +263,25 @@ std::shared_ptr<SkeletalMeshInstance> TestApp::CreateSkeletalMesh(
 	return inst;
 }
 
+void TestApp::FixedUpdate(float fixedDt)
+{
+	if (m_Player)
+	{
+		Vector3 input(0, 0, 0);
+
+		if (GetAsyncKeyState(VK_UP) & 0x8000)    input.z -= 1;
+		if (GetAsyncKeyState(VK_DOWN) & 0x8000)  input.z += 1;
+		if (GetAsyncKeyState(VK_LEFT) & 0x8000)  input.x -= 1;
+		if (GetAsyncKeyState(VK_RIGHT) & 0x8000) input.x += 1;
+
+		m_Player->physics->MoveCharacter(input, fixedDt);
+	}
+}
 
 
 void TestApp::Update()
 {
-	__super::Update();
+	__super::Update(); // Physics Update 등.. 
 
 	float deltaTime = TimeSystem::m_Instance->DeltaTime();
 	float totalTime = TimeSystem::m_Instance->TotalTime();
@@ -283,20 +297,6 @@ void TestApp::Update()
 	for (auto& mesh : m_StaticMeshes)
 	{
 		mesh->Update();
-	}
-
-
-	// [ 임시 이동 ] 
-	if (m_Player)
-	{
-		Vector3 input(0, 0, 0);
-
-		if (GetAsyncKeyState(VK_UP) & 0x8000)    input.z -= 1;
-		if (GetAsyncKeyState(VK_DOWN) & 0x8000)  input.z += 1;
-		if (GetAsyncKeyState(VK_LEFT) & 0x8000)  input.x -= 1;
-		if (GetAsyncKeyState(VK_RIGHT) & 0x8000) input.x += 1;
-
-		m_Player->physics->MoveCharacter(input, deltaTime);
 	}
 
 	

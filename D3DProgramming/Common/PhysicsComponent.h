@@ -61,7 +61,8 @@ private:
     ColliderType m_ColliderType;
 
     Vector3 m_ControllerOffset = { 0, 0, 0 }; // CCT 전용 오프셋 (추후 분리 예정)
-    /*constexpr */ const float kMinDown = -0.001f;
+    const float kMinDown = -0.001f;
+    const float kMoveSpeed = 50.0f;
 
 public:
     ~PhysicsComponent();
