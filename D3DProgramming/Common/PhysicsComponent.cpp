@@ -5,7 +5,18 @@
 
 PhysicsComponent::~PhysicsComponent()
 {
-    PX_RELEASE(m_Actor);
+    if (m_Controller)
+    {
+        PhysicsSystem::Get().UnregisterComponent(m_Controller);
+        PX_RELEASE(m_Controller);
+    }
+    if (m_Actor)
+    {
+        PhysicsSystem::Get().UnregisterComponent(m_Actor);
+        PX_RELEASE(m_Actor);
+    }
+
+    // PX_RELEASE(m_Actor);
 }
 
 // ------------------------------
@@ -21,6 +32,15 @@ void PhysicsComponent::CreateStaticBox(const Vector3& half, const Vector3& local
     d.localOffset = localOffset;
     CreateCollider(ColliderType::Box, PhysicsBodyType::Static, d);
 }
+void PhysicsComponent::CreateTriggerBox(const Vector3& half, const Vector3& localOffset)
+{
+    ColliderDesc d;
+    d.halfExtents = half;
+    d.localOffset = localOffset;
+    d.isTrigger = true;
+
+    CreateCollider(ColliderType::Box, PhysicsBodyType::Static, d);
+}
 void PhysicsComponent::CreateDynamicBox(const Vector3& half, float density, const Vector3& localOffset)
 {
     ColliderDesc d;
@@ -29,6 +49,7 @@ void PhysicsComponent::CreateDynamicBox(const Vector3& half, float density, cons
     d.localOffset = localOffset;
     CreateCollider(ColliderType::Box, PhysicsBodyType::Dynamic, d);
 }
+
 
 // Sphere 
 void PhysicsComponent::CreateStaticSphere(float radius, const Vector3& localOffset)
@@ -54,6 +75,16 @@ void PhysicsComponent::CreateStaticCapsule(float radius, float height, const Vec
     d.radius = radius;
     d.height = height;
     d.localOffset = localOffset;
+    CreateCollider(ColliderType::Capsule, PhysicsBodyType::Static, d);
+}
+void PhysicsComponent::CreateTriggerCapsule(float radius, float height, const Vector3& localOffset)
+{
+    ColliderDesc d;
+    d.radius = radius;
+    d.height = height;
+    d.localOffset = localOffset;
+    d.isTrigger = true;
+
     CreateCollider(ColliderType::Capsule, PhysicsBodyType::Static, d);
 }
 void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float density, const Vector3& localOffset)
@@ -182,8 +213,7 @@ void PhysicsComponent::SyncFromPhysics()
         };
         // 회전은 Transform 유지
     }
-
-    if (m_Actor)
+    else if (m_Actor)
     {
         PxTransform px = m_Actor->getGlobalPose();
         transform->position = ToDX(px.p);       // 위치 변환
@@ -197,8 +227,6 @@ void PhysicsComponent::SyncFromPhysics()
 // ------------------------------
 void PhysicsComponent::CreateCharacterCapsule(float radius, float height, const Vector3& localOffset)
 {
-    OutputDebugStringA("[Physics] CreateCharacterCapsule called\n");
-
     if (m_Actor)
     {
         PhysicsSystem::Get().GetScene()->removeActor(*m_Actor);
@@ -223,6 +251,8 @@ void PhysicsComponent::CreateCharacterCapsule(float radius, float height, const 
         height,
         10.0f   // density (사실상 무의미) density는 반드시 > 0
     );
+
+    PhysicsSystem::Get().RegisterComponent(m_Controller, this);
 }
 
 void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
@@ -274,4 +304,36 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     // --------------------
     PxControllerFilters filters;
     m_Controller->move(move, 0.01f, fixedDt, filters);
+}
+
+void PhysicsComponent::ResolveCCTCollisions()
+{
+    // Enter / Stay
+    for (auto* other : m_CCTCurrContacts)
+    {
+        if (m_CCTPrevContacts.find(other) == m_CCTPrevContacts.end())
+        {
+            OnCollisionEnter(other);
+            other->OnCollisionEnter(this);
+        }
+        else
+        {
+            OnCollisionStay(other);
+            other->OnCollisionStay(this);
+        }
+    }
+
+    // Exit
+    for (auto* other : m_CCTPrevContacts)
+    {
+        if (m_CCTCurrContacts.find(other) == m_CCTCurrContacts.end())
+        {
+            OnCollisionExit(other);
+            other->OnCollisionExit(this);
+        }
+    }
+
+    // 다음 프레임 준비
+    m_CCTPrevContacts = std::move(m_CCTCurrContacts);
+    m_CCTCurrContacts.clear();
 }

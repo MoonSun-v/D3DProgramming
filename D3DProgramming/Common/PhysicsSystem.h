@@ -1,8 +1,12 @@
 #pragma once
 #include <PxPhysicsAPI.h>
 #include <task/PxCpuDispatcher.h>
+#include <unordered_map>
+// #include "PhysicsComponent.h"
 
 using namespace physx;
+
+class PhysicsComponent;
 
 // ----------------------------------------------------
 // [ ControllerHitReport ] 
@@ -39,15 +43,60 @@ public:
     ~PhysicsSystem();
 
     bool Initialize();
+    void Simulate(float dt); // 물리 시뮬레이션 1프레임 수행 
     void Shutdown();
-
-    // 물리 시뮬레이션 1프레임 수행 
-    void Simulate(float dt);
 
     PxPhysics* GetPhysics() const { return m_Physics; }
     PxScene* GetScene()   const { return m_Scene; }
     PxMaterial* GetDefaultMaterial() const { return m_DefaultMaterial; }
     PxControllerManager* GetControllerManager() const { return m_ControllerManager; }
+
+
+    // Actor/CCT <-> Component 매핑
+    std::unordered_map<PxActor*, PhysicsComponent*> m_ActorMap;
+    std::unordered_map<PxController*, PhysicsComponent*> m_CCTMap;
+
+    
+    // -----------------------------
+    // Component 등록
+    // -----------------------------
+    void RegisterComponent(PxRigidActor* actor, PhysicsComponent* comp)
+    {
+        if (actor) m_ActorMap[actor] = comp;
+    }
+
+    void RegisterComponent(PxController* cct, PhysicsComponent* comp)
+    {
+        if (cct) m_CCTMap[cct] = comp;
+    }
+
+    // Actor unregister
+    void UnregisterComponent(PxActor* actor)
+    {
+        if (!actor) return;
+        m_ActorMap.erase(actor);
+    }
+
+    // CCT unregister
+    void UnregisterComponent(PxController* cct)
+    {
+        if (!cct) return;
+        m_CCTMap.erase(cct);
+    }
+
+
+    PhysicsComponent* GetComponent(PxActor* actor)
+    {
+        auto it = m_ActorMap.find(actor);
+        return (it != m_ActorMap.end()) ? it->second : nullptr;
+    }
+
+    PhysicsComponent* GetComponent(PxController* cct)
+    {
+        auto it = m_CCTMap.find(cct);
+        return (it != m_CCTMap.end()) ? it->second : nullptr;
+    }
+
 
 private:
     // ------------------------------------------------------
@@ -94,4 +143,27 @@ public:
         float height,
         float density = 10.0f
     );
+};
+
+
+
+// ----------------------------------------------------
+// [ SimulationEventCallback ] 
+// 
+// 각 Shape에 설정된 isTrigger에 따라서 이벤트 실행
+//  - PxSimulationEventCallback 을 상속받아 구현한다. 
+// ----------------------------------------------------
+class SimulationEventCallback : public PxSimulationEventCallback
+{
+public:
+    // Simulation Shape ↔ Simulation Shape
+    virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
+    // Trigger Shape ↔ Simulation Shape
+    virtual void onTrigger(PxTriggerPair* pairs,PxU32 nbPairs) override;
+
+    // 사용 안 함
+    virtual void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
+    virtual void onWake(PxActor**, PxU32) override {}
+    virtual void onSleep(PxActor**, PxU32) override {}
+    virtual void onAdvance(const PxRigidBody* const*, const PxTransform*, const PxU32) override {}
 };
