@@ -96,19 +96,40 @@ bool TestApp::LoadAsset()
 	plane->physics->SyncToPhysics();
 
 	// [ 장식 캐릭터 ]
-	auto charObj = CreateStaticMesh(charAsset, { 0,10,0 }, { 0, 0, 0 }, { 1,1,1 });
+	auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 });
 	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
 	charObj->physics->SyncToPhysics();
-
+	
 	// [ 나무1 ]
 	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0, 0 }, { 1,1,1 });
-	tree1->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f }, { 0, 50.0f, 0 });
+	tree1->physics->CreateTriggerBox({ 10.0f, 30.0f, 10.0f }, { 0, 50.0f, 0 });
 	tree1->physics->SyncToPhysics();
 
 	// [ 나무2 ]
-	auto tree2 = CreateStaticMesh(treeAsset, { -300,10,200 }, { 0, 90, 0 }, { 1,1,1 });
+	auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-200 }, { 0, 90, 0 }, { 1,1,1 });
 	tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree2->physics->SyncToPhysics();
+
+	// [ trigger 빈 영역 ]
+	auto area = CreateStaticMesh(nullptr, { -250,40,-400 }, { 0,0,0 }, { 1,1,1 });
+	area->physics->CreateTriggerCapsule(80.0f, 200.0f, { 0,100,0 });
+	area->physics->SyncToPhysics();
+
+	// [ collision 빈 영역 ]
+	auto area2 = CreateStaticMesh(nullptr, { -200,40,200 }, { 0,0,0 }, { 1,1,1 });
+	area2->physics->CreateStaticBox({ 50.0f, 50.0f, 50.0f });
+	area2->physics->SyncToPhysics();
+
+	// [ trigger 빈 영역 ]
+	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 });
+	area3->physics->CreateTriggerBox({ 50.0f, 50.0f, 50.0f });
+	area3->physics->SyncToPhysics();
+
+	// [ Ball ]
+	auto ball = CreateStaticMesh(nullptr,{ -350,50,-250 }, { 0, 0, 0 }, { 1,1,1 });
+	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
+	ball->physics->SyncToPhysics();
+
 
 
 
@@ -127,30 +148,28 @@ bool TestApp::LoadAsset()
 
 
 	// [1] Static Box
-	auto human1 = CreateSkeletalMesh(device, humanAsset, { -250,10,50 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
+	auto human1 = CreateSkeletalMesh(device, humanAsset, { -100,10,300 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
 	human1->physics->CreateStaticCapsule(20.0f, 20.0f);
 	human1->physics->SyncToPhysics();
 
 
 	// [2] Dynamic Capsule 
-	auto human2 = CreateSkeletalMesh(device, humanAsset, { 200,40,0 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
+	auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
 	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
-	//// [3] Dynamic Capsule -> 추후 Character Controller로 수정
+	//// [3] Dynamic Capsule -> Character Controller로 수정
 	//auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
 	//human3->physics->CreateDynamicCapsule(20.0f, 100.0f, 70.0f, { 0, 70.0f, 0 });
 	//human3->physics->SyncToPhysics();
 
 	// [3] Character Controller (Player)
-	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
+	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { -150,40,-250 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
+	m_Player = human3.get(); // 플레이어로 지정 (소유 X, 참조만)
 
-	// 플레이어로 지정 (소유 X, 참조만)
-	m_Player = human3.get();
 
-	
 
 
 	// ---------------------------------------------
@@ -348,7 +367,7 @@ void TestApp::Update()
 	m_ShadowView = XMMatrixLookAtLH(shadowPos, shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 
 	// Projection 행렬 (Perspective 원근 투영) : fov, aspect, nearZ, farZ
-	m_ShadowProjection = XMMatrixPerspectiveFovLH(2.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 500.0f, 10000.f);
+	m_ShadowProjection = XMMatrixPerspectiveFovLH(1.5f/*XM_PIDIV4*/, m_ShadowViewport.Width / (FLOAT)m_ShadowViewport.Height, 500.0f, 10000.f);
 
 
 	// ------------------------------------
@@ -1059,10 +1078,10 @@ bool TestApp::InitScene()
 
 	m_World = XMMatrixIdentity(); // 단위 행렬 
 
-	//m_Camera.m_Position = Vector3(-600.0f, 150.0f, -100.0f);
-	//m_Camera.m_Rotation = Vector3(0.0f, XMConvertToRadians(90.0f), 0.0f);
-	m_Camera.m_Position = Vector3(0.0f, 150.0f, -600.0f);
-	m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
+	m_Camera.m_Position = Vector3(-1200.0f, 150.0f, -100.0f);
+	m_Camera.m_Rotation = Vector3(0.0f, XMConvertToRadians(90.0f), 0.0f);
+	//m_Camera.m_Position = Vector3(0.0f, 150.0f, -600.0f);
+	//m_Camera.m_Rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 	m_Camera.SetSpeed(400.0f);
 
@@ -1631,6 +1650,8 @@ void TestApp::DrawPhysXActors()
 
 void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVECTOR color)
 {
+	bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+
 	PxGeometryHolder geo = shape->getGeometry();
 	PxTransform localPose = shape->getLocalPose();
 	PxTransform worldPose = actorPose * localPose;
@@ -1642,24 +1663,11 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 		const PxBoxGeometry& box = geo.box();
 
 		DirectX::BoundingOrientedBox obb;
-		obb.Center = {
-			worldPose.p.x,
-			worldPose.p.y,
-			worldPose.p.z
-		};
-		obb.Extents = {
-			box.halfExtents.x,
-			box.halfExtents.y,
-			box.halfExtents.z
-		};
-		obb.Orientation = {
-			worldPose.q.x,
-			worldPose.q.y,
-			worldPose.q.z,
-			worldPose.q.w
-		};
+		obb.Center = { worldPose.p.x, worldPose.p.y, worldPose.p.z };
+		obb.Extents = { box.halfExtents.x, box.halfExtents.y, box.halfExtents.z };
+		obb.Orientation = { worldPose.q.x, worldPose.q.y, worldPose.q.z, worldPose.q.w };
 
-		m_DebugDraw->Draw(m_DebugBatch.get(), obb, color);
+		m_DebugDraw->Draw(m_DebugBatch.get(), obb, color, isTrigger);
 		break;
 	}
 
@@ -1668,14 +1676,10 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 		const PxSphereGeometry& sphere = geo.sphere();
 
 		DirectX::BoundingSphere bs;
-		bs.Center = {
-			worldPose.p.x,
-			worldPose.p.y,
-			worldPose.p.z
-		};
+		bs.Center = { worldPose.p.x, worldPose.p.y, worldPose.p.z };
 		bs.Radius = sphere.radius;
 
-		m_DebugDraw->Draw(m_DebugBatch.get(), bs, color);
+		m_DebugDraw->Draw(m_DebugBatch.get(), bs, color, isTrigger);
 		break;
 	}
 
@@ -1689,18 +1693,8 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 				XMVectorSet(0, 0, 1, 0), // Z축
 				XM_PIDIV2                // +90°
 			);
-
-		XMVECTOR worldQ =
-			XMVectorSet(
-				worldPose.q.x,
-				worldPose.q.y,
-				worldPose.q.z,
-				worldPose.q.w
-			);
-
-		XMVECTOR debugQ =
-			XMQuaternionMultiply(physxCapsuleToY, worldQ);
-
+		XMVECTOR worldQ = XMVectorSet(worldPose.q.x, worldPose.q.y, worldPose.q.z, worldPose.q.w);
+		XMVECTOR debugQ = XMQuaternionMultiply(physxCapsuleToY, worldQ);
 		PxQuat finalQ = ToPxQuat(debugQ);
 
 		m_DebugDraw->DrawCapsule(
@@ -1709,7 +1703,8 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 			capsule.radius,
 			capsule.halfHeight * 2.0f,
 			color,
-			finalQ
+			finalQ,
+			isTrigger // dashed 전달
 		);
 		break;
 	}

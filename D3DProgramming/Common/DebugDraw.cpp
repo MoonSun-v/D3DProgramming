@@ -7,9 +7,27 @@ using namespace DirectX;
 
 namespace
 {
+    inline void DrawDashedLine(PrimitiveBatch<VertexPositionColor>* batch, FXMVECTOR start, FXMVECTOR end, FXMVECTOR color)
+    {
+        XMVECTOR delta = XMVectorSubtract(end, start);
+        float length = XMVectorGetX(XMVector3Length(delta));
+
+        // 항상 일정 분할: 16등분
+        int segments = 16;
+        XMVECTOR step = XMVectorScale(delta, 1.0f / segments);
+
+        for (int i = 0; i < segments; i += 2) // 한 칸 띄워 점선
+        {
+            XMVECTOR p0 = XMVectorAdd(start, XMVectorScale(step, float(i)));
+            XMVECTOR p1 = XMVectorAdd(start, XMVectorScale(step, float(i + 1)));
+            batch->DrawLine(VertexPositionColor(p0, color), VertexPositionColor(p1, color));
+        }
+    }
+
     inline void XM_CALLCONV DrawCube(PrimitiveBatch<VertexPositionColor>* batch,
         CXMMATRIX matWorld,
-        FXMVECTOR color)
+        FXMVECTOR color,
+        bool dashed = false) // 점선 
     {
         static const XMVECTORF32 s_verts[8] =
         {
@@ -25,18 +43,9 @@ namespace
 
         static const WORD s_indices[] =
         {
-            0, 1,
-            1, 2,
-            2, 3,
-            3, 0,
-            4, 5,
-            5, 6,
-            6, 7,
-            7, 4,
-            0, 4,
-            1, 5,
-            2, 6,
-            3, 7
+            0, 1, 1, 2, 2, 3, 3, 0,
+            4, 5, 5, 6, 6, 7, 7, 4,
+            0, 4, 1, 5, 2, 6, 3, 7
         };
 
         VertexPositionColor verts[8];
@@ -47,25 +56,78 @@ namespace
             XMStoreFloat4(&verts[i].color, color);
         }
 
-        batch->DrawIndexed(D3D_PRIMITIVE_TOPOLOGY_LINELIST, s_indices, static_cast<UINT>(std::size(s_indices)), verts, 8);
+        if (dashed)
+        {
+            for (size_t i = 0; i < std::size(s_indices); i += 2)
+            {
+                DrawDashedLine(batch, XMLoadFloat3(&verts[s_indices[i]].position),
+                    XMLoadFloat3(&verts[s_indices[i + 1]].position),
+                    color);
+            }
+        }
+        else
+        {
+            batch->DrawIndexed(D3D_PRIMITIVE_TOPOLOGY_LINELIST, s_indices, static_cast<UINT>(std::size(s_indices)), verts, 8);
+        }
     }
 }
 
 void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
     const BoundingSphere& sphere,
-    FXMVECTOR color)
+    FXMVECTOR color,
+    bool dashed)
 {
     const XMVECTOR origin = XMLoadFloat3(&sphere.Center);
-
     const float radius = sphere.Radius;
 
     const XMVECTOR xaxis = XMVectorScale(g_XMIdentityR0, radius);
     const XMVECTOR yaxis = XMVectorScale(g_XMIdentityR1, radius);
     const XMVECTOR zaxis = XMVectorScale(g_XMIdentityR2, radius);
 
-    DrawRing(batch, origin, xaxis, zaxis, color);
-    DrawRing(batch, origin, xaxis, yaxis, color);
-    DrawRing(batch, origin, yaxis, zaxis, color);
+    //DrawRing(batch, origin, xaxis, zaxis, color);
+    //DrawRing(batch, origin, xaxis, yaxis, color);
+    //DrawRing(batch, origin, yaxis, zaxis, color);
+
+    constexpr size_t c_ringSegments = 32;
+    for (size_t i = 0; i < 3; ++i)
+    {
+        XMVECTOR major = (i == 0) ? xaxis : (i == 1) ? xaxis : yaxis;
+        XMVECTOR minor = (i == 0) ? zaxis : (i == 1) ? yaxis : zaxis;
+
+        if (dashed)
+        {
+            // 링을 작은 선분으로 나누어 점선
+            VertexPositionColor verts[c_ringSegments + 1];
+            constexpr float fAngleDelta = XM_2PI / float(c_ringSegments);
+            const XMVECTOR cosDelta = XMVectorReplicate(cosf(fAngleDelta));
+            const XMVECTOR sinDelta = XMVectorReplicate(sinf(fAngleDelta));
+            XMVECTOR incSin = XMVectorZero();
+            static const XMVECTORF32 s_initialCos = { { { 1.f,1.f,1.f,1.f } } };
+            XMVECTOR incCos = s_initialCos.v;
+
+            for (size_t j = 0; j < c_ringSegments; ++j)
+            {
+                XMVECTOR pos = XMVectorMultiplyAdd(major, incCos, origin);
+                pos = XMVectorMultiplyAdd(minor, incSin, pos);
+                verts[j] = VertexPositionColor(pos, color);
+
+                const XMVECTOR newCos = XMVectorSubtract(XMVectorMultiply(incCos, cosDelta), XMVectorMultiply(incSin, sinDelta));
+                const XMVECTOR newSin = XMVectorAdd(XMVectorMultiply(incCos, sinDelta), XMVectorMultiply(incSin, cosDelta));
+                incCos = newCos; incSin = newSin;
+            }
+            verts[c_ringSegments] = verts[0];
+
+            // 점선으로 그리기
+            for (size_t j = 0; j < c_ringSegments; j += 1)
+            {
+                DrawDashedLine(batch, XMLoadFloat3(&verts[j].position), XMLoadFloat3(&verts[j + 1].position), color);
+            }
+        }
+        else
+        {
+            DrawRing(batch, origin, major, minor, color);
+        }
+    }
 }
 
 void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
@@ -81,7 +143,8 @@ void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
 
 void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
     const BoundingOrientedBox& obb,
-    FXMVECTOR color)
+    FXMVECTOR color,
+    bool dashed)
 {
     XMMATRIX matWorld = XMMatrixRotationQuaternion(XMLoadFloat4(&obb.Orientation));
     const XMMATRIX matScale = XMMatrixScaling(obb.Extents.x, obb.Extents.y, obb.Extents.z);
@@ -89,7 +152,7 @@ void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
     const XMVECTOR position = XMLoadFloat3(&obb.Center);
     matWorld.r[3] = XMVectorSelect(matWorld.r[3], position, g_XMSelect1110);
 
-    DrawCube(batch, matWorld, color);
+    DrawCube(batch, matWorld, color, dashed);
 }
 
 void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
@@ -293,7 +356,8 @@ void XM_CALLCONV DebugDraw::DrawCapsule(
     float radius,
     float height,
     FXMVECTOR color,
-    const PxQuat& rotation)
+    const PxQuat& rotation,
+    bool dashed)
 {
     // 캡슐 중심선 Y축 기준
     XMVECTOR pos = XMVectorSet(position.x, position.y, position.z, 1.0f);
@@ -319,13 +383,22 @@ void XM_CALLCONV DebugDraw::DrawCapsule(
         p1Top = XMVector3Transform(p1Top, rotMat) + pos;
         p0Bottom = XMVector3Transform(p0Bottom, rotMat) + pos;
         p1Bottom = XMVector3Transform(p1Bottom, rotMat) + pos;
+        
+        if (dashed)
+        {
+            // 상단/하단 원: 점선
+            DrawDashedLine(batch, p0Top, p1Top, color);
+            DrawDashedLine(batch, p0Bottom, p1Bottom, color);
 
-        // 상단 원
-        batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p1Top, color));
-        // 하단 원
-        batch->DrawLine(VertexPositionColor(p0Bottom, color), VertexPositionColor(p1Bottom, color));
-        // 측면 연결
-        batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p0Bottom, color));
+            // 세로 연결선: 점선
+            DrawDashedLine(batch, p0Top, p0Bottom, color);
+        }
+        else
+        {
+            batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p1Top, color)); // 상단 원
+            batch->DrawLine(VertexPositionColor(p0Bottom, color), VertexPositionColor(p1Bottom, color)); // 하단 원
+            batch->DrawLine(VertexPositionColor(p0Top, color), VertexPositionColor(p0Bottom, color)); // 측면 연결
+        }
     }
 
     // -----------------------------
@@ -333,26 +406,17 @@ void XM_CALLCONV DebugDraw::DrawCapsule(
     // -----------------------------
 
     // 캡슐의 로컬 Y축 → 월드 방향
-    XMVECTOR up =
-        XMVector3TransformNormal(
-            XMVectorSet(0, 1, 0, 0),
-            rotMat
-        );
+    XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), rotMat);
 
     // 위 / 아래 반구 중심
     XMVECTOR topCenter = pos + up * halfHeight;
     XMVECTOR bottomCenter = pos - up * halfHeight;
 
     // BoundingSphere로 그리기
-    BoundingSphere topSphere;
-    XMStoreFloat3(&topSphere.Center, topCenter);
-    topSphere.Radius = radius;
-
-    BoundingSphere bottomSphere;
-    XMStoreFloat3(&bottomSphere.Center, bottomCenter);
-    bottomSphere.Radius = radius;
+    BoundingSphere topSphere; XMStoreFloat3(&topSphere.Center, topCenter); topSphere.Radius = radius;
+    BoundingSphere bottomSphere; XMStoreFloat3(&bottomSphere.Center, bottomCenter); bottomSphere.Radius = radius;
 
     // DebugDraw::Draw(BoundingSphere) 사용
-    Draw(batch, topSphere, color);
-    Draw(batch, bottomSphere, color);
+    Draw(batch, topSphere, color, dashed);
+    Draw(batch, bottomSphere, color, dashed);
 }

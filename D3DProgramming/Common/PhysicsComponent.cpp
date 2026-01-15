@@ -15,8 +15,6 @@ PhysicsComponent::~PhysicsComponent()
         PhysicsSystem::Get().UnregisterComponent(m_Actor);
         PX_RELEASE(m_Actor);
     }
-
-    // PX_RELEASE(m_Actor);
 }
 
 // ------------------------------
@@ -103,8 +101,6 @@ void PhysicsComponent::CreateDynamicCapsule(float radius, float height, float de
 // ------------------------------
 void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType body, const ColliderDesc& d)
 {
-    OutputDebugStringA("[Physics] CreateCollider called\n");
-
     auto& phys = PhysicsSystem::Get();
     PxPhysics* px = phys.GetPhysics();
     PxMaterial* mat = phys.GetDefaultMaterial();
@@ -137,12 +133,29 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     m_Shape->setLocalPose(localPose);
 
 
+    // ----------------------
+    // Shape Flag (Trigger / Simulation)
+    // ----------------------
+    if (d.isTrigger)
+    {
+        // Trigger는 충돌 계산 X
+        m_Shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+        m_Shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, true);
+    }
+    else
+    {
+        // 일반 Collider
+        m_Shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+        m_Shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, false);
+    }
+
 
     // ----------------------
     // Actor 생성
     // ----------------------
-    if (body == PhysicsBodyType::Static)
+    if (body == PhysicsBodyType::Static || d.isTrigger)
     {
+        // Trigger는 무조건 Static 
         m_Actor = px->createRigidStatic(PxTransform(PxIdentity));
     }
     else
@@ -171,6 +184,7 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     }
 
     phys.GetScene()->addActor(*m_Actor); // 물리 씬에 추가 
+    phys.RegisterComponent(m_Actor, this);
 
     m_BodyType = body;
     m_ColliderType = collider;

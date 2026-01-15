@@ -83,13 +83,13 @@ public:
     // -----------------------------
     // Collision / Trigger 이벤트 콜백 
     // -----------------------------
-    virtual void OnCollisionEnter(PhysicsComponent* other) {}
-    virtual void OnCollisionStay(PhysicsComponent* other) {}
-    virtual void OnCollisionExit(PhysicsComponent* other) {}
+    virtual void OnCollisionEnter(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Collision Enter! \n"); }
+    virtual void OnCollisionStay(PhysicsComponent* other) { /*OutputDebugStringW(L"[PhysicsComponent] Collision Stay! \n");*/ }
+    virtual void OnCollisionExit(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Collision Exit! \n"); }
 
-    virtual void OnTriggerEnter(PhysicsComponent* other) {}
-    virtual void OnTriggerStay(PhysicsComponent* other) {}
-    virtual void OnTriggerExit(PhysicsComponent* other) {}
+    virtual void OnTriggerEnter(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Trigger Enter! \n"); }
+    virtual void OnTriggerStay(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Trigger Stay \n"); }
+    virtual void OnTriggerExit(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Trigger Exit! \n"); }
 
 
     // --------------------------

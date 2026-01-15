@@ -21,6 +21,28 @@ public:
     virtual void onObstacleHit(const PxControllerObstacleHit&) override {}
 };
 
+
+// ----------------------------------------------------
+// [ SimulationEventCallback ] 
+// 
+// 각 Shape에 설정된 isTrigger에 따라서 이벤트 실행
+//  - PxSimulationEventCallback 을 상속받아 구현한다. 
+// ----------------------------------------------------
+class SimulationEventCallback : public PxSimulationEventCallback
+{
+public:
+    // Simulation Shape ↔ Simulation Shape
+    virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
+    // Trigger Shape ↔ Simulation Shape
+    virtual void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
+
+    // 사용 안 함
+    virtual void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
+    virtual void onWake(PxActor**, PxU32) override {}
+    virtual void onSleep(PxActor**, PxU32) override {}
+    virtual void onAdvance(const PxRigidBody* const*, const PxTransform*, const PxU32) override {}
+};
+
 // ----------------------------------------------------
 // [ PhysicsSystem ] 
 // 
@@ -57,45 +79,14 @@ public:
     std::unordered_map<PxController*, PhysicsComponent*> m_CCTMap;
 
     
-    // -----------------------------
-    // Component 등록
-    // -----------------------------
-    void RegisterComponent(PxRigidActor* actor, PhysicsComponent* comp)
-    {
-        if (actor) m_ActorMap[actor] = comp;
-    }
+    void RegisterComponent(PxRigidActor* actor, PhysicsComponent* comp);
+    void RegisterComponent(PxController* cct, PhysicsComponent* comp);
 
-    void RegisterComponent(PxController* cct, PhysicsComponent* comp)
-    {
-        if (cct) m_CCTMap[cct] = comp;
-    }
+    void UnregisterComponent(PxActor* actor);       // Actor unregister
+    void UnregisterComponent(PxController* cct);    // CCT unregister
 
-    // Actor unregister
-    void UnregisterComponent(PxActor* actor)
-    {
-        if (!actor) return;
-        m_ActorMap.erase(actor);
-    }
-
-    // CCT unregister
-    void UnregisterComponent(PxController* cct)
-    {
-        if (!cct) return;
-        m_CCTMap.erase(cct);
-    }
-
-
-    PhysicsComponent* GetComponent(PxActor* actor)
-    {
-        auto it = m_ActorMap.find(actor);
-        return (it != m_ActorMap.end()) ? it->second : nullptr;
-    }
-
-    PhysicsComponent* GetComponent(PxController* cct)
-    {
-        auto it = m_CCTMap.find(cct);
-        return (it != m_CCTMap.end()) ? it->second : nullptr;
-    }
+    PhysicsComponent* GetComponent(PxActor* actor);
+    PhysicsComponent* GetComponent(PxController* cct);
 
 
 private:
@@ -136,6 +127,9 @@ private:
      ControllerHitReport m_ControllerHitReport;
 
 
+     // -----------------------------------------------------
+     SimulationEventCallback m_SimulationEventCallback;
+
 public:
     PxController* CreateCapsuleController(
         const PxExtendedVec3& position,
@@ -146,24 +140,3 @@ public:
 };
 
 
-
-// ----------------------------------------------------
-// [ SimulationEventCallback ] 
-// 
-// 각 Shape에 설정된 isTrigger에 따라서 이벤트 실행
-//  - PxSimulationEventCallback 을 상속받아 구현한다. 
-// ----------------------------------------------------
-class SimulationEventCallback : public PxSimulationEventCallback
-{
-public:
-    // Simulation Shape ↔ Simulation Shape
-    virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
-    // Trigger Shape ↔ Simulation Shape
-    virtual void onTrigger(PxTriggerPair* pairs,PxU32 nbPairs) override;
-
-    // 사용 안 함
-    virtual void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
-    virtual void onWake(PxActor**, PxU32) override {}
-    virtual void onSleep(PxActor**, PxU32) override {}
-    virtual void onAdvance(const PxRigidBody* const*, const PxTransform*, const PxU32) override {}
-};

@@ -11,7 +11,8 @@ class DebugDraw
 public:
     void XM_CALLCONV Draw(DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
         const DirectX::BoundingSphere& sphere,
-        DirectX::FXMVECTOR color = DirectX::Colors::White);
+        DirectX::FXMVECTOR color = DirectX::Colors::White
+        , bool dashed = false);
 
     void XM_CALLCONV Draw(DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
         const DirectX::BoundingBox& box,
@@ -19,7 +20,8 @@ public:
 
     void XM_CALLCONV Draw(DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
         const DirectX::BoundingOrientedBox& obb,
-        DirectX::FXMVECTOR color = DirectX::Colors::White);
+        DirectX::FXMVECTOR color = DirectX::Colors::White
+        , bool dashed = false);
 
     void XM_CALLCONV Draw(DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
         const DirectX::BoundingFrustum& frustum,
@@ -53,5 +55,6 @@ public:
         float radius,
         float height,
         DirectX::FXMVECTOR color = DirectX::Colors::White,
-        const physx::PxQuat& rotation = physx::PxQuat(physx::PxIdentity));
+        const physx::PxQuat& rotation = physx::PxQuat(physx::PxIdentity),
+        bool dashed = false);
 };
