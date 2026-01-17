@@ -3,34 +3,6 @@
 #include "Helper.h"
 #include "PhysicsComponent.h"
 
-//PxFilterFlags PhysicsFilterShader(
-//    PxFilterObjectAttributes attributes0, PxFilterData filterData0,
-//    PxFilterObjectAttributes attributes1, PxFilterData filterData1,
-//    PxPairFlags& pairFlags,
-//    const void*, PxU32)
-//{
-//    // Trigger 포함 여부
-//    if (PxFilterObjectIsTrigger(attributes0) ||
-//        PxFilterObjectIsTrigger(attributes1))
-//    {
-//        pairFlags =
-//            PxPairFlag::eTRIGGER_DEFAULT |
-//            PxPairFlag::eNOTIFY_TOUCH_FOUND |
-//            PxPairFlag::eNOTIFY_TOUCH_LOST;
-//
-//        return PxFilterFlag::eDEFAULT;
-//    }
-//
-//    // 일반 Collision
-//    pairFlags =
-//        PxPairFlag::eCONTACT_DEFAULT |
-//        PxPairFlag::eNOTIFY_TOUCH_FOUND |
-//        PxPairFlag::eNOTIFY_TOUCH_LOST;
-//
-//    return PxFilterFlag::eDEFAULT;
-//}
-
-
 void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
 {
     // -----------------------------
@@ -140,8 +112,8 @@ bool PhysicsSystem::Initialize()
     sceneDesc.simulationEventCallback = &m_SimulationEventCallback;
     m_Dispatcher = PxDefaultCpuDispatcherCreate(2); // CPU 물리 연산을 담당할 스레드 풀 (2 스레드)
     sceneDesc.cpuDispatcher = m_Dispatcher;
-    // sceneDesc.filterShader = PhysicsFilterShader; 
-    sceneDesc.filterShader = PxDefaultSimulationFilterShader; // 기본 충돌 필터링 쉐이더
+    sceneDesc.filterShader = PhysicsFilterShader;
+    // sceneDesc.filterShader = PxDefaultSimulationFilterShader;
     
     m_Scene = m_Physics->createScene(sceneDesc);
     if (!m_Scene)
@@ -318,8 +290,6 @@ void SimulationEventCallback::onContact(
 
             compA->m_CollisionActors.insert(compB);
             compB->m_CollisionActors.insert(compA);
-
-            OutputDebugStringW(L"[PhysX] OnCollisionEnter\n");
         }
         else if (pair.events & PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
         {
@@ -333,12 +303,8 @@ void SimulationEventCallback::onContact(
 
             compA->m_CollisionActors.erase(compB);
             compB->m_CollisionActors.erase(compA);
-
-            OutputDebugStringW(L"[PhysX] OnCollisionExit\n");
         }
     }
-
-    OutputDebugStringW(L"[PhysX] onContact called\n");
 }
 
 
@@ -352,67 +318,26 @@ void SimulationEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 count)
 
         if (!compA || !compB) continue;
 
-        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_FOUND /*PxTriggerPairFlag::eENTER*/)
+        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_FOUND)
         {
             compA->OnTriggerEnter(compB);
             compB->OnTriggerEnter(compA);
 
             compA->m_TriggerActors.insert(compB);
             compB->m_TriggerActors.insert(compA);
-
-            OutputDebugStringW(L"[PhysX] OnTriggerEnter\n");
         }
-        else if (pair.status & PxPairFlag::eNOTIFY_TOUCH_PERSISTS /*PxTriggerPairFlag::eKEEP*/)
+        else if (pair.status & PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
         {
             compA->OnTriggerStay(compB);
             compB->OnTriggerStay(compA);
         }
-        else if (pair.status & PxPairFlag::eNOTIFY_TOUCH_LOST /*PxTriggerPairFlag::eLEAVE*/)
+        else if (pair.status & PxPairFlag::eNOTIFY_TOUCH_LOST)
         {
             compA->OnTriggerExit(compB);
             compB->OnTriggerExit(compA);
 
             compA->m_TriggerActors.erase(compB);
             compB->m_TriggerActors.erase(compA);
-
-            OutputDebugStringW(L"[PhysX] OnTriggerExit\n");
         }
     }
-
-    OutputDebugStringW(L"[PhysX] onTrigger called\n");
 }
-
-
-//void SimulationEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 count)
-//{
-//    for (PxU32 i = 0; i < count; i++)
-//    {
-//        const PxTriggerPair& pair = pairs[i];
-//
-//        PhysicsComponent* triggerComp =
-//            PhysicsSystem::Get().GetComponent(pair.triggerActor);
-//        PhysicsComponent* otherComp =
-//            PhysicsSystem::Get().GetComponent(pair.otherActor);
-//
-//        if (!triggerComp || !otherComp)
-//            continue;
-//
-//        // Trigger Enter
-//        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_FOUND)
-//        {
-//            OutputDebugStringW(L"[PhysX] OnTriggerEnter\n");
-//            triggerComp->OnTriggerEnter(otherComp);
-//            otherComp->OnTriggerEnter(triggerComp);
-//        }
-//
-//        // Trigger Exit
-//        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_LOST)
-//        {
-//            OutputDebugStringW(L"[PhysX] OnTriggerExit\n");
-//            triggerComp->OnTriggerExit(otherComp);
-//            otherComp->OnTriggerExit(triggerComp);
-//        }
-//    }
-//}
-
-

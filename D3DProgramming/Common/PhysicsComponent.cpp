@@ -116,15 +116,15 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     switch (collider)
     {
     case ColliderType::Box:
-        m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z),*mat);
+        m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z), *mat, true);
         break;
 
     case ColliderType::Sphere:
-        m_Shape = px->createShape(PxSphereGeometry(d.radius),*mat);
+        m_Shape = px->createShape(PxSphereGeometry(d.radius),*mat, true);
         break;
 
     case ColliderType::Capsule:
-        m_Shape = px->createShape(PxCapsuleGeometry(d.radius, d.height * 0.5f),*mat);
+        m_Shape = px->createShape(PxCapsuleGeometry(d.radius, d.height * 0.5f),*mat, true);
     
         PxQuat capsuleRot(PxHalfPi, PxVec3(0, 0, 1));// X축 캡슐 → Y축 캡슐로 회전 // Z축 +90도
         localPose.q = capsuleRot * localPose.q;
@@ -171,10 +171,16 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     }
 
     // ----------------------
-    // 연결 & 질량
+    // Shape 연결
     // ----------------------
-    m_Actor->attachShape(*m_Shape);
+     m_Actor->attachShape(*m_Shape);
 
+    // 필터 적용 
+    ApplyFilter();
+
+    // ----------------------
+    // 질량 계산
+    // ----------------------
     if (body == PhysicsBodyType::Dynamic)
     {
         PxRigidBodyExt::updateMassAndInertia( // 질량 계산 : Shape 부피 × density
@@ -317,7 +323,6 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     // 이동 // PhysX CCT 기본 필터는 Trigger를 제외함 
     // --------------------
     PxControllerFilters filters;
-    // filters.mFilterFlags = PxControllerFilterFlags(0);
     m_Controller->move(move, 0.01f, fixedDt, filters);
 }
 
@@ -425,7 +430,10 @@ void PhysicsComponent::CheckCCTTriggers()
     // -------------------------------------------------
     PxOverlapBufferN<64> hit;
     PxQueryFilterData filter;
-    filter.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+    filter.data.word0 = 0;              // CCT는 Layer 없음
+    filter.data.word1 = m_Mask;         // 충돌 대상
+    filter.flags = PxQueryFlag::eANY_HIT;
+    // filter.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
 
     scene->overlap(capsule, pose, hit, filter);
 
@@ -453,3 +461,29 @@ void PhysicsComponent::CheckCCTTriggers()
     }
 }
 
+void PhysicsComponent::SetLayer(CollisionLayer layer)
+{
+    m_Layer = layer;
+    ApplyFilter();
+}
+
+void PhysicsComponent::SetCollisionMask(CollisionMask mask)
+{
+    m_Mask = mask;
+    ApplyFilter();
+}
+
+void PhysicsComponent::ApplyFilter()
+{
+    if (!m_Shape)
+        return;
+
+    PxFilterData filter;
+    filter.word0 = static_cast<uint32_t>(m_Layer); // 내 레이어 
+    filter.word1 = m_Mask;                         // 충돌한 상대의 레이어 
+    filter.word2 = 0;
+    filter.word3 = 0;
+
+    m_Shape->setSimulationFilterData(filter);
+    m_Shape->setQueryFilterData(filter);
+}

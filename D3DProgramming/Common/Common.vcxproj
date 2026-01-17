@@ -167,6 +167,7 @@
     <ClInclude Include="Bone.h" />
     <ClInclude Include="BoneMatrixContainer.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CollisionLayer.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="D3DDevice.h" />
     <ClInclude Include="DebugDraw.h" />
@@ -178,6 +179,7 @@
     <ClInclude Include="MeshSection.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PhysicsComponent.h" />
+    <ClInclude Include="PhysicsFilterShader.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysXUtils.h" />
     <ClInclude Include="SkeletalMeshAsset.h" />
@@ -203,6 +205,7 @@
     <ClCompile Include="MeshSection.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="PhysicsComponent.cpp" />
+    <ClCompile Include="PhysicsFilterShader.cpp" />
     <ClCompile Include="PhysicsSystem.cpp" />
     <ClCompile Include="SkeletalMeshAsset.cpp" />
     <ClCompile Include="SkeletalMeshInstance.cpp" />

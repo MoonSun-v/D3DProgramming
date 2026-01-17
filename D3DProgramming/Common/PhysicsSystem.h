@@ -3,6 +3,8 @@
 #include <task/PxCpuDispatcher.h>
 #include <unordered_map>
 
+#include "PhysicsFilterShader.h"
+
 using namespace physx;
 
 class PhysicsComponent;

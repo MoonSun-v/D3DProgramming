@@ -110,7 +110,7 @@ bool TestApp::LoadAsset()
 	tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree2->physics->SyncToPhysics();
 
-	// [ trigger 빈 영역 ]
+	// [ trigger Capsule 빈 영역 ]
 	auto area = CreateStaticMesh(nullptr, { -250,40,-400 }, { 0,0,0 }, { 1,1,1 });
 	area->physics->CreateTriggerCapsule(80.0f, 200.0f, { 0,100,0 });
 	area->physics->SyncToPhysics();
@@ -118,16 +118,35 @@ bool TestApp::LoadAsset()
 	// [ collision 빈 영역 ]
 	auto area2 = CreateStaticMesh(nullptr, { -200,40,200 }, { 0,0,0 }, { 1,1,1 });
 	area2->physics->CreateStaticBox({ 50.0f, 50.0f, 50.0f });
+	// area2는 Ball과 충돌하지 않음
+	area2->physics->SetCollisionMask(
+		CollisionLayer::World |
+		CollisionLayer::Enemy |
+		CollisionLayer::Default |
+		CollisionLayer::Player |
+		CollisionLayer::Projectile
+	);
 	area2->physics->SyncToPhysics();
 
-	// [ trigger 빈 영역 ]
+	// [ trigger Box 빈 영역 ]
 	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 });
 	area3->physics->CreateTriggerBox({ 50.0f, 50.0f, 50.0f });
+	area3->physics->SetLayer(CollisionLayer::Trigger);
+
+	// area3는 Ball과 충돌하지 않음
+	area3->physics->SetCollisionMask(
+		CollisionLayer::World |
+		CollisionLayer::Enemy |
+		CollisionLayer::Default |
+		CollisionLayer::Player |
+		CollisionLayer::Projectile
+	);
 	area3->physics->SyncToPhysics();
 
 	// [ Ball ]
-	auto ball = CreateStaticMesh(nullptr,{ -400,110,200 }, { 0, 0, 0 }, { 1,1,1 });
+	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 });
 	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
+	ball->physics->SetLayer(CollisionLayer::Ball); 
 	ball->physics->SyncToPhysics();
 
 
@@ -159,14 +178,18 @@ bool TestApp::LoadAsset()
 	human2->physics->SyncToPhysics();
 
 
-	//// [3] Dynamic Capsule -> Character Controller로 수정
-	//auto human3 = CreateSkeletalMesh(device, CharacterAsset, { 400,40,100 }, { 0, 0, 0 }, { 1,1,1 }, "Human_3");
-	//human3->physics->CreateDynamicCapsule(20.0f, 100.0f, 70.0f, { 0, 70.0f, 0 });
-	//human3->physics->SyncToPhysics();
-
 	// [3] Character Controller (Player)
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { -150,40,-250 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
+	human3->physics->SetLayer(CollisionLayer::Player);
+
+	// Player는 Projectile과 충돌하지 않음
+	human3->physics->SetCollisionMask(
+		CollisionLayer::World |
+		CollisionLayer::Enemy |
+		CollisionLayer::Trigger |
+		CollisionLayer::Default
+	);
 	m_Player = human3.get(); // 플레이어로 지정 (소유 X, 참조만)
 
 

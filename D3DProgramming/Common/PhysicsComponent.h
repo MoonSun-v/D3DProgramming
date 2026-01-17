@@ -4,6 +4,8 @@
 #include <directxtk/SimpleMath.h>
 #include <unordered_set>
 
+#include "CollisionLayer.h"
+
 using namespace DirectX::SimpleMath;
 using namespace physx;
 
@@ -73,6 +75,9 @@ private:
     PhysicsBodyType m_BodyType;
     ColliderType m_ColliderType;
 
+    CollisionLayer m_Layer = CollisionLayer::Default;
+    CollisionMask  m_Mask = 0xFFFFFFFF;
+
     // -------------- (임시) CCT --------------
     PxController* m_Controller = nullptr;       // (임시) 캐릭터 컨트롤러 
     Vector3 m_ControllerOffset = { 0, 0, 0 };   // CCT 전용 오프셋
@@ -124,6 +129,13 @@ public:
     void SyncToPhysics();
     void SyncFromPhysics();
 
+    // --------------------------
+    // 충돌 레이어 
+    // --------------------------
+    void SetLayer(CollisionLayer layer);
+    void SetCollisionMask(CollisionMask mask);
+private:
+    void ApplyFilter();
 
 private:
     // --------------------------
