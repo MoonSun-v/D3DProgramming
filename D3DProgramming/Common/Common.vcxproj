@@ -180,6 +180,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="PhysicsComponent.h" />
     <ClInclude Include="PhysicsFilterShader.h" />
+    <ClInclude Include="PhysicsLayerMatrix.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysXUtils.h" />
     <ClInclude Include="SkeletalMeshAsset.h" />
@@ -206,6 +207,7 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="PhysicsComponent.cpp" />
     <ClCompile Include="PhysicsFilterShader.cpp" />
+    <ClCompile Include="PhysicsLayerMatrix.cpp" />
     <ClCompile Include="PhysicsSystem.cpp" />
     <ClCompile Include="SkeletalMeshAsset.cpp" />
     <ClCompile Include="SkeletalMeshInstance.cpp" />

@@ -2,6 +2,7 @@
 #include "PhysXUtils.h"
 #include "Helper.h"
 #include "PhysicsComponent.h"
+#include "PhysicsLayerMatrix.h"
 
 void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
 {
@@ -151,6 +152,7 @@ bool PhysicsSystem::Initialize()
         return false;
     }
 
+    PhysicsLayerMatrix::Initialize();
 
     return true;
 }

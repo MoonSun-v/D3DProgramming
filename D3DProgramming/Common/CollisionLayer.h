@@ -9,8 +9,10 @@ enum class CollisionLayer : uint32_t
     World       = 1 << 3,
     Trigger     = 1 << 4,
     Projectile  = 1 << 5,
-    Ball        = 1 << 6
+    Ball        = 1 << 6,
+    IgnoreTest = 1 << 7 // 테스트 하려고 임시로 만든거, 추후 삭제 ㄱㄱ
 };
+constexpr uint32_t LayerCount = 32;
 
 using CollisionMask = uint32_t;
 

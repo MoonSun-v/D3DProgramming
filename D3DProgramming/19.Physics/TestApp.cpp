@@ -118,29 +118,13 @@ bool TestApp::LoadAsset()
 	// [ collision 빈 영역 ]
 	auto area2 = CreateStaticMesh(nullptr, { -200,40,200 }, { 0,0,0 }, { 1,1,1 });
 	area2->physics->CreateStaticBox({ 50.0f, 50.0f, 50.0f });
-	// area2는 Ball과 충돌하지 않음
-	area2->physics->SetCollisionMask(
-		CollisionLayer::World |
-		CollisionLayer::Enemy |
-		CollisionLayer::Default |
-		CollisionLayer::Player |
-		CollisionLayer::Projectile
-	);
+	area2->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area2->physics->SyncToPhysics();
 
 	// [ trigger Box 빈 영역 ]
 	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 });
 	area3->physics->CreateTriggerBox({ 50.0f, 50.0f, 50.0f });
-	area3->physics->SetLayer(CollisionLayer::Trigger);
-
-	// area3는 Ball과 충돌하지 않음
-	area3->physics->SetCollisionMask(
-		CollisionLayer::World |
-		CollisionLayer::Enemy |
-		CollisionLayer::Default |
-		CollisionLayer::Player |
-		CollisionLayer::Projectile
-	);
+	area3->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area3->physics->SyncToPhysics();
 
 	// [ Ball ]

@@ -2,6 +2,7 @@
 #include "PhysicsSystem.h"
 #include "PhysXUtils.h"
 #include "Transform.h"
+#include "PhysicsLayerMatrix.h"
 
 PhysicsComponent::~PhysicsComponent()
 {
@@ -170,13 +171,13 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
         m_Actor = dyn;
     }
 
+    // 필터 적용 
+    // ApplyFilter();
+
     // ----------------------
     // Shape 연결
     // ----------------------
      m_Actor->attachShape(*m_Shape);
-
-    // 필터 적용 
-    ApplyFilter();
 
     // ----------------------
     // 질량 계산
@@ -208,6 +209,8 @@ void PhysicsComponent::SyncToPhysics()
 {
     if (m_Controller) return;
     if (!m_Actor || !transform) return;
+
+    ApplyFilter(); // PhysX 오브젝트가 “완성된 시점” 에 호출해야함. (엔진 합치면서 변경될듯) 
 
     PxTransform px;
     px.p = ToPx(transform->position);
@@ -464,26 +467,23 @@ void PhysicsComponent::CheckCCTTriggers()
 void PhysicsComponent::SetLayer(CollisionLayer layer)
 {
     m_Layer = layer;
-    ApplyFilter();
 }
 
 void PhysicsComponent::SetCollisionMask(CollisionMask mask)
 {
     m_Mask = mask;
-    ApplyFilter();
 }
 
 void PhysicsComponent::ApplyFilter()
 {
-    if (!m_Shape)
-        return;
+    if (!m_Shape) return;
 
-    PxFilterData filter;
-    filter.word0 = static_cast<uint32_t>(m_Layer); // 내 레이어 
-    filter.word1 = m_Mask;                         // 충돌한 상대의 레이어 
-    filter.word2 = 0;
-    filter.word3 = 0;
+    PxFilterData data;
+    data.word0 = (uint32_t)m_Layer;
+    data.word1 = PhysicsLayerMatrix::GetMask(m_Layer);
+    data.word2 = 0;
+    data.word3 = 0;
 
-    m_Shape->setSimulationFilterData(filter);
-    m_Shape->setQueryFilterData(filter);
+    m_Shape->setSimulationFilterData(data);
+    m_Shape->setQueryFilterData(data);
 }

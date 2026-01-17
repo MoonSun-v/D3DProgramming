@@ -128,6 +128,9 @@
     <ClInclude Include="PhysicsFilterShader.h">
       <Filter>[ 04.Physics ]</Filter>
     </ClInclude>
+    <ClInclude Include="PhysicsLayerMatrix.h">
+      <Filter>[ 04.Physics ]</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -194,6 +197,9 @@
       <Filter>[ 04.Physics ]</Filter>
     </ClCompile>
     <ClCompile Include="PhysicsFilterShader.cpp">
+      <Filter>[ 04.Physics ]</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsLayerMatrix.cpp">
       <Filter>[ 04.Physics ]</Filter>
     </ClCompile>
   </ItemGroup>
