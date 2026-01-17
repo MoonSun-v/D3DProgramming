@@ -126,7 +126,7 @@ bool TestApp::LoadAsset()
 	area3->physics->SyncToPhysics();
 
 	// [ Ball ]
-	auto ball = CreateStaticMesh(nullptr,{ -350,50,-250 }, { 0, 0, 0 }, { 1,1,1 });
+	auto ball = CreateStaticMesh(nullptr,{ -400,110,200 }, { 0, 0, 0 }, { 1,1,1 });
 	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
 	ball->physics->SyncToPhysics();
 

@@ -2,7 +2,6 @@
 #include <PxPhysicsAPI.h>
 #include <task/PxCpuDispatcher.h>
 #include <unordered_map>
-// #include "PhysicsComponent.h"
 
 using namespace physx;
 
@@ -11,12 +10,12 @@ class PhysicsComponent;
 // ----------------------------------------------------
 // [ ControllerHitReport ] 
 // 엔진 공용 PhysX 콜백
-//  - Character Controller가 Dynamic Actor를 밀어내기 위한 콜백
+//  - onShapeHit : CCT ↔ PhysX Shape (RigidStatic / RigidDynamic) 충돌 시 호출
 // ----------------------------------------------------
 class ControllerHitReport : public PxUserControllerHitReport
 {
 public:
-    virtual void onShapeHit(const PxControllerShapeHit& hit) override;
+    virtual void onShapeHit(const PxControllerShapeHit& hit) override; 
     virtual void onControllerHit(const PxControllersHit&) override {}
     virtual void onObstacleHit(const PxControllerObstacleHit&) override {}
 };
@@ -42,6 +41,7 @@ public:
     virtual void onSleep(PxActor**, PxU32) override {}
     virtual void onAdvance(const PxRigidBody* const*, const PxTransform*, const PxU32) override {}
 };
+
 
 // ----------------------------------------------------
 // [ PhysicsSystem ] 
@@ -79,6 +79,7 @@ public:
     std::unordered_map<PxController*, PhysicsComponent*> m_CCTMap;
 
     
+public:
     void RegisterComponent(PxRigidActor* actor, PhysicsComponent* comp);
     void RegisterComponent(PxController* cct, PhysicsComponent* comp);
 

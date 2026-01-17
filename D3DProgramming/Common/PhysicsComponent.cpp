@@ -314,9 +314,10 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     PxVec3 move(horizontal.x * fixedDt, verticalVel * fixedDt, horizontal.z * fixedDt);
 
     // --------------------
-    // 이동
+    // 이동 // PhysX CCT 기본 필터는 Trigger를 제외함 
     // --------------------
     PxControllerFilters filters;
+    // filters.mFilterFlags = PxControllerFilterFlags(0);
     m_Controller->move(move, 0.01f, fixedDt, filters);
 }
 
@@ -351,3 +352,104 @@ void PhysicsComponent::ResolveCCTCollisions()
     m_CCTPrevContacts = std::move(m_CCTCurrContacts);
     m_CCTCurrContacts.clear();
 }
+
+void PhysicsComponent::ResolveCCTTriggers()
+{
+    // Enter / Stay
+    for (auto* other : m_CCTCurrTriggers)
+    {
+        if (m_CCTPrevTriggers.find(other) == m_CCTPrevTriggers.end())
+        {
+            OnTriggerEnter(other);
+            other->OnTriggerEnter(this);
+        }
+        else
+        {
+            OnTriggerStay(other);
+            other->OnTriggerStay(this);
+        }
+    }
+
+    // Exit
+    for (auto* other : m_CCTPrevTriggers)
+    {
+        if (m_CCTCurrTriggers.find(other) == m_CCTCurrTriggers.end())
+        {
+            OnTriggerExit(other);
+            other->OnTriggerExit(this);
+        }
+    }
+
+    m_CCTPrevTriggers = std::move(m_CCTCurrTriggers);
+    m_CCTCurrTriggers.clear();
+}
+
+void PhysicsComponent::CheckCCTTriggers()
+{
+    if (!m_Controller)
+        return;
+
+    PxScene* scene = PhysicsSystem::Get().GetScene();
+
+    // -------------------------------------------------
+    // 1. CCT Capsule 정보
+    // -------------------------------------------------
+    PxCapsuleController* capsuleCtrl =
+        static_cast<PxCapsuleController*>(m_Controller);
+
+    const float radius = capsuleCtrl->getRadius();
+    const float height = capsuleCtrl->getHeight(); // cylinder height
+
+    const float shrink = 0.01f;
+
+    PxCapsuleGeometry capsule(
+        PxMax(0.0f, radius - shrink),
+        PxMax(0.0f, (height * 0.5f) - shrink)
+    );
+
+    // -------------------------------------------------
+    // 2. CCT 위치 (PhysX 기준)
+    // -------------------------------------------------
+    PxExtendedVec3 p = m_Controller->getPosition();
+
+    PxTransform pose(
+        PxVec3(
+            static_cast<float>(p.x),
+            static_cast<float>(p.y),
+            static_cast<float>(p.z)
+        )
+    );
+
+    // -------------------------------------------------
+    // 3. Overlap Query
+    // -------------------------------------------------
+    PxOverlapBufferN<64> hit;
+    PxQueryFilterData filter;
+    filter.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+
+    scene->overlap(capsule, pose, hit, filter);
+
+    // -------------------------------------------------
+    // 4. Trigger 수집
+    // -------------------------------------------------
+    for (PxU32 i = 0; i < hit.getNbAnyHits(); i++)
+    {
+        const PxOverlapHit& h = hit.getAnyHit(i);
+        PxActor* actor = h.actor;
+        PxShape* shape = h.shape;
+
+        if (!(shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE))
+            continue;
+
+        // 자기 자신 제외
+        if (actor == m_Controller->getActor())
+            continue;
+
+        PhysicsComponent* comp =
+            PhysicsSystem::Get().GetComponent(actor);
+
+        if (comp)
+            m_CCTCurrTriggers.insert(comp);
+    }
+}
+

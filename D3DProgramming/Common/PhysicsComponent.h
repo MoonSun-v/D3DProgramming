@@ -58,9 +58,13 @@ public:
     std::unordered_set<PhysicsComponent*> m_CollisionActors;  // 현재 접촉 Actor
     std::unordered_set<PhysicsComponent*> m_TriggerActors;    // 현재 Trigger Actor
     
-    // CCT 전용 충돌 상태 (프레임 비교용)
+    // CCT 전용 충돌 상태 (프레임 비교)
     std::unordered_set<PhysicsComponent*> m_CCTPrevContacts;
     std::unordered_set<PhysicsComponent*> m_CCTCurrContacts;
+    // CCT 전용 Trigger 상태
+    std::unordered_set<PhysicsComponent*> m_CCTPrevTriggers;
+    std::unordered_set<PhysicsComponent*> m_CCTCurrTriggers;
+
 
 private:
     PxRigidActor* m_Actor = nullptr;
@@ -88,7 +92,7 @@ public:
     virtual void OnCollisionExit(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Collision Exit! \n"); }
 
     virtual void OnTriggerEnter(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Trigger Enter! \n"); }
-    virtual void OnTriggerStay(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Trigger Stay \n"); }
+    virtual void OnTriggerStay(PhysicsComponent* other) { /*OutputDebugStringW(L"[PhysicsComponent] Trigger Stay \n");*/ }
     virtual void OnTriggerExit(PhysicsComponent* other) { OutputDebugStringW(L"[PhysicsComponent] Trigger Exit! \n"); }
 
 
@@ -111,6 +115,8 @@ public:
     void MoveCharacter(const Vector3& wishDir, float fixedDt);   // 이동 
 
     void ResolveCCTCollisions();
+    void ResolveCCTTriggers();
+    void CheckCCTTriggers();
 
     // --------------------------
     // Transform 연동

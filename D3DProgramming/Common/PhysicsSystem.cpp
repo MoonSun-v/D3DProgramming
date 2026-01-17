@@ -63,32 +63,24 @@ void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
     PhysicsComponent* cctComp = PhysicsSystem::Get().GetComponent(hit.controller);
     PhysicsComponent* otherComp = PhysicsSystem::Get().GetComponent(hit.actor);
 
-    /*
-    //if (cctComp && otherComp)
-    //{
-    //    // Actor 단위로 Enter / Stay 관리
-    //    if (cctComp->m_CollisionActors.find(otherComp) == cctComp->m_CollisionActors.end())
-    //    {
-    //        // 새 접촉 -> Enter
-    //        cctComp->OnCollisionEnter(otherComp);
-    //        otherComp->OnCollisionEnter(cctComp);
-
-    //        cctComp->m_CollisionActors.insert(otherComp);
-    //        otherComp->m_CollisionActors.insert(cctComp);
-    //    }
-    //    else
-    //    {
-    //        // 기존 접촉 -> Stay
-    //        cctComp->OnCollisionStay(otherComp);
-    //        otherComp->OnCollisionStay(cctComp);
-    //    }
-    //}
-    */
-
     if (!cctComp || !otherComp) return;
 
-    // 이번 프레임에 닿았다는 사실만 기록
-    cctComp->m_CCTCurrContacts.insert(otherComp);
+    // 충돌한 Shape
+    PxShape* shape = hit.shape;
+
+    bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+
+    // 이번 프레임에 닿았다는 사실 기록
+    if (isTrigger)
+    {
+        // CCT Trigger
+        cctComp->m_CCTCurrTriggers.insert(otherComp);
+    }
+    else
+    {
+        // CCT Collision (기본)
+        cctComp->m_CCTCurrContacts.insert(otherComp);
+    }
 }
 
 
@@ -204,9 +196,12 @@ void PhysicsSystem::Simulate(float dt)
     {
         PhysicsComponent* comp = it.second;
         if (comp)
+        {
             comp->ResolveCCTCollisions();
+            comp->CheckCCTTriggers();   // CCT 위치 기반 Overlap Query
+            comp->ResolveCCTTriggers();
+        }
     }
-
 }
 
 
