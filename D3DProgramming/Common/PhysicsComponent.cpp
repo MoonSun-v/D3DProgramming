@@ -380,6 +380,9 @@ void PhysicsComponent::ResolveCCTTriggers()
     // Enter / Stay
     for (auto* other : m_CCTCurrTriggers)
     {
+        if (!PhysicsLayerMatrix::CanCollide(m_Layer, other->GetLayer()))
+            continue;
+
         if (m_CCTPrevTriggers.find(other) == m_CCTPrevTriggers.end())
         {
             OnTriggerEnter(other);
@@ -395,6 +398,9 @@ void PhysicsComponent::ResolveCCTTriggers()
     // Exit
     for (auto* other : m_CCTPrevTriggers)
     {
+        if (!PhysicsLayerMatrix::CanCollide(m_Layer, other->GetLayer()))
+            continue;
+
         if (m_CCTCurrTriggers.find(other) == m_CCTCurrTriggers.end())
         {
             OnTriggerExit(other);
@@ -441,7 +447,14 @@ void PhysicsComponent::CheckCCTTriggers()
     TriggerFilter filter(this);
 
     PxOverlapBufferN<64> hit;
-    scene->overlap(capsule, pose, hit, PxQueryFilterData(), &filter);
+    // scene->overlap(capsule, pose, hit, PxQueryFilterData(), &filter);
+
+    PxQueryFilterData qfd;
+    qfd.data = m_CCTFilterData;
+    qfd.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+
+    scene->overlap(capsule, pose, hit, qfd, &filter);
+
 
 
     // -------------------------------------------------
