@@ -95,25 +95,25 @@ bool TestApp::LoadAsset()
 	plane->physics->CreateStaticBox({ 600, 1, 600 });
 	plane->physics->SyncToPhysics();
 
-	//// [ 장식 캐릭터 ]
-	//auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 });
-	//charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
-	//charObj->physics->SyncToPhysics();
-	//
-	//// [ 나무1 ]
-	//auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0, 0 }, { 1,1,1 });
-	//tree1->physics->CreateTriggerBox({ 10.0f, 30.0f, 10.0f }, { 0, 50.0f, 0 });
-	//tree1->physics->SyncToPhysics();
+	// [ 장식 캐릭터 ]
+	auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 });
+	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
+	charObj->physics->SyncToPhysics();
+	
+	// [ 나무1 ]
+	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0, 0 }, { 1,1,1 });
+	tree1->physics->CreateTriggerBox({ 10.0f, 30.0f, 10.0f }, { 0, 50.0f, 0 });
+	tree1->physics->SyncToPhysics();
 
-	//// [ 나무2 ]
-	//auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-200 }, { 0, 90, 0 }, { 1,1,1 });
-	//tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
-	//tree2->physics->SyncToPhysics();
+	// [ 나무2 ]
+	auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-200 }, { 0, 90, 0 }, { 1,1,1 });
+	tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
+	tree2->physics->SyncToPhysics();
 
 	// [ trigger Capsule 빈 영역 ]
 	auto area = CreateStaticMesh(nullptr, { -250,40,-400 }, { 0,0,0 }, { 1,1,1 });
 	area->physics->CreateTriggerCapsule(80.0f, 200.0f, { 0,100,0 });
-	// area->physics->SetLayer(CollisionLayer::IgnoreTest);
+	area->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area->physics->SyncToPhysics();
 
 	// [ collision 빈 영역 ]
@@ -128,12 +128,12 @@ bool TestApp::LoadAsset()
 	// area3->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area3->physics->SyncToPhysics();
 
-	//// [ Ball ]
-	//auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 });
-	//// auto ball = CreateStaticMesh(nullptr, { -400,150,200 }, { 0, 0, 0 }, { 1,1,1 });
-	//ball->physics->CreateDynamicSphere(20.0f, 50.0f);
-	//ball->physics->SetLayer(CollisionLayer::Ball); 
-	//ball->physics->SyncToPhysics();
+	// [ Ball ]
+	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 });
+	// auto ball = CreateStaticMesh(nullptr, { -400,150,200 }, { 0, 0, 0 }, { 1,1,1 });
+	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
+	ball->physics->SetLayer(CollisionLayer::Ball); 
+	ball->physics->SyncToPhysics();
 
 
 
@@ -152,16 +152,16 @@ bool TestApp::LoadAsset()
 	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Die.fbx", "Die", false);
 
 
-	//// [1] Static Box
-	//auto human1 = CreateSkeletalMesh(device, humanAsset, { -100,10,300 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
-	//human1->physics->CreateStaticCapsule(20.0f, 20.0f);
-	//human1->physics->SyncToPhysics();
+	// [1] Static Box
+	auto human1 = CreateSkeletalMesh(device, humanAsset, { -100,10,300 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
+	human1->physics->CreateStaticCapsule(20.0f, 20.0f);
+	human1->physics->SyncToPhysics();
 
 
-	//// [2] Dynamic Capsule 
-	//auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
-	//human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
-	//human2->physics->SyncToPhysics();
+	// [2] Dynamic Capsule 
+	auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
+	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
+	human2->physics->SyncToPhysics();
 
 
 	// [3] Character Controller (Player)

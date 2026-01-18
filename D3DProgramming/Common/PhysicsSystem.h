@@ -2,6 +2,7 @@
 #include <PxPhysicsAPI.h>
 #include <task/PxCpuDispatcher.h>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "PhysicsFilterShader.h"
 
@@ -36,10 +37,11 @@ class SimulationEventCallback : public PxSimulationEventCallback
 public:
     // Simulation Shape ↔ Simulation Shape
     virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
-    // Trigger Shape ↔ Simulation Shape
-    virtual void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
-
+    
     // 사용 안 함
+        // Trigger 이벤트는 PhysX Simulation Trigger를 사용X 
+        // 모든 Trigger는 Overlap Query + PendingTriggers 방식으로 통합 처리O 
+    virtual void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override {} // Trigger Shape ↔ Simulation Shape
     virtual void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
     virtual void onWake(PxActor**, PxU32) override {}
     virtual void onSleep(PxActor**, PxU32) override {}
@@ -55,6 +57,10 @@ public:
     PhysicsComponent* owner;
     TriggerFilter(PhysicsComponent* c) : owner(c) {}
 
+    // Trigger Overlap Query 전용 필터
+    //  - Trigger Shape만 통과
+    //  - Layer/Mask 양방향 검사
+    //  - 자기 자신(CCT Actor)은 제외
     PxQueryHitType::Enum preFilter(
         const PxFilterData& filterData,
         const PxShape* shape,
@@ -87,6 +93,13 @@ public:
         const PxRigidActor*) override;
 };
 
+struct PairHash
+{
+    size_t operator()(const std::pair<PhysicsComponent*, PhysicsComponent*>& p) const
+    {
+        return std::hash<void*>()(p.first) ^ std::hash<void*>()(p.second);
+    }
+};
 
 
 // ----------------------------------------------------
@@ -123,6 +136,11 @@ public:
     // Actor/CCT <-> Component 매핑
     std::unordered_map<PxActor*, PhysicsComponent*> m_ActorMap;
     std::unordered_map<PxController*, PhysicsComponent*> m_CCTMap;
+
+    std::unordered_set<std::pair<PhysicsComponent*, PhysicsComponent*>, PairHash> m_TriggerCurr;
+    std::unordered_set<std::pair<PhysicsComponent*, PhysicsComponent*>, PairHash> m_TriggerPrev;
+
+    void ResolveTriggerEvents();
 
     
 public:
@@ -187,3 +205,7 @@ public:
 };
 
 
+
+// RigidBody    -> PhysX SimulationEventCallback,
+// CCT          -> HitReport + Sweep + Overlap,
+// Trigger      -> Overlap + Pending → PhysicsSystem 에서 중앙 처리

@@ -9,59 +9,60 @@ void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
     PhysicsComponent* cctComp = PhysicsSystem::Get().GetComponent(hit.controller);
     PhysicsComponent* otherComp = PhysicsSystem::Get().GetComponent(hit.actor);
 
-    if (!cctComp || !otherComp) return;
+    if (!cctComp || !otherComp)
+        return;
 
-    // 완전 차단. 레이어 무시면 모두 무시 
-    if (!PhysicsLayerMatrix::CanCollide(cctComp->GetLayer(), otherComp->GetLayer()))
+    // -------------------------------------------------
+    // 1. 레이어 필터 (완전 차단)
+    // -------------------------------------------------
+    if (!PhysicsLayerMatrix::CanCollide(
+        cctComp->GetLayer(),
+        otherComp->GetLayer()))
     {
         return;
     }
 
-    // -----------------------------
-    // 1. Dynamic Actor와 충돌했을 때 밀어내기
-    // -----------------------------
+    // -------------------------------------------------
+    // 2. Trigger는 CCT Collision 경로에서 완전 제외
+    //  - Trigger는 Overlap Query(CheckCCTTriggers)에서만 처리한다.
+    //  - 여기서 Trigger 허용하면 Collision + Trigger가 동시에 발생..
+    // -------------------------------------------------
+    if (otherComp->IsTrigger())
+        return;
+
+    // -------------------------------------------------
+    // 3. Dynamic Actor 밀어내기
+    // -------------------------------------------------
     PxRigidDynamic* actor = hit.actor->is<PxRigidDynamic>();
     if (actor)
     {
-        // 충돌 방향 계산 (Controller에서 Actor로)
+        // Controller → Actor 방향
         PxExtendedVec3 cctPos = hit.controller->getPosition();
-        PxVec3 worldPos((PxReal)hit.worldPos.x, (PxReal)hit.worldPos.y, (PxReal)hit.worldPos.z);
-        PxVec3 controllerPos((PxReal)cctPos.x, (PxReal)cctPos.y, (PxReal)cctPos.z);
+
+        PxVec3 controllerPos(
+            static_cast<PxReal>(cctPos.x),
+            static_cast<PxReal>(cctPos.y),
+            static_cast<PxReal>(cctPos.z));
+
+        PxVec3 worldPos(
+            static_cast<PxReal>(hit.worldPos.x),
+            static_cast<PxReal>(hit.worldPos.y),
+            static_cast<PxReal>(hit.worldPos.z));
+
         PxVec3 dir = worldPos - controllerPos;
         dir.y = 0.0f;
 
-        const PxF32 dirMagnitude = dir.magnitude();
-        if (dirMagnitude > 0.001f)
+        if (dir.normalize() > 0.001f)
         {
-            dir.normalize();
-
-            // 간단하고 고정된 힘으로 밀기 (PhysX 예제 방식)
             const PxF32 pushStrength = 5.0f;
             actor->addForce(dir * pushStrength, PxForceMode::eACCELERATION);
         }
     }
 
-    // -----------------------------
-    // 2. 이벤트 처리 (Collision)
-    // -----------------------------
-
-
-    // 충돌한 Shape
-    PxShape* shape = hit.shape;
-
-    bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
-
-    // 이번 프레임에 닿았다는 사실 기록
-    if (isTrigger)
-    {
-        // CCT Trigger
-        cctComp->m_CCTCurrTriggers.insert(otherComp);
-    }
-    else
-    {
-        // CCT Collision (기본)
-        cctComp->m_CCTCurrContacts.insert(otherComp);
-    }
+    // -------------------------------------------------
+    // 4. Collision 이벤트 수집
+    // -------------------------------------------------
+    cctComp->m_CCTCurrContacts.insert(otherComp);
 }
 
 
@@ -99,29 +100,6 @@ PxQueryHitType::Enum TriggerFilter::postFilter (const PxFilterData&, const PxQue
 }
 
 
-//PxQueryHitType::Enum CCTQueryFilter::preFilter(
-//    const PxFilterData& filterData,   // CCT FilterData
-//    const PxShape* shape,
-//    const PxRigidActor* actor,
-//    PxHitFlags&)
-//{
-//    const PxFilterData& shapeData = shape->getQueryFilterData();
-//
-//    // [1] 레이어 무시 체크 (핵심)
-//    if (!PhysicsLayerMatrix::CanCollide(
-//        owner->GetLayer(),
-//        (CollisionLayer)shapeData.word0))
-//    {
-//        return PxQueryHitType::eNONE;
-//    }
-//
-//    // [2] Trigger는 막지 않음 (이벤트만)
-//    if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE)
-//        return PxQueryHitType::eTOUCH;
-//
-//    // [3] 일반 Collider는 이동 차단
-//    return PxQueryHitType::eBLOCK;
-//}
 PxQueryHitType::Enum CCTQueryFilter::preFilter(
     const PxFilterData& filterData,
     const PxShape* shape,
@@ -138,8 +116,11 @@ PxQueryHitType::Enum CCTQueryFilter::preFilter(
         return PxQueryHitType::eNONE;
     }
 
+    // Trigger는 CCT Sweep에서 완전 제외
     if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE)
-        return PxQueryHitType::eTOUCH;
+    {
+        return PxQueryHitType::eNONE;
+    }
 
     return PxQueryHitType::eBLOCK;
 }
@@ -269,11 +250,73 @@ void PhysicsSystem::Simulate(float dt)
         {
             comp->ResolveCCTCollisions();
             comp->CheckCCTTriggers();   // CCT 위치 기반 Overlap Query
-            comp->ResolveCCTTriggers();
+            comp->ResolveCCTTriggers(); // 수집만 진행 
         }
     }
+    ResolveTriggerEvents(); // 한 번만 Trigger 해석
 }
 
+// [ 모든 Trigger 이벤트는 PhysicsSystem에서 중앙 처리 ]
+// - 중복 제거
+// - Enter / Stay / Exit 판정
+// - 순서 안정성 보장
+void PhysicsSystem::ResolveTriggerEvents()
+{
+    m_TriggerCurr.clear();
+
+    // --------------------------------------------------
+    // 1. 모든 PhysicsComponent에서 Trigger 수집
+    // --------------------------------------------------
+    for (auto it = m_ActorMap.begin(); it != m_ActorMap.end(); ++it)
+    {
+        PhysicsComponent* comp = it->second;
+
+        if (!comp)
+            continue;
+
+        for (PhysicsComponent* other : comp->m_PendingTriggers)
+        {
+            // (A,B) == (B,A) 정규화
+            PhysicsComponent* a = comp < other ? comp : other;
+            PhysicsComponent* b = comp < other ? other : comp;
+
+            m_TriggerCurr.insert(std::make_pair(a, b));
+        }
+
+        comp->m_PendingTriggers.clear();
+    }
+
+    // --------------------------------------------------
+    // 2. Trigger Enter / Stay
+    // --------------------------------------------------
+    for (const auto& pair : m_TriggerCurr)
+    {
+        if (m_TriggerPrev.find(pair) == m_TriggerPrev.end())
+        {
+            pair.first->OnTriggerEnter(pair.second);
+            pair.second->OnTriggerEnter(pair.first);
+        }
+        else
+        {
+            pair.first->OnTriggerStay(pair.second);
+            pair.second->OnTriggerStay(pair.first);
+        }
+    }
+
+    // --------------------------------------------------
+    // 3. Trigger Exit
+    // --------------------------------------------------
+    for (const auto& pair : m_TriggerPrev)
+    {
+        if (m_TriggerCurr.find(pair) == m_TriggerCurr.end())
+        {
+            pair.first->OnTriggerExit(pair.second);
+            pair.second->OnTriggerExit(pair.first);
+        }
+    }
+
+    m_TriggerPrev = std::move(m_TriggerCurr);
+}
 
 PxController* PhysicsSystem::CreateCapsuleController(
     const PxExtendedVec3& position,
@@ -307,7 +350,10 @@ PxController* PhysicsSystem::CreateCapsuleController(
         PxU32 count = actor->getShapes(shapes, 8);
         for (PxU32 i = 0; i < count; ++i)
         {
-            shapes[i]->setFlag(PxShapeFlag::eSIMULATION_SHAPE, /*false*/true);
+            // CCT Shape은 Simulation에서 제거함. 
+            // - RigidBody와 직접 충돌 계산하지 않음
+            // - 모든 충돌은 Sweep(Query) 기반
+            shapes[i]->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false/*true*/);
             shapes[i]->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
         }
     }
@@ -394,8 +440,8 @@ void SimulationEventCallback::onContact(
             compA->OnCollisionEnter(compB);
             compB->OnCollisionEnter(compA);
 
-            compA->m_CollisionActors.insert(compB);
-            compB->m_CollisionActors.insert(compA);
+            //compA->m_CollisionActors.insert(compB);
+            //compB->m_CollisionActors.insert(compA);
         }
 
         if (pair.events & PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
@@ -409,59 +455,37 @@ void SimulationEventCallback::onContact(
             compA->OnCollisionExit(compB);
             compB->OnCollisionExit(compA);
 
-            compA->m_CollisionActors.erase(compB);
-            compB->m_CollisionActors.erase(compA);
+            //compA->m_CollisionActors.erase(compB);
+            //compB->m_CollisionActors.erase(compA);
         }
     }
 }
 
-void SimulationEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 count)
-{
-    for (PxU32 i = 0; i < count; i++)
-    {
-        PxTriggerPair& pair = pairs[i];
-
-        PhysicsComponent* compA = PhysicsSystem::Get().GetComponent(pair.triggerActor);
-        PhysicsComponent* compB = PhysicsSystem::Get().GetComponent(pair.otherActor);
-
-        if (!compA || !compB)
-            continue;
-
-        // --------------------------------------------------
-        // [1] 엔진 레벨 레이어 최종 컷
-        // --------------------------------------------------
-        if (!PhysicsLayerMatrix::CanCollide(
-            compA->GetLayer(),
-            compB->GetLayer()))
-        {
-            continue;
-        }
-
-        // --------------------------------------------------
-        // [2] PhysX Trigger 이벤트 처리 (bitmask 여러 플레그 동시에 켜질 수 있음 주의!)
-        // --------------------------------------------------
-        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_FOUND)
-        {
-            compA->OnTriggerEnter(compB);
-            compB->OnTriggerEnter(compA);
-
-            compA->m_TriggerActors.insert(compB);
-            compB->m_TriggerActors.insert(compA);
-        }
-
-        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
-        {
-            compA->OnTriggerStay(compB);
-            compB->OnTriggerStay(compA);
-        }
-
-        if (pair.status & PxPairFlag::eNOTIFY_TOUCH_LOST)
-        {
-            compA->OnTriggerExit(compB);
-            compB->OnTriggerExit(compA);
-
-            compA->m_TriggerActors.erase(compB);
-            compB->m_TriggerActors.erase(compA);
-        }
-    }
-}
+//void SimulationEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 count)
+//{
+//    for (PxU32 i = 0; i < count; i++)
+//    {
+//        PxTriggerPair& pair = pairs[i];
+//
+//        // CCT Actor면 무조건 무시
+//        if (PhysicsSystem::Get().GetComponent(static_cast<PxActor*>(pair.otherActor)) == nullptr)
+//            continue;
+//
+//        PhysicsComponent* compA = PhysicsSystem::Get().GetComponent(pair.triggerActor);
+//        PhysicsComponent* compB = PhysicsSystem::Get().GetComponent(pair.otherActor);
+//
+//        if (!compA || !compB)
+//            continue;
+//
+//        if (!PhysicsLayerMatrix::CanCollide(
+//            compA->GetLayer(),
+//            compB->GetLayer()))
+//        {
+//            continue;
+//        }
+//
+//        // Trigger는 "기록만"
+//        compA->m_PendingTriggers.insert(compB);
+//        compB->m_PendingTriggers.insert(compA);
+//    }
+//}

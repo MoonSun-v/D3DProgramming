@@ -106,6 +106,7 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     PxPhysics* px = phys.GetPhysics();
     PxMaterial* mat = phys.GetDefaultMaterial();
 
+    m_IsTrigger = d.isTrigger;
 
     // ----------------------
     // Shape 생성
@@ -175,9 +176,6 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     // Shape 연결
     // ----------------------
      m_Actor->attachShape(*m_Shape);
-
-    // 필터 적용 
-    // ApplyFilter();
 
 
     // ----------------------
@@ -332,9 +330,9 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     CCTQueryFilter queryFilter(this);
 
     PxControllerFilters filters(
-        &m_CCTFilterData,                          // PxFilterData* : CCT 레이어
-        &queryFilter,    // PxQueryFilterCallback* : Collider 필터
-        nullptr                                    // PxControllerFilterCallback* : CCT vs CCT (선택)
+        &m_CCTFilterData,           // PxFilterData* : CCT 레이어
+        &queryFilter,               // PxQueryFilterCallback* : Collider 필터
+        nullptr                     // PxControllerFilterCallback* : CCT vs CCT (선택)
     );
 
     // --------------------
@@ -375,14 +373,11 @@ void PhysicsComponent::ResolveCCTCollisions()
     m_CCTCurrContacts.clear();
 }
 
-void PhysicsComponent::ResolveCCTTriggers()
+void PhysicsComponent::ResolveCCTTriggers() 
 {
     // Enter / Stay
     for (auto* other : m_CCTCurrTriggers)
     {
-        if (!PhysicsLayerMatrix::CanCollide(m_Layer, other->GetLayer()))
-            continue;
-
         if (m_CCTPrevTriggers.find(other) == m_CCTPrevTriggers.end())
         {
             OnTriggerEnter(other);
@@ -398,9 +393,6 @@ void PhysicsComponent::ResolveCCTTriggers()
     // Exit
     for (auto* other : m_CCTPrevTriggers)
     {
-        if (!PhysicsLayerMatrix::CanCollide(m_Layer, other->GetLayer()))
-            continue;
-
         if (m_CCTCurrTriggers.find(other) == m_CCTCurrTriggers.end())
         {
             OnTriggerExit(other);
@@ -464,8 +456,18 @@ void PhysicsComponent::CheckCCTTriggers()
     for (PxU32 i = 0; i < hit.getNbAnyHits(); i++)
     {
         PhysicsComponent* comp = PhysicsSystem::Get().GetComponent(hit.getAnyHit(i).actor);
-        if (comp)
-            m_CCTCurrTriggers.insert(comp);
+        if (!comp)
+            continue;
+
+        // Trigger가 아니면 수집하지 않음
+        if (!comp->IsTrigger())
+            continue;
+
+        // 레이어 필터 
+        if (!PhysicsLayerMatrix::CanCollide(m_Layer, comp->GetLayer()))
+            continue;
+
+        m_CCTCurrTriggers.insert(comp);
     }
 }
 
@@ -494,16 +496,12 @@ void PhysicsComponent::SetLayer(CollisionLayer layer)
     if (m_Controller)
     {
         m_CCTFilterData.word0 = (uint32_t)m_Layer;          // 자기 레이어
-        m_CCTFilterData.word1 = m_Mask & ~(uint32_t)CollisionLayer::Trigger; // 충돌 대상 (Trigger 제외)
+        m_CCTFilterData.word1 = m_Mask;
         m_CCTFilterData.word2 = 0;
         m_CCTFilterData.word3 = 0;
     }
 }
 
-//void PhysicsComponent::SetCollisionMask(CollisionMask mask)
-//{
-//    m_Mask = mask;
-//}
 
 void PhysicsComponent::ApplyFilter()
 {
@@ -521,12 +519,4 @@ void PhysicsComponent::ApplyFilter()
         m_Shape->setSimulationFilterData(data);
         m_Shape->setQueryFilterData(data);
     }
-
-    //// ----------------------------
-    //// CCT 전용 Query Filter
-    //// ----------------------------
-    //m_CCTFilterData.word0 = (uint32_t)m_Layer;
-    //m_CCTFilterData.word1 = m_Mask;
-    //m_CCTFilterData.word2 = 0;
-    //m_CCTFilterData.word3 = 0;
 }

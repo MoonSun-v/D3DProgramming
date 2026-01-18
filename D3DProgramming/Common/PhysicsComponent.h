@@ -67,6 +67,14 @@ public:
     std::unordered_set<PhysicsComponent*> m_CCTPrevTriggers;
     std::unordered_set<PhysicsComponent*> m_CCTCurrTriggers;
 
+    // Trigger ¼öÁý¿ë
+    std::unordered_set<PhysicsComponent*> m_PendingTriggers;
+
+public:
+    bool IsTrigger() const { return m_IsTrigger; }
+
+private:
+    bool m_IsTrigger = false;
 
 private:
     PxRigidActor* m_Actor = nullptr;
