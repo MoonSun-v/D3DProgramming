@@ -25,17 +25,22 @@ void PhysicsLayerMatrix::Initialize()
     // 여기서 [ 레이어 체크박스 ] 설정
     // -----------------------------
 
-    // IgnoreTest <-> Ball : IgnoreTest와 Ball은 서로 충돌 안 함 
-    uint32_t ignoreIdx = LayerToIndex(CollisionLayer::IgnoreTest);
+    // [1] IgnoreTest <-> Ball : IgnoreTest와 Ball은 서로 충돌 안 함 
+    uint32_t testIdx = LayerToIndex(CollisionLayer::IgnoreTest);
     uint32_t ballIdx = LayerToIndex(CollisionLayer::Ball);
-    s_Matrix[ignoreIdx] &= ~(CollisionMask)CollisionLayer::Ball;
+    s_Matrix[testIdx] &= ~(CollisionMask)CollisionLayer::Ball;
     s_Matrix[ballIdx] &= ~(CollisionMask)CollisionLayer::IgnoreTest;
+
+    // [2] IgnoreTest <-> Player : IgnoreTest와 Player은 서로 충돌 안 함 
+    uint32_t playerIdx = LayerToIndex(CollisionLayer::Player);
+    s_Matrix[testIdx] &= ~(CollisionMask)CollisionLayer::Player;
+    s_Matrix[playerIdx] &= ~(CollisionMask)CollisionLayer::IgnoreTest;
 
 }
 
 CollisionMask PhysicsLayerMatrix::GetMask(CollisionLayer layer)
 {
-    return s_Matrix[LayerToIndex(layer)];
+    return s_Matrix[LayerToIndex(layer)] /*| (CollisionMask)CollisionLayer::Trigger*/;
 }
 
 bool PhysicsLayerMatrix::CanCollide(CollisionLayer a, CollisionLayer b)

@@ -113,6 +113,7 @@ bool TestApp::LoadAsset()
 	// [ trigger Capsule 빈 영역 ]
 	auto area = CreateStaticMesh(nullptr, { -250,40,-400 }, { 0,0,0 }, { 1,1,1 });
 	area->physics->CreateTriggerCapsule(80.0f, 200.0f, { 0,100,0 });
+	area->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area->physics->SyncToPhysics();
 
 	// [ collision 빈 영역 ]
@@ -124,11 +125,12 @@ bool TestApp::LoadAsset()
 	// [ trigger Box 빈 영역 ]
 	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 });
 	area3->physics->CreateTriggerBox({ 50.0f, 50.0f, 50.0f });
-	area3->physics->SetLayer(CollisionLayer::IgnoreTest);
+	// area3->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area3->physics->SyncToPhysics();
 
 	// [ Ball ]
 	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 });
+	// auto ball = CreateStaticMesh(nullptr, { -400,150,200 }, { 0, 0, 0 }, { 1,1,1 });
 	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
 	ball->physics->SetLayer(CollisionLayer::Ball); 
 	ball->physics->SyncToPhysics();
@@ -166,14 +168,6 @@ bool TestApp::LoadAsset()
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { -150,40,-250 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
 	human3->physics->SetLayer(CollisionLayer::Player);
-
-	// Player는 Projectile과 충돌하지 않음
-	human3->physics->SetCollisionMask(
-		CollisionLayer::World |
-		CollisionLayer::Enemy |
-		CollisionLayer::Trigger |
-		CollisionLayer::Default
-	);
 	m_Player = human3.get(); // 플레이어로 지정 (소유 X, 참조만)
 
 

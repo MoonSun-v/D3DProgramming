@@ -5,9 +5,11 @@
 
 #include "PhysicsFilterShader.h"
 
+
 using namespace physx;
 
 class PhysicsComponent;
+class PhysicsLayerMatrix;
 
 // ----------------------------------------------------
 // [ ControllerHitReport ] 
@@ -43,6 +45,48 @@ public:
     virtual void onSleep(PxActor**, PxU32) override {}
     virtual void onAdvance(const PxRigidBody* const*, const PxTransform*, const PxU32) override {}
 };
+
+// ------------------------------
+// Trigger Filter (CCT 전용 Overlap Query용)
+// ------------------------------
+class TriggerFilter : public PxQueryFilterCallback
+{
+public:
+    PhysicsComponent* owner;
+    TriggerFilter(PhysicsComponent* c) : owner(c) {}
+
+    PxQueryHitType::Enum preFilter(
+        const PxFilterData& filterData,
+        const PxShape* shape,
+        const PxRigidActor* actor,
+        PxHitFlags&) override;
+
+    PxQueryHitType::Enum postFilter(
+        const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override;
+};
+
+// ------------------------------
+// CCT Collision Filter (Sweep용)
+// ------------------------------
+class CCTQueryFilter : public PxQueryFilterCallback
+{
+public:
+    PhysicsComponent* owner;
+    CCTQueryFilter(PhysicsComponent* comp) : owner(comp) {}
+
+    PxQueryHitType::Enum preFilter(
+        const PxFilterData& filterData,   // CCT FilterData
+        const PxShape* shape,
+        const PxRigidActor* actor,
+        PxHitFlags&) override;
+
+    PxQueryHitType::Enum postFilter(
+        const PxFilterData&,
+        const PxQueryHit&,
+        const PxShape*,
+        const PxRigidActor*) override;
+};
+
 
 
 // ----------------------------------------------------

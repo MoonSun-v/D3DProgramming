@@ -57,6 +57,67 @@ void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
 }
 
 
+PxQueryHitType::Enum TriggerFilter::preFilter(
+    const PxFilterData& filterData,
+    const PxShape* shape,
+    const PxRigidActor* actor,
+    PxHitFlags&)
+{
+    // Trigger 아닌 경우 무시
+    if (!(shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE))
+        return PxQueryHitType::eNONE;
+
+    // Layer 충돌 검사
+    if (!PhysicsLayerMatrix::CanCollide(owner->GetLayer(), (CollisionLayer)shape->getQueryFilterData().word0))
+        return PxQueryHitType::eNONE;
+
+    // 자기 자신 제외
+    if (actor == owner->m_Controller->getActor())
+        return PxQueryHitType::eNONE;
+
+    return PxQueryHitType::eTOUCH;
+}
+
+PxQueryHitType::Enum TriggerFilter::postFilter (const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*)
+{
+    return PxQueryHitType::eTOUCH;
+}
+
+
+PxQueryHitType::Enum CCTQueryFilter::preFilter(
+    const PxFilterData& filterData,   // CCT FilterData
+    const PxShape* shape,
+    const PxRigidActor* actor,
+    PxHitFlags&)
+{
+    const PxFilterData& shapeData = shape->getQueryFilterData();
+
+    // [1] 레이어 무시 체크 (핵심)
+    if (!PhysicsLayerMatrix::CanCollide(
+        owner->GetLayer(),
+        (CollisionLayer)shapeData.word0))
+    {
+        return PxQueryHitType::eNONE;
+    }
+
+    // [2] Trigger는 막지 않음 (이벤트만)
+    if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE)
+        return PxQueryHitType::eTOUCH;
+
+    // [3] 일반 Collider는 이동 차단
+    return PxQueryHitType::eBLOCK;
+}
+
+PxQueryHitType::Enum CCTQueryFilter::postFilter(
+    const PxFilterData&,
+    const PxQueryHit&,
+    const PxShape*,
+    const PxRigidActor*)
+{
+    return PxQueryHitType::eNONE;
+}
+
+
 PhysicsSystem::~PhysicsSystem()
 {
     Shutdown();
@@ -114,7 +175,6 @@ bool PhysicsSystem::Initialize()
     m_Dispatcher = PxDefaultCpuDispatcherCreate(2); // CPU 물리 연산을 담당할 스레드 풀 (2 스레드)
     sceneDesc.cpuDispatcher = m_Dispatcher;
     sceneDesc.filterShader = PhysicsFilterShader;
-    // sceneDesc.filterShader = PxDefaultSimulationFilterShader;
     
     m_Scene = m_Physics->createScene(sceneDesc);
     if (!m_Scene)

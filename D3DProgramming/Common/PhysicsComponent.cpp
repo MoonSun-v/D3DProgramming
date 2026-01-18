@@ -171,13 +171,14 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
         m_Actor = dyn;
     }
 
-    // 필터 적용 
-    // ApplyFilter();
-
     // ----------------------
     // Shape 연결
     // ----------------------
      m_Actor->attachShape(*m_Shape);
+
+    // 필터 적용 
+    // ApplyFilter();
+
 
     // ----------------------
     // 질량 계산
@@ -276,11 +277,15 @@ void PhysicsComponent::CreateCharacterCapsule(float radius, float height, const 
     );
 
     PhysicsSystem::Get().RegisterComponent(m_Controller, this);
+
+    // CCT 생성 후 레이어 강제 적용
+    SetLayer(m_Layer);
 }
 
 void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
 {
     if (!m_Controller) return;
+
 
     // --------------------
     // 1. 수평 이동 (입력)
@@ -307,9 +312,7 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
 
     if (isGrounded)
     {
-        if (verticalVel < 0)
-            verticalVel = 0.0f;
-
+        if (verticalVel < 0) verticalVel = 0.0f;
         verticalVel = m_MinDown; 
     }
     else
@@ -322,10 +325,21 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     // --------------------
     PxVec3 move(horizontal.x * fixedDt, verticalVel * fixedDt, horizontal.z * fixedDt);
 
+
     // --------------------
-    // 이동 // PhysX CCT 기본 필터는 Trigger를 제외함 
+    // 4.  CCT vs Collider 레이어 필터 
     // --------------------
-    PxControllerFilters filters;
+    CCTQueryFilter queryFilter(this);
+
+    PxControllerFilters filters(
+        &m_CCTFilterData,                          // PxFilterData* : CCT 레이어
+        &queryFilter,    // PxQueryFilterCallback* : Collider 필터
+        nullptr                                    // PxControllerFilterCallback* : CCT vs CCT (선택)
+    );
+
+    // --------------------
+    // 5. 이동 
+    // --------------------
     m_Controller->move(move, 0.01f, fixedDt, filters);
 }
 
@@ -402,12 +416,9 @@ void PhysicsComponent::CheckCCTTriggers()
     // -------------------------------------------------
     // 1. CCT Capsule 정보
     // -------------------------------------------------
-    PxCapsuleController* capsuleCtrl =
-        static_cast<PxCapsuleController*>(m_Controller);
-
+    PxCapsuleController* capsuleCtrl = static_cast<PxCapsuleController*>(m_Controller);
     const float radius = capsuleCtrl->getRadius();
     const float height = capsuleCtrl->getHeight(); // cylinder height
-
     const float shrink = 0.01f;
 
     PxCapsuleGeometry capsule(
@@ -415,50 +426,31 @@ void PhysicsComponent::CheckCCTTriggers()
         PxMax(0.0f, (height * 0.5f) - shrink)
     );
 
+
     // -------------------------------------------------
     // 2. CCT 위치 (PhysX 기준)
     // -------------------------------------------------
     PxExtendedVec3 p = m_Controller->getPosition();
+    PxTransform pose(PxVec3((float)p.x, (float)p.y, (float)p.z));
 
-    PxTransform pose(
-        PxVec3(
-            static_cast<float>(p.x),
-            static_cast<float>(p.y),
-            static_cast<float>(p.z)
-        )
-    );
+
 
     // -------------------------------------------------
-    // 3. Overlap Query
+    // 3. Overlap Query용 필터
     // -------------------------------------------------
+    TriggerFilter filter(this);
+
     PxOverlapBufferN<64> hit;
-    PxQueryFilterData filter;
-    filter.data.word0 = 0;              // CCT는 Layer 없음
-    filter.data.word1 = m_Mask;         // 충돌 대상
-    filter.flags = PxQueryFlag::eANY_HIT;
-    // filter.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+    scene->overlap(capsule, pose, hit, PxQueryFilterData(), &filter);
 
-    scene->overlap(capsule, pose, hit, filter);
 
     // -------------------------------------------------
     // 4. Trigger 수집
     // -------------------------------------------------
+    m_CCTCurrTriggers.clear();
     for (PxU32 i = 0; i < hit.getNbAnyHits(); i++)
     {
-        const PxOverlapHit& h = hit.getAnyHit(i);
-        PxActor* actor = h.actor;
-        PxShape* shape = h.shape;
-
-        if (!(shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE))
-            continue;
-
-        // 자기 자신 제외
-        if (actor == m_Controller->getActor())
-            continue;
-
-        PhysicsComponent* comp =
-            PhysicsSystem::Get().GetComponent(actor);
-
+        PhysicsComponent* comp = PhysicsSystem::Get().GetComponent(hit.getAnyHit(i).actor);
         if (comp)
             m_CCTCurrTriggers.insert(comp);
     }
@@ -467,23 +459,61 @@ void PhysicsComponent::CheckCCTTriggers()
 void PhysicsComponent::SetLayer(CollisionLayer layer)
 {
     m_Layer = layer;
+    m_Mask = PhysicsLayerMatrix::GetMask(layer);
+
+    // ----------------------------
+    // RigidActor / Shape 용
+    // ----------------------------
+    if (m_Shape)
+    {
+        PxFilterData data;
+        data.word0 = (uint32_t)m_Layer;       // 자기 레이어
+        data.word1 = m_Mask;                  // 충돌 대상 레이어
+        data.word2 = 0;
+        data.word3 = 0;
+        m_Shape->setSimulationFilterData(data);
+        m_Shape->setQueryFilterData(data);
+    }
+
+    // ----------------------------
+    // CCT 전용 Query Filter
+    // ----------------------------
+    if (m_Controller)
+    {
+        m_CCTFilterData.word0 = (uint32_t)m_Layer;          // 자기 레이어
+        m_CCTFilterData.word1 = m_Mask & ~(uint32_t)CollisionLayer::Trigger; // 충돌 대상 (Trigger 제외)
+        m_CCTFilterData.word2 = 0;
+        m_CCTFilterData.word3 = 0;
+    }
 }
 
-void PhysicsComponent::SetCollisionMask(CollisionMask mask)
-{
-    m_Mask = mask;
-}
+//void PhysicsComponent::SetCollisionMask(CollisionMask mask)
+//{
+//    m_Mask = mask;
+//}
 
 void PhysicsComponent::ApplyFilter()
 {
-    if (!m_Shape) return;
+    // ----------------------------
+    // RigidActor / Shape 용
+    // ----------------------------
+    if (m_Shape)
+    {
+        PxFilterData data;
+        data.word0 = (uint32_t)m_Layer;
+        data.word1 = PhysicsLayerMatrix::GetMask(m_Layer);
+        data.word2 = 0;
+        data.word3 = 0;
 
-    PxFilterData data;
-    data.word0 = (uint32_t)m_Layer;
-    data.word1 = PhysicsLayerMatrix::GetMask(m_Layer);
-    data.word2 = 0;
-    data.word3 = 0;
+        m_Shape->setSimulationFilterData(data);
+        m_Shape->setQueryFilterData(data);
+    }
 
-    m_Shape->setSimulationFilterData(data);
-    m_Shape->setQueryFilterData(data);
+    //// ----------------------------
+    //// CCT 전용 Query Filter
+    //// ----------------------------
+    //m_CCTFilterData.word0 = (uint32_t)m_Layer;
+    //m_CCTFilterData.word1 = m_Mask;
+    //m_CCTFilterData.word2 = 0;
+    //m_CCTFilterData.word3 = 0;
 }
