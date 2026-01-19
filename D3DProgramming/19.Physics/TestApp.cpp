@@ -212,50 +212,45 @@ bool TestApp::LoadAsset()
 
 
 // [ 레이캐스트 테스트용 임시 메소드 ]
-void TestApp::CheckPlayerForward()
+void TestApp::CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch)
 {
-	// 1. Player 체크
 	if (!m_Player || !m_Player->physics)
 		return;
 
-	// 2. Raycast 시작점 & 방향
-	PxVec3 origin = ToPx(m_Player->transform.position);
-	PxVec3 forward = PxVec3(0, 0, 1); // 월드 Z 방향
+	// 1. Ray 시작점 & 방향
+	PxVec3 originPx = ToPx(m_Player->transform.position);
+	XMFLOAT3 forward = m_Player->transform.GetForward();
+	PxVec3 forwardPx = ToPx(forward);
+
 	float maxDist = 500.0f;
 
-	// 3. Raycast 실행
+	// 2. Raycast 실행
 	RaycastHit hit;
-	if (PhysicsSystem::Get().Raycast(origin, forward, maxDist, hit, CollisionLayer::Default))
+	bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDist, hit, CollisionLayer::World);
+
+	// 3. 디버그 선 그리기 (빨강색)
+	PxVec3 endPx = bHit ? hit.point : originPx + forwardPx * maxDist;
+	XMFLOAT3 originDX = ToDX(originPx);
+	XMFLOAT3 dirDX = ToDX(endPx - originPx);
+
+	DebugDraw::DrawRayDebug(batch,
+		XMLoadFloat3(&originDX),
+		XMLoadFloat3(&dirDX),
+		XMVectorSet(1, 0, 0, 1),  // color
+		false);                   // normalize
+
+	// 4. 결과 출력
+	std::wstring hitName = L"Unknown";
+	if (hit.component && hit.component->owner)
 	{
-		// 4. hit.component 및 owner 안전 체크
-		std::string strName = "Unknown";
-		if (hit.component && hit.component->owner)
-		{
-			strName = hit.component->owner->GetName();
-		}
-
-		// 5. UTF-8 -> UTF-16 변환
-		std::wstring wname;
-		int size_needed = MultiByteToWideChar(CP_UTF8, 0, strName.c_str(), -1, nullptr, 0);
-		if (size_needed > 0)
-		{
-			wname.resize(size_needed - 1); // null 제외
-			MultiByteToWideChar(CP_UTF8, 0, strName.c_str(), -1, &wname[0], size_needed);
-		}
-		else
-		{
-			wname = L"Unknown";
-		}
-
-		// 6. 출력
-		wchar_t buf[256];
-		swprintf(buf, 256, L"Player Forward Hit: %s at distance %.2f\n",
-			wname.c_str(),
-			hit.distance);
-		OutputDebugStringW(buf);
+		std::string name = hit.component->owner->GetName();
+		hitName = std::wstring(name.begin(), name.end());
 	}
-}
 
+	wchar_t buf[256];
+	swprintf(buf, 256, L"Player Forward Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
+	OutputDebugStringW(buf);
+}
 
 
 std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
@@ -408,8 +403,6 @@ void TestApp::Update()
 		mesh->Update();
 	}
 
-	// 레이캐스트 테스트 
-	CheckPlayerForward();
 	
 	// ---------------------------------------------
 	// [ Shadow 카메라 위치 계산 (원근 투영) ] 
@@ -1643,6 +1636,9 @@ void TestApp::Render_DebugDraw()
 	m_DebugDraw->Draw(m_DebugBatch.get(), lightPos, DirectX::Colors::Yellow);
 
 	DrawPhysXActors();
+
+	// Raycast 디버그 선
+	CheckPlayerForwardDebug(m_DebugBatch.get());
 
 	m_DebugBatch->End();
 

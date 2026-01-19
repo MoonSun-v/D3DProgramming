@@ -292,7 +292,8 @@ public:
 		const std::string& name = "NoneName"
 	);
 
-	void CheckPlayerForward();
+	// void CheckPlayerForward();
+	void CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch);
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };

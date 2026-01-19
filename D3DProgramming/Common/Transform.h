@@ -54,6 +54,26 @@ public:
         return yaw;
     }
 
+    XMFLOAT3 GetForward() const
+    {
+        using namespace DirectX;
+        XMVECTOR q = XMLoadFloat4(&rotation);
+        XMMATRIX rotMat = XMMatrixRotationQuaternion(q);
+
+        // Z+ 방향을 Forward로 사용
+        XMVECTOR forward = rotMat.r[2];
+
+        // 반대 방향 (Z-) 으로 반전 
+        forward = XMVectorNegate(forward);
+
+        forward = XMVector3Normalize(forward);
+
+        XMFLOAT3 f;
+        XMStoreFloat3(&f, forward);
+        return f;
+    }
+
+
     // ----------------------------
     // 내부 계산용
     // ----------------------------

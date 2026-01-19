@@ -307,6 +307,27 @@ void XM_CALLCONV DebugDraw::DrawRay(PrimitiveBatch<VertexPositionColor>* batch,
     batch->Draw(D3D_PRIMITIVE_TOPOLOGY_LINESTRIP, verts, 2);
 }
 
+// Raycast Àü¿ë
+void XM_CALLCONV DebugDraw::DrawRayDebug(PrimitiveBatch<VertexPositionColor>* batch,
+    FXMVECTOR origin,
+    FXMVECTOR direction,
+    FXMVECTOR color,
+    bool normalize)
+{
+    if (!batch) return;
+    XMVECTOR rayDir = normalize ? XMVector3Normalize(direction) : direction;
+    XMVECTOR end = XMVectorAdd(origin, rayDir);
+
+    VertexPositionColor verts[2];
+    XMStoreFloat3(&verts[0].position, origin);
+    XMStoreFloat3(&verts[1].position, end);
+    XMStoreFloat4(&verts[0].color, color);
+    XMStoreFloat4(&verts[1].color, color);
+
+    batch->Draw(D3D_PRIMITIVE_TOPOLOGY_LINELIST, verts, 2);
+}
+
+
 void XM_CALLCONV DebugDraw::DrawTriangle(PrimitiveBatch<VertexPositionColor>* batch,
     FXMVECTOR pointA,
     FXMVECTOR pointB,

@@ -57,4 +57,12 @@ public:
         DirectX::FXMVECTOR color = DirectX::Colors::White,
         const physx::PxQuat& rotation = physx::PxQuat(physx::PxIdentity),
         bool dashed = false);
+
+    // Raycast Àü¿ë 
+    static void XM_CALLCONV DrawRayDebug(
+        DirectX::PrimitiveBatch<DirectX::VertexPositionColor>* batch,
+        DirectX::FXMVECTOR origin,
+        DirectX::FXMVECTOR direction,
+        DirectX::FXMVECTOR color = DirectX::XMVectorSet(1, 0, 0, 1),
+        bool normalize = true);
 };
