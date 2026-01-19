@@ -166,9 +166,9 @@ PxQueryHitType::Enum RaycastFilterCallback::preFilter(
         return PxQueryHitType::eNONE;
     }
 
-    OutputDebugStringA(("Raycast preFilter: actor=" + comp->owner->GetName() +
-        " | actorLayer=" + std::to_string((int)comp->GetLayer()) +
-        " | rayLayer=" + std::to_string((int)m_RaycastLayer) + "\n").c_str());
+    //OutputDebugStringA(("Raycast preFilter: actor=" + comp->owner->GetName() +
+    //    " | actorLayer=" + std::to_string((int)comp->GetLayer()) +
+    //    " | rayLayer=" + std::to_string((int)m_RaycastLayer) + "\n").c_str());
 
     return PxQueryHitType::eBLOCK; // 유효 히트
 }
@@ -511,97 +511,6 @@ void SimulationEventCallback::onContact(
 // ----------------------------------------------------
 // [ Raycast ] 
 // ----------------------------------------------------
-bool PhysicsSystem::Raycast(
-    const PxVec3& origin,
-    const PxVec3& direction,
-    float maxDistance,
-    RaycastHit& outHit,
-    CollisionLayer layer,
-    QueryTriggerInteraction triggerInteraction)
-{
-    if (!m_Scene)
-        return false;
-
-    PxRaycastBuffer hitBuffer;
-
-    // -----------------------------
-    // Broad Phase : PhysX 필터
-    // -----------------------------
-    PxQueryFilterData filterData;
-    filterData.data.word0 = (uint32_t)(layer); // Raycast 레이어
-    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer); // 레이어 마스크
-    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
-
-    RaycastFilterCallback filterCallback(layer, triggerInteraction);
-
-    bool bHit = m_Scene->raycast(
-        origin,
-        direction.getNormalized(),
-        maxDistance,
-        hitBuffer,
-        PxHitFlag::eDEFAULT,
-        filterData,
-        &filterCallback
-    );
-
-    if (!bHit || hitBuffer.getNbAnyHits() == 0) return false;
-
-    const PxRaycastHit& pxHit = hitBuffer.block; // 첫번째 Block만 가져옴
-
-    PhysicsComponent* comp = GetComponent(pxHit.actor);
-    if (!comp)
-        return false;
-
-    // 최종 레이어 검사 (안전)
-    if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
-        return false;
-
-    // 결과 채우기
-    outHit.component = comp;
-    outHit.point = pxHit.position;
-    outHit.normal = pxHit.normal;
-    outHit.distance = pxHit.distance;
-    outHit.shape = pxHit.shape;
-    outHit.actor = pxHit.actor;
-
-    return true;
-
-    /*
-    // -----------------------------
-    // Narrow Phase : Unity식 후처리
-    // -----------------------------
-    for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
-    {
-        const PxRaycastHit& pxHit = hitBuffer.getAnyHit(i);
-
-        PxShape* shape = pxHit.shape;
-        bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
-
-        // Trigger 처리 옵션
-        if (isTrigger && triggerInteraction == QueryTriggerInteraction::Ignore)
-            continue;
-
-        PhysicsComponent* comp = GetComponent(pxHit.actor);
-        if (!comp)
-            continue;
-
-        // Layer Narrow Phase
-        if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
-            continue;
-
-        // 결과 채우기
-        outHit.component = comp;
-        outHit.point = pxHit.position;
-        outHit.normal = pxHit.normal;
-        outHit.distance = pxHit.distance;
-        outHit.shape = shape;
-        outHit.actor = pxHit.actor;
-
-        return true; // Unity처럼 첫 유효 히트
-    }
-
-    return false;*/
-}
 
 bool PhysicsSystem::RaycastAll(
     const PxVec3& origin,
@@ -612,11 +521,11 @@ bool PhysicsSystem::RaycastAll(
     QueryTriggerInteraction triggerInteraction)
 {
     outHits.clear();
+    if (!m_Scene) return false;
 
-    if (!m_Scene)
-        return false;
-
-    PxRaycastBuffer hitBuffer;
+    const PxU32 maxHits = 128;
+    PxRaycastHit hitArray[maxHits];
+    PxRaycastBuffer hitBuffer(hitArray, maxHits);
 
     PxQueryFilterData filterData;
     filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
@@ -624,36 +533,39 @@ bool PhysicsSystem::RaycastAll(
     filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);
 
     RaycastFilterCallback filterCallback(layer, triggerInteraction);
+    PxHitFlags hitFlags = PxHitFlag::eDEFAULT | PxHitFlag::eMESH_MULTIPLE;
 
-    bool bHit = m_Scene->raycast(
-        origin,
-        direction.getNormalized(),
-        maxDistance,
-        hitBuffer,
-        PxHitFlag::eDEFAULT,
-        filterData,
-        &filterCallback
-    );
+    bool bHit = m_Scene->raycast(origin, direction.getNormalized(), maxDistance, hitBuffer, hitFlags, filterData, &filterCallback);
+    if (!bHit) return false;
 
-    if (!bHit || hitBuffer.getNbAnyHits() == 0) return false;
+    auto ProcessHit = [&](const PxRaycastHit& pxHit) -> bool
+        {
+            PxShape* shape = pxHit.shape;
+            PhysicsComponent* comp = GetComponent(pxHit.actor);
+            if (!comp) return false;
 
+            bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+            if (isTrigger && triggerInteraction == QueryTriggerInteraction::Ignore)
+                return false;
+
+            if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
+                return false;
+
+            RaycastHit hitInfo;
+            hitInfo.component = comp;
+            hitInfo.point = pxHit.position;
+            hitInfo.normal = pxHit.normal;
+            hitInfo.distance = pxHit.distance;
+            hitInfo.shape = shape;
+            hitInfo.actor = pxHit.actor;
+
+            outHits.push_back(hitInfo);
+            return true;
+        };
+
+    if (hitBuffer.hasBlock) ProcessHit(hitBuffer.block);
     for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
-    {
-        const PxRaycastHit& pxHit = hitBuffer.getAnyHit(i);
-        PxShape* shape = pxHit.shape;
-        PhysicsComponent* comp = GetComponent(pxHit.actor);
-        if (!comp) continue;
-
-        RaycastHit hitInfo;
-        hitInfo.component = comp;
-        hitInfo.point = pxHit.position;
-        hitInfo.normal = pxHit.normal;
-        hitInfo.distance = pxHit.distance;
-        hitInfo.shape = shape;
-        hitInfo.actor = pxHit.actor;
-
-        outHits.push_back(hitInfo);
-    }
+        ProcessHit(hitBuffer.getAnyHit(i));
 
     return !outHits.empty();
 }

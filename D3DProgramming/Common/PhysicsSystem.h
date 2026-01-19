@@ -228,23 +228,14 @@ public:
 
 
     // Raycast
-    bool Raycast(
-        const physx::PxVec3& origin,
-        const physx::PxVec3& direction,
-        float maxDistance,
-        RaycastHit& outHit,
-        CollisionLayer layer,
-        QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction::Ignore
-    );
     bool RaycastAll(
-        const physx::PxVec3& origin,
-        const physx::PxVec3& direction,
+        const PxVec3& origin,
+        const PxVec3& direction,
         float maxDistance,
         std::vector<RaycastHit>& outHits,
         CollisionLayer layer,
-        QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction::Ignore
-    );
-  
+        QueryTriggerInteraction triggerInteraction);
+
 };
 
 // RigidBody    -> PhysX SimulationEventCallback,

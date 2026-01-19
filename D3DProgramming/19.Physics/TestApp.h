@@ -292,12 +292,26 @@ public:
 		const std::string& name = "NoneName"
 	);
 
-	// void CheckPlayerForward();
+	//// void CheckPlayerForward();
+	//void CheckPlayerForwardDebug(
+	//	PrimitiveBatch<VertexPositionColor>* batch,
+	//	bool bAllHits,
+	//	bool bIncludeTrigger,
+	//	CollisionLayer layer);
+
+	//void CheckPlayerForwardDebugOptimized(
+	//	PrimitiveBatch<VertexPositionColor>* batch,
+	//	bool bAllHits,
+	//	bool bIncludeTrigger,
+	//	CollisionLayer layer,
+	//	float maxDistance = 500.0f);
+
 	void CheckPlayerForwardDebug(
 		PrimitiveBatch<VertexPositionColor>* batch,
 		bool bAllHits,
 		bool bIncludeTrigger,
-		CollisionLayer layer);
+		CollisionLayer layer,
+		float maxDistance = 500.0f);
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };

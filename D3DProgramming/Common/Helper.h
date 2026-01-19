@@ -25,6 +25,18 @@ inline std::wstring ToWString(const std::string& str)
     return std::wstring(str.begin(), str.end());
 }
 
+// ==============================
+// 문자열 변환 유틸
+// ==============================
+inline std::wstring StringToWString(const std::string& str)
+{
+    if (str.empty()) return L"";
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), nullptr, 0);
+    std::wstring wstr(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), &wstr[0], size_needed);
+    return wstr;
+}
+
 // ========== [ 유니코드 wide 문자 버전 로그 매크로 ] ========== 
 
 // 에러 로그 (MessageBoxW를 띄워서 직접 알림)

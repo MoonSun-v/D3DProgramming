@@ -272,84 +272,55 @@ bool TestApp::LoadAsset()
 // ---------------------------------------------
 // 레이캐스트 테스트용 임시 메소드
 // ---------------------------------------------
-
-// [1] Player 레이어 또는 지정 레이어 테스트
 void TestApp::CheckPlayerForwardDebug(
 	PrimitiveBatch<VertexPositionColor>* batch,
 	bool bAllHits,
 	bool bIncludeTrigger,
-	CollisionLayer layer)
+	CollisionLayer layer,
+	float maxDistance)
 {
-	if (!m_Player || !m_Player->physics)
-		return;
+	if (!m_Player || !m_Player->physics || !batch) return;
 
 	PxVec3 originPx = ToPx(m_Player->transform.position);
 	PxVec3 forwardPx = ToPx(m_Player->transform.GetForward());
-	float maxDist = 500.0f;
 
-	// Trigger 처리 옵션
 	QueryTriggerInteraction triggerInteraction = bIncludeTrigger ? QueryTriggerInteraction::Collide : QueryTriggerInteraction::Ignore;
 
-	if (bAllHits)
-	{
-		// -----------------------------
-		// 모든 히트 감지
-		// -----------------------------
-		std::vector<RaycastHit> hits;
-		bool bHit = PhysicsSystem::Get().RaycastAll(originPx, forwardPx, maxDist, hits, layer, triggerInteraction);
+	std::vector<RaycastHit> hits;
+	bool bHit = PhysicsSystem::Get().RaycastAllOptimized(originPx, forwardPx, maxDistance, hits, layer, triggerInteraction);
+	if (!bHit) return;
 
-		PxVec3 start = originPx;
-		for (auto& hit : hits)
+	auto DrawHit = [&](const RaycastHit& hit, PxVec3& start)
 		{
 			PxVec3 end = hit.point;
+			DebugDraw::DrawRayDebug(batch, ToDXVec3(start), ToDXVec3(end - start),
+				bAllHits ? XMVectorSet(0, 1, 0, 1) : XMVectorSet(1, 0, 0, 1), false);
 
-			// 디버그 라인 (초록색)
-			DebugDraw::DrawRayDebug(batch, ToDXVec3(start), ToDXVec3(end - start), XMVectorSet(0, 1, 0, 1), false);
-
-			// 히트 이름 출력
 			std::wstring hitName = L"Unknown";
 			if (hit.component && hit.component->owner)
-			{
-				std::string name = hit.component->owner->GetName();
-				hitName = std::wstring(name.begin(), name.end());
-			}
+				hitName = StringToWString(hit.component->owner->GetName());
 
 			wchar_t buf[256];
-			swprintf(buf, 256, L"RaycastAll Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
+			swprintf(buf, 256, L"%s Hit: %s at distance %.2f\n",
+				bAllHits ? L"RaycastAll" : L"RaycastSingle",
+				hitName.c_str(),
+				hit.distance);
 			OutputDebugStringW(buf);
 
 			start = end;
-		}
+		};
+
+	PxVec3 start = originPx;
+	if (bAllHits)
+	{
+		for (auto& hit : hits)
+			DrawHit(hit, start);
 	}
 	else
 	{
-		// -----------------------------
-		// 첫 번째 히트만 감지
-		// -----------------------------
-		RaycastHit hit;
-		bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDist, hit, layer, triggerInteraction);
-
-		PxVec3 endPx = bHit ? hit.point : originPx + forwardPx * maxDist;
-
-		// 디버그 라인 (빨간색)
-		DebugDraw::DrawRayDebug(batch, ToDXVec3(originPx), ToDXVec3(endPx - originPx), XMVectorSet(1, 0, 0, 1), false);
-
-		// 히트 이름 출력
-		std::wstring hitName = L"Unknown";
-		if (hit.component && hit.component->owner)
-		{
-			std::string name = hit.component->owner->GetName();
-			hitName = std::wstring(name.begin(), name.end());
-		}
-
-		wchar_t buf[256];
-		swprintf(buf, 256, L"Raycast Single Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
-		OutputDebugStringW(buf);
+		DrawHit(hits[0], start);
 	}
 }
-
-
-
 
 std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
 	std::shared_ptr<StaticMeshAsset> asset,
@@ -1742,14 +1713,13 @@ void TestApp::Render_DebugDraw()
 	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::Player);
 
 	// 모든 hit 감지, 모든 레이어, Trigger 포함
-	CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::World);
+	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::World);
 	
 	// 1개만 감지, 모든 레이어, Trigger 포함
-	// CheckPlayerForwardDebug(m_DebugBatch.get(), false, true, CollisionLayer::World);
+	CheckPlayerForwardDebug(m_DebugBatch.get(), false, true, CollisionLayer::World);
 
 	// 모든 hit 감지, 모든 레이어, Trigger 무시
 	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, false, CollisionLayer::World);
-
 
 	m_DebugBatch->End();
 
