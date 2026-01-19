@@ -20,6 +20,13 @@ inline XMFLOAT3 ToDX(const PxVec3 & v)
     return { v.x, v.y, v.z };
 }
 
+// PxVec3 ¡æ XMVECTOR º¯È¯
+inline XMVECTOR ToDXVec3(const PxVec3& v)
+{
+    return XMVectorSet(v.x, v.y, v.z, 0.0f); // w = 0
+}
+
+
 // [ Quaternion ]
 inline PxQuat ToPxQuat(const XMVECTOR & q)
 {

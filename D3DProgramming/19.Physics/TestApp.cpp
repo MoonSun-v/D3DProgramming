@@ -273,52 +273,81 @@ bool TestApp::LoadAsset()
 // 레이캐스트 테스트용 임시 메소드
 // ---------------------------------------------
 
-// [1] 1개만 감지 : Player 레이어
-void TestApp::CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch)
+// [1] Player 레이어 또는 지정 레이어 테스트
+void TestApp::CheckPlayerForwardDebug(
+	PrimitiveBatch<VertexPositionColor>* batch,
+	bool bAllHits,
+	bool bIncludeTrigger,
+	CollisionLayer layer)
 {
 	if (!m_Player || !m_Player->physics)
 		return;
 
-	// 1. Ray 시작점 & 방향
 	PxVec3 originPx = ToPx(m_Player->transform.position);
-	XMFLOAT3 forward = m_Player->transform.GetForward();
-	PxVec3 forwardPx = ToPx(forward);
-
+	PxVec3 forwardPx = ToPx(m_Player->transform.GetForward());
 	float maxDist = 500.0f;
 
-	// 2. Raycast 실행
-	//	- Player 레이어 기준으로 실행 
-	RaycastHit hit;
-	bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDist, hit, CollisionLayer::Player);
+	// Trigger 처리 옵션
+	QueryTriggerInteraction triggerInteraction = bIncludeTrigger ? QueryTriggerInteraction::Collide : QueryTriggerInteraction::Ignore;
 
-	// 3. 디버그 선 그리기 (빨강색)
-	PxVec3 endPx = bHit ? hit.point : originPx + forwardPx * maxDist;
-	XMFLOAT3 originDX = ToDX(originPx);
-	XMFLOAT3 dirDX = ToDX(endPx - originPx);
-
-	DebugDraw::DrawRayDebug(batch,
-		XMLoadFloat3(&originDX),
-		XMLoadFloat3(&dirDX),
-		XMVectorSet(1, 0, 0, 1),  // color
-		false);                   // normalize
-
-	// 4. 결과 출력
-	std::wstring hitName = L"Unknown";
-	if (hit.component && hit.component->owner)
+	if (bAllHits)
 	{
-		std::string name = hit.component->owner->GetName();
-		hitName = std::wstring(name.begin(), name.end());
-	}
+		// -----------------------------
+		// 모든 히트 감지
+		// -----------------------------
+		std::vector<RaycastHit> hits;
+		bool bHit = PhysicsSystem::Get().RaycastAll(originPx, forwardPx, maxDist, hits, layer, triggerInteraction);
 
-	wchar_t buf[256];
-	swprintf(buf, 256, L"Player Forward Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
-	OutputDebugStringW(buf);
+		PxVec3 start = originPx;
+		for (auto& hit : hits)
+		{
+			PxVec3 end = hit.point;
+
+			// 디버그 라인 (초록색)
+			DebugDraw::DrawRayDebug(batch, ToDXVec3(start), ToDXVec3(end - start), XMVectorSet(0, 1, 0, 1), false);
+
+			// 히트 이름 출력
+			std::wstring hitName = L"Unknown";
+			if (hit.component && hit.component->owner)
+			{
+				std::string name = hit.component->owner->GetName();
+				hitName = std::wstring(name.begin(), name.end());
+			}
+
+			wchar_t buf[256];
+			swprintf(buf, 256, L"RaycastAll Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
+			OutputDebugStringW(buf);
+
+			start = end;
+		}
+	}
+	else
+	{
+		// -----------------------------
+		// 첫 번째 히트만 감지
+		// -----------------------------
+		RaycastHit hit;
+		bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDist, hit, layer, triggerInteraction);
+
+		PxVec3 endPx = bHit ? hit.point : originPx + forwardPx * maxDist;
+
+		// 디버그 라인 (빨간색)
+		DebugDraw::DrawRayDebug(batch, ToDXVec3(originPx), ToDXVec3(endPx - originPx), XMVectorSet(1, 0, 0, 1), false);
+
+		// 히트 이름 출력
+		std::wstring hitName = L"Unknown";
+		if (hit.component && hit.component->owner)
+		{
+			std::string name = hit.component->owner->GetName();
+			hitName = std::wstring(name.begin(), name.end());
+		}
+
+		wchar_t buf[256];
+		swprintf(buf, 256, L"Raycast Single Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
+		OutputDebugStringW(buf);
+	}
 }
 
-// [2] 모두 감지 : Player 레이어
-
-
-// [3] 1개만 감지 : 모든 레이어 
 
 
 
@@ -1706,8 +1735,21 @@ void TestApp::Render_DebugDraw()
 
 	DrawPhysXActors();
 
-	// Raycast 디버그 선
-	CheckPlayerForwardDebug(m_DebugBatch.get());
+	// 1개만 감지, Player 레이어, Trigger 무시
+	// CheckPlayerForwardDebug(m_DebugBatch.get(), false, false, CollisionLayer::Player);
+
+	// 모든 hit 감지, Player 레이어, Trigger 포함
+	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::Player);
+
+	// 모든 hit 감지, 모든 레이어, Trigger 포함
+	CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::World);
+	
+	// 1개만 감지, 모든 레이어, Trigger 포함
+	// CheckPlayerForwardDebug(m_DebugBatch.get(), false, true, CollisionLayer::World);
+
+	// 모든 hit 감지, 모든 레이어, Trigger 무시
+	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, false, CollisionLayer::World);
+
 
 	m_DebugBatch->End();
 
