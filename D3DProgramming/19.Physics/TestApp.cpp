@@ -4,6 +4,8 @@
 #include "../Common/PhysicsSystem.h"
 #include "../Common/PhysXUtils.h"
 
+#include <string>
+#include <sstream>
 #include <d3dcompiler.h>
 #include <Directxtk/DDSTextureLoader.h>
 #include <windows.h>
@@ -23,6 +25,32 @@ TestApp::TestApp() : GameApp()
 
 TestApp::~TestApp() { }
 
+
+// [ 레이어 확인 출력용 ]
+void DebugPrintCollisionLayer(const PhysicsComponent* comp)
+{
+	if (!comp) return;
+
+	CollisionLayer layer = comp->GetLayer();
+
+	std::wstringstream ss;
+	ss << L"Collision Layer: ";
+
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::Default)) ss << L"Default ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::Player))  ss << L"Player ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::Enemy))   ss << L"Enemy ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::World))   ss << L"World ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::Trigger)) ss << L"Trigger ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::Projectile)) ss << L"Projectile ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::Ball))    ss << L"Ball ";
+	if (static_cast<uint32_t>(layer) & static_cast<uint32_t>(CollisionLayer::IgnoreTest)) ss << L"IgnoreTest ";
+
+	ss << L"\n";
+
+	OutputDebugStringW(ss.str().c_str());
+}
+
+
 bool TestApp::Initialize()
 {
 	__super::Initialize();
@@ -40,6 +68,34 @@ bool TestApp::Initialize()
 	if (!LoadAsset())	return false;
 	if (!InitSkyBox())  return false;
 	if (!InitImGUI())	return false;
+
+
+
+	// ------------------------------------
+	// 레이어 확인용 디버그 출력 
+	// ------------------------------------
+	for (auto& mesh : m_SkeletalMeshes)
+	{
+		if (mesh->physics)
+		{
+			std::string nameStr = mesh->GetName();               
+			std::wstring nameW(nameStr.begin(), nameStr.end()); 
+			OutputDebugStringW((nameW + L": ").c_str());
+
+			DebugPrintCollisionLayer(mesh->physics.get());
+		}
+	}
+	for (auto& mesh : m_StaticMeshes)
+	{
+		if (mesh->physics)
+		{
+			std::string nameStr = mesh->GetName();
+			std::wstring nameW(nameStr.begin(), nameStr.end());
+			OutputDebugStringW((nameW + L": ").c_str());
+
+			DebugPrintCollisionLayer(mesh->physics.get());
+		}
+	}
 
 
 	// ------------------------------------
@@ -167,10 +223,11 @@ bool TestApp::LoadAsset()
 	human1->physics->SyncToPhysics();
 
 
-	// [2] Dynamic Capsule 
+	// [2] Dynamic Capsule / Dynamic Box 
 	auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
 	human2->physics->owner = human2.get();
 	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
+	// human2->physics->CreateDynamicBox({ 40.0f, 50.0f, 40.0f }, 100.0f);
 	human2->physics->SyncToPhysics();
 
 
