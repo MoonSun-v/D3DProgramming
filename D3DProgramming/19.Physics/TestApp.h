@@ -294,6 +294,7 @@ public:
 
 	// void CheckPlayerForward();
 	void CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch);
+	// bool CheckPlayerForwardDebug_AllLayers(PrimitiveBatch<VertexPositionColor>* batch);
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };

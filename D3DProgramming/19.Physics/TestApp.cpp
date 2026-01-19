@@ -155,6 +155,7 @@ bool TestApp::LoadAsset()
 	// [ 장식 캐릭터 ]
 	auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 }, "StaticCharacter");
 	charObj->physics->owner = charObj.get();
+	charObj->physics->SetLayer(CollisionLayer::World);
 	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
 	charObj->physics->SyncToPhysics();
 	
@@ -268,7 +269,11 @@ bool TestApp::LoadAsset()
 }
 
 
-// [ 레이캐스트 테스트용 임시 메소드 ]
+// ---------------------------------------------
+// 레이캐스트 테스트용 임시 메소드
+// ---------------------------------------------
+
+// [1] 1개만 감지 : Player 레이어
 void TestApp::CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch)
 {
 	if (!m_Player || !m_Player->physics)
@@ -282,8 +287,9 @@ void TestApp::CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch
 	float maxDist = 500.0f;
 
 	// 2. Raycast 실행
+	//	- Player 레이어 기준으로 실행 
 	RaycastHit hit;
-	bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDist, hit, CollisionLayer::World);
+	bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDist, hit, CollisionLayer::Player);
 
 	// 3. 디버그 선 그리기 (빨강색)
 	PxVec3 endPx = bHit ? hit.point : originPx + forwardPx * maxDist;
@@ -308,6 +314,12 @@ void TestApp::CheckPlayerForwardDebug(PrimitiveBatch<VertexPositionColor>* batch
 	swprintf(buf, 256, L"Player Forward Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
 	OutputDebugStringW(buf);
 }
+
+// [2] 모두 감지 : Player 레이어
+
+
+// [3] 1개만 감지 : 모든 레이어 
+
 
 
 std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(

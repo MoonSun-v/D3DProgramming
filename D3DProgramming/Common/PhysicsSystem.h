@@ -13,6 +13,13 @@ using namespace physx;
 
 class PhysicsComponent;
 class PhysicsLayerMatrix;
+struct PairHash
+{
+    size_t operator()(const std::pair<PhysicsComponent*, PhysicsComponent*>& p) const
+    {
+        return std::hash<void*>()(p.first) ^ std::hash<void*>()(p.second);
+    }
+};
 
 // ----------------------------------------------------
 // [ ControllerHitReport ] 
@@ -76,7 +83,7 @@ public:
 // ------------------------------
 // CCT Collision Filter (Sweep¿ë)
 // ------------------------------
-class CCTQueryFilter : public PxQueryFilterCallback
+class CCTQueryFilter : public PxQueryFilterCallback 
 {
 public:
     PhysicsComponent* owner;
@@ -89,18 +96,32 @@ public:
         PxHitFlags&) override;
 
     PxQueryHitType::Enum postFilter(
-        const PxFilterData&,
-        const PxQueryHit&,
-        const PxShape*,
-        const PxRigidActor*) override;
+        const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override;
 };
 
-struct PairHash
+
+// ------------------------------
+// Raycast Filter
+// ------------------------------
+class RaycastFilterCallback : public PxQueryFilterCallback
 {
-    size_t operator()(const std::pair<PhysicsComponent*, PhysicsComponent*>& p) const
-    {
-        return std::hash<void*>()(p.first) ^ std::hash<void*>()(p.second);
+public:
+    CollisionLayer m_RaycastLayer;
+    QueryTriggerInteraction m_TriggerInteraction;
+
+    RaycastFilterCallback(CollisionLayer layer, QueryTriggerInteraction trigger)
+        : m_RaycastLayer(layer), m_TriggerInteraction(trigger) {
     }
+
+    // Raycast ½Ã preFilter
+    PxQueryHitType::Enum preFilter(
+        const PxFilterData& filterData,
+        const PxShape* shape,
+        const PxRigidActor* actor,
+              PxHitFlags&) override;
+
+    PxQueryHitType::Enum postFilter(
+        const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override;
 };
 
 
@@ -205,6 +226,7 @@ public:
         float density = 10.0f
     );
 
+
     // Raycast
     bool Raycast(
         const physx::PxVec3& origin,
@@ -214,7 +236,6 @@ public:
         CollisionLayer layer,
         QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction::Ignore
     );
-
     bool RaycastAll(
         const physx::PxVec3& origin,
         const physx::PxVec3& direction,
@@ -225,8 +246,6 @@ public:
     );
   
 };
-
-
 
 // RigidBody    -> PhysX SimulationEventCallback,
 // CCT          -> HitReport + Sweep + Overlap,

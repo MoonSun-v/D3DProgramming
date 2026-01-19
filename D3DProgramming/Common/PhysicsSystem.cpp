@@ -66,6 +66,9 @@ void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
 }
 
 
+
+// -------------------------------------------------------------------------
+
 PxQueryHitType::Enum TriggerFilter::preFilter(
     const PxFilterData& filterData,
     const PxShape* shape,
@@ -96,6 +99,7 @@ PxQueryHitType::Enum TriggerFilter::postFilter (const PxFilterData&, const PxQue
     return PxQueryHitType::eTOUCH;
 }
 
+// -------------------------------------------------------------------------
 
 PxQueryHitType::Enum CCTQueryFilter::preFilter(
     const PxFilterData& filterData,
@@ -129,6 +133,57 @@ PxQueryHitType::Enum CCTQueryFilter::postFilter(
     return PxQueryHitType::eNONE;
 }
 
+// -------------------------------------------------------------------------
+
+PxQueryHitType::Enum RaycastFilterCallback::preFilter(
+    const PxFilterData& filterData,
+    const PxShape* shape,
+    const PxRigidActor* actor,
+    PxHitFlags&)
+{
+    if (!shape || !actor)
+        return PxQueryHitType::eNONE;
+
+    // Trigger 처리 
+    bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+    if (isTrigger && m_TriggerInteraction == QueryTriggerInteraction::Ignore)
+        return PxQueryHitType::eNONE;
+
+    // Actor의 PhysicsComponent
+    PhysicsComponent* comp = PhysicsSystem::Get().GetComponent(const_cast<PxRigidActor*>(actor));
+    if (!comp)
+    {
+        return PxQueryHitType::eNONE;
+    }
+
+    // Raycast 레이어 필터링 : CanCollide 대신 안전하게 양방향 체크
+    CollisionMask rayMask = PhysicsLayerMatrix::GetMask(m_RaycastLayer);    // rayMask:   Raycast가 감지할 수 있는 레이어들의 마스크
+    CollisionMask actorMask = PhysicsLayerMatrix::GetMask(comp->GetLayer());// actorMask: Actor가 충돌할 수 있는 레이어들의 비트 마스크
+    
+    if (((rayMask & (uint32_t)comp->GetLayer()) == 0) || ((actorMask & (uint32_t)m_RaycastLayer) == 0))
+    {
+        OutputDebugStringW(L"[RaycastFilterCallback] Raycast 레이어 필터링 되었습니다.\n");
+        return PxQueryHitType::eNONE;
+    }
+
+    OutputDebugStringA(("Raycast preFilter: actor=" + comp->owner->GetName() +
+        " | actorLayer=" + std::to_string((int)comp->GetLayer()) +
+        " | rayLayer=" + std::to_string((int)m_RaycastLayer) + "\n").c_str());
+
+    return PxQueryHitType::eBLOCK; // 유효 히트
+}
+
+PxQueryHitType::Enum RaycastFilterCallback::postFilter(
+    const PxFilterData&,
+    const PxQueryHit&,
+    const PxShape*,
+    const PxRigidActor*)
+{
+    return PxQueryHitType::eBLOCK;
+}
+
+
+// -------------------------------------------------------------------------
 
 PhysicsSystem::~PhysicsSystem()
 {
@@ -473,23 +528,45 @@ bool PhysicsSystem::Raycast(
     // Broad Phase : PhysX 필터
     // -----------------------------
     PxQueryFilterData filterData;
-    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+    filterData.data.word0 = (uint32_t)(layer); // Raycast 레이어
+    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer); // 레이어 마스크
+    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
 
-    filterData.data.word0 = static_cast<PxU32>(layer);
-    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);
+    RaycastFilterCallback filterCallback(layer, triggerInteraction);
 
-    bool hit = m_Scene->raycast(
+    bool bHit = m_Scene->raycast(
         origin,
         direction.getNormalized(),
         maxDistance,
         hitBuffer,
         PxHitFlag::eDEFAULT,
-        filterData
+        filterData,
+        &filterCallback
     );
 
-    if (!hit || hitBuffer.getNbAnyHits() == 0)
+    if (!bHit || hitBuffer.getNbAnyHits() == 0) return false;
+
+    const PxRaycastHit& pxHit = hitBuffer.block; // 첫번째 Block만 가져옴
+
+    PhysicsComponent* comp = GetComponent(pxHit.actor);
+    if (!comp)
         return false;
 
+    // 최종 레이어 검사 (안전)
+    if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
+        return false;
+
+    // 결과 채우기
+    outHit.component = comp;
+    outHit.point = pxHit.position;
+    outHit.normal = pxHit.normal;
+    outHit.distance = pxHit.distance;
+    outHit.shape = pxHit.shape;
+    outHit.actor = pxHit.actor;
+
+    return true;
+
+    /*
     // -----------------------------
     // Narrow Phase : Unity식 후처리
     // -----------------------------
@@ -523,8 +600,9 @@ bool PhysicsSystem::Raycast(
         return true; // Unity처럼 첫 유효 히트
     }
 
-    return false;
+    return false;*/
 }
+
 bool PhysicsSystem::RaycastAll(
     const PxVec3& origin,
     const PxVec3& direction,
@@ -541,38 +619,30 @@ bool PhysicsSystem::RaycastAll(
     PxRaycastBuffer hitBuffer;
 
     PxQueryFilterData filterData;
-    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
     filterData.data.word0 = static_cast<PxU32>(layer);
     filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);
 
-    bool hit = m_Scene->raycast(
+    RaycastFilterCallback filterCallback(layer, triggerInteraction);
+
+    bool bHit = m_Scene->raycast(
         origin,
         direction.getNormalized(),
         maxDistance,
         hitBuffer,
         PxHitFlag::eDEFAULT,
-        filterData
+        filterData,
+        &filterCallback
     );
 
-    if (!hit || hitBuffer.getNbAnyHits() == 0)
-        return false;
+    if (!bHit || hitBuffer.getNbAnyHits() == 0) return false;
 
     for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
     {
         const PxRaycastHit& pxHit = hitBuffer.getAnyHit(i);
-
         PxShape* shape = pxHit.shape;
-        bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
-
-        if (isTrigger && triggerInteraction == QueryTriggerInteraction::Ignore)
-            continue;
-
         PhysicsComponent* comp = GetComponent(pxHit.actor);
-        if (!comp)
-            continue;
-
-        if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
-            continue;
+        if (!comp) continue;
 
         RaycastHit hitInfo;
         hitInfo.component = comp;

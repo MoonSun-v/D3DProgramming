@@ -325,7 +325,7 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
 
 
     // --------------------
-    // 4.  CCT vs Collider 레이어 필터 
+    // 4. CCT vs Collider 레이어 필터 
     // --------------------
     CCTQueryFilter queryFilter(this);
 
@@ -404,7 +404,7 @@ void PhysicsComponent::ResolveCCTTriggers()
     m_CCTCurrTriggers.clear();
 }
 
-void PhysicsComponent::CheckCCTTriggers()
+void PhysicsComponent::CheckCCTTriggers() 
 {
     if (!m_Controller)
         return;
@@ -439,8 +439,6 @@ void PhysicsComponent::CheckCCTTriggers()
     TriggerFilter filter(this);
 
     PxOverlapBufferN<64> hit;
-    // scene->overlap(capsule, pose, hit, PxQueryFilterData(), &filter);
-
     PxQueryFilterData qfd;
     qfd.data = m_CCTFilterData;
     qfd.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
@@ -518,5 +516,16 @@ void PhysicsComponent::ApplyFilter()
 
         m_Shape->setSimulationFilterData(data);
         m_Shape->setQueryFilterData(data);
+    }
+
+    // ----------------------------
+    // CCT 전용 Query Filter
+    // ----------------------------
+    if (m_Controller)
+    {
+        m_CCTFilterData.word0 = (uint32_t)m_Layer;          // 자기 레이어
+        m_CCTFilterData.word1 = PhysicsLayerMatrix::GetMask(m_Layer);
+        m_CCTFilterData.word2 = 0;
+        m_CCTFilterData.word3 = 0;
     }
 }
