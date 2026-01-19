@@ -3,10 +3,12 @@
 #include "StaticMeshAsset.h"
 #include "Transform.h"
 #include "PhysicsComponent.h"
+#include "MeshInstanceBase.h"
 
-class StaticMeshInstance
+class StaticMeshInstance : public MeshInstanceBase
 {
 public:
+    std::string m_Name;
     std::shared_ptr<StaticMeshAsset> m_Asset;
     std::unique_ptr<PhysicsComponent> physics;
     Transform transform;
@@ -18,4 +20,5 @@ public:
     void Update();
 
     Matrix GetWorld() const { return transform.GetMatrix(); }
+    virtual std::string GetName() const override { return m_Name; }
 };

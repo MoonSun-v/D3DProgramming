@@ -91,45 +91,53 @@ bool TestApp::LoadAsset()
 
 
 	// [ 바닥 ]
-	auto plane = CreateStaticMesh(planeAsset, { 0, 0, 0 }, { 0,0,0 }, { 0.5f,1.0f,0.5f });
+	auto plane = CreateStaticMesh(planeAsset, { 0, 0, 0 }, { 0,0,0 }, { 0.5f,1.0f,0.5f }, "plane");
+	plane->physics->owner = plane.get();
 	plane->physics->CreateStaticBox({ 600, 1, 600 });
 	plane->physics->SyncToPhysics();
 
 	// [ 장식 캐릭터 ]
-	auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 });
+	auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 }, "StaticCharacter");
+	charObj->physics->owner = charObj.get();
 	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
 	charObj->physics->SyncToPhysics();
 	
 	// [ 나무1 ]
-	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0, 0 }, { 1,1,1 });
+	auto tree1 = CreateStaticMesh(treeAsset, { 200,10,200 }, { 0, 0, 0 }, { 1,1,1 }, "tree1");
+	tree1->physics->owner = tree1.get();
 	tree1->physics->CreateTriggerBox({ 10.0f, 30.0f, 10.0f }, { 0, 50.0f, 0 });
 	tree1->physics->SyncToPhysics();
 
 	// [ 나무2 ]
-	auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-200 }, { 0, 90, 0 }, { 1,1,1 });
+	auto tree2 = CreateStaticMesh(treeAsset, { 200,10,-200 }, { 0, 90, 0 }, { 1,1,1 }, "tree2");
+	tree2->physics->owner = tree2.get();
 	tree2->physics->CreateStaticBox({ 10.0f, 30.0f, 10.0f });
 	tree2->physics->SyncToPhysics();
 
 	// [ trigger Capsule 빈 영역 ]
-	auto area = CreateStaticMesh(nullptr, { -250,40,-400 }, { 0,0,0 }, { 1,1,1 });
+	auto area = CreateStaticMesh(nullptr, { -250,40,-400 }, { 0,0,0 }, { 1,1,1 }, "triggerCapsule");
+	area->physics->owner = area.get();
 	area->physics->CreateTriggerCapsule(80.0f, 200.0f, { 0,100,0 });
 	area->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area->physics->SyncToPhysics();
 
 	// [ collision 빈 영역 ]
-	auto area2 = CreateStaticMesh(nullptr, { -200,40,200 }, { 0,0,0 }, { 1,1,1 });
+	auto area2 = CreateStaticMesh(nullptr, { -200,40,200 }, { 0,0,0 }, { 1,1,1 }, "collision");
+	area2->physics->owner = area2.get();
 	area2->physics->CreateStaticBox({ 50.0f, 50.0f, 50.0f });
-	// area2->physics->SetLayer(CollisionLayer::IgnoreTest);
+	area2->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area2->physics->SyncToPhysics();
 
 	// [ trigger Box 빈 영역 ]
-	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 });
+	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 }, "triggerBox");
+	area3->physics->owner = area3.get();
 	area3->physics->CreateTriggerBox({ 50.0f, 50.0f, 50.0f });
 	// area3->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area3->physics->SyncToPhysics();
 
 	// [ Ball ]
-	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 });
+	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 }, "ball");
+	ball->physics->owner = ball.get();
 	// auto ball = CreateStaticMesh(nullptr, { -400,150,200 }, { 0, 0, 0 }, { 1,1,1 });
 	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
 	ball->physics->SetLayer(CollisionLayer::Ball); 
@@ -154,18 +162,21 @@ bool TestApp::LoadAsset()
 
 	// [1] Static Box
 	auto human1 = CreateSkeletalMesh(device, humanAsset, { -100,10,300 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
+	human1->physics->owner = human1.get();
 	human1->physics->CreateStaticCapsule(20.0f, 20.0f);
 	human1->physics->SyncToPhysics();
 
 
 	// [2] Dynamic Capsule 
 	auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
+	human2->physics->owner = human2.get();
 	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
 	// [3] Character Controller (Player)
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { -150,40,-250 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
+	human3->physics->owner = human3.get();
 	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
 	human3->physics->SetLayer(CollisionLayer::Player);
 	m_Player = human3.get(); // 플레이어로 지정 (소유 X, 참조만)
@@ -199,14 +210,64 @@ bool TestApp::LoadAsset()
 	return true; 
 }
 
+
+// [ 레이캐스트 테스트용 임시 메소드 ]
+void TestApp::CheckPlayerForward()
+{
+	// 1. Player 체크
+	if (!m_Player || !m_Player->physics)
+		return;
+
+	// 2. Raycast 시작점 & 방향
+	PxVec3 origin = ToPx(m_Player->transform.position);
+	PxVec3 forward = PxVec3(0, 0, 1); // 월드 Z 방향
+	float maxDist = 500.0f;
+
+	// 3. Raycast 실행
+	RaycastHit hit;
+	if (PhysicsSystem::Get().Raycast(origin, forward, maxDist, hit, CollisionLayer::Default))
+	{
+		// 4. hit.component 및 owner 안전 체크
+		std::string strName = "Unknown";
+		if (hit.component && hit.component->owner)
+		{
+			strName = hit.component->owner->GetName();
+		}
+
+		// 5. UTF-8 -> UTF-16 변환
+		std::wstring wname;
+		int size_needed = MultiByteToWideChar(CP_UTF8, 0, strName.c_str(), -1, nullptr, 0);
+		if (size_needed > 0)
+		{
+			wname.resize(size_needed - 1); // null 제외
+			MultiByteToWideChar(CP_UTF8, 0, strName.c_str(), -1, &wname[0], size_needed);
+		}
+		else
+		{
+			wname = L"Unknown";
+		}
+
+		// 6. 출력
+		wchar_t buf[256];
+		swprintf(buf, 256, L"Player Forward Hit: %s at distance %.2f\n",
+			wname.c_str(),
+			hit.distance);
+		OutputDebugStringW(buf);
+	}
+}
+
+
+
 std::shared_ptr<StaticMeshInstance> TestApp::CreateStaticMesh(
 	std::shared_ptr<StaticMeshAsset> asset,
 	const Vector3& pos,
 	const Vector3& rot, 
-	const Vector3& scale)
+	const Vector3& scale,
+	const std::string& name)
 {
 	auto inst = std::make_shared<StaticMeshInstance>();
 
+	inst->m_Name = name;
 	inst->SetAsset(asset);
 
 	inst->transform.position = pos;
@@ -347,6 +408,8 @@ void TestApp::Update()
 		mesh->Update();
 	}
 
+	// 레이캐스트 테스트 
+	CheckPlayerForward();
 	
 	// ---------------------------------------------
 	// [ Shadow 카메라 위치 계산 (원근 투영) ] 
@@ -1770,9 +1833,6 @@ void TestApp::CollectCCTActors()
 
 void TestApp::UninitScene()
 {
-	OutputDebugString(L"[TestApp::UninitScene] 실행\r\n");
-
-	// 샘플러, 상수버퍼, 셰이더, 입력레이아웃 해제
 	m_pSamplerLinear.Reset();
 	m_pSamplerComparison.Reset();
 	m_pConstantBuffer.Reset();

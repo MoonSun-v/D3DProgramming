@@ -280,7 +280,8 @@ public:
 		std::shared_ptr<StaticMeshAsset> asset,
 		const Vector3& pos,
 		const Vector3& rot = { 0,0,0 },
-		const Vector3& scale = { 1,1,1 }
+		const Vector3& scale = { 1,1,1 },
+		const std::string& name = "NoneName"
 	);
 	std::shared_ptr<SkeletalMeshInstance> CreateSkeletalMesh(
 		ID3D11Device* device,
@@ -291,6 +292,7 @@ public:
 		const std::string& name = "NoneName"
 	);
 
+	void CheckPlayerForward();
 
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 };

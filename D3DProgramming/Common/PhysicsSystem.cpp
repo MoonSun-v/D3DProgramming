@@ -79,10 +79,7 @@ PxQueryHitType::Enum TriggerFilter::preFilter(
     const PxFilterData& shapeData = shape->getQueryFilterData();
 
     // 양방향 레이어 + 마스크 검사
-    if (
-        !(filterData.word1 & shapeData.word0) ||
-        !(shapeData.word1 & filterData.word0)
-        )
+    if (!(filterData.word1 & shapeData.word0) || !(shapeData.word1 & filterData.word0))
     {
         return PxQueryHitType::eNONE;
     }
@@ -109,9 +106,7 @@ PxQueryHitType::Enum CCTQueryFilter::preFilter(
     const PxFilterData& shapeData = shape->getQueryFilterData();
 
     // 양방향 레이어 검사
-    if (
-        !(filterData.word1 & shapeData.word0) || !(shapeData.word1 & filterData.word0)
-        )
+    if (!(filterData.word1 & shapeData.word0) || !(shapeData.word1 & filterData.word0))
     {
         return PxQueryHitType::eNONE;
     }
@@ -255,6 +250,7 @@ void PhysicsSystem::Simulate(float dt)
     }
     ResolveTriggerEvents(); // 한 번만 Trigger 해석
 }
+
 
 // [ 모든 Trigger 이벤트는 PhysicsSystem에서 중앙 처리 ]
 // - 중복 제거
@@ -439,9 +435,6 @@ void SimulationEventCallback::onContact(
         {
             compA->OnCollisionEnter(compB);
             compB->OnCollisionEnter(compA);
-
-            //compA->m_CollisionActors.insert(compB);
-            //compB->m_CollisionActors.insert(compA);
         }
 
         if (pair.events & PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
@@ -454,38 +447,143 @@ void SimulationEventCallback::onContact(
         {
             compA->OnCollisionExit(compB);
             compB->OnCollisionExit(compA);
-
-            //compA->m_CollisionActors.erase(compB);
-            //compB->m_CollisionActors.erase(compA);
         }
     }
 }
 
-//void SimulationEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 count)
-//{
-//    for (PxU32 i = 0; i < count; i++)
-//    {
-//        PxTriggerPair& pair = pairs[i];
-//
-//        // CCT Actor면 무조건 무시
-//        if (PhysicsSystem::Get().GetComponent(static_cast<PxActor*>(pair.otherActor)) == nullptr)
-//            continue;
-//
-//        PhysicsComponent* compA = PhysicsSystem::Get().GetComponent(pair.triggerActor);
-//        PhysicsComponent* compB = PhysicsSystem::Get().GetComponent(pair.otherActor);
-//
-//        if (!compA || !compB)
-//            continue;
-//
-//        if (!PhysicsLayerMatrix::CanCollide(
-//            compA->GetLayer(),
-//            compB->GetLayer()))
-//        {
-//            continue;
-//        }
-//
-//        // Trigger는 "기록만"
-//        compA->m_PendingTriggers.insert(compB);
-//        compB->m_PendingTriggers.insert(compA);
-//    }
-//}
+
+
+// ----------------------------------------------------
+// [ Raycast ] 
+// ----------------------------------------------------
+bool PhysicsSystem::Raycast(
+    const PxVec3& origin,
+    const PxVec3& direction,
+    float maxDistance,
+    RaycastHit& outHit,
+    CollisionLayer layer,
+    QueryTriggerInteraction triggerInteraction)
+{
+    if (!m_Scene)
+        return false;
+
+    PxRaycastBuffer hitBuffer;
+
+    // -----------------------------
+    // Broad Phase : PhysX 필터
+    // -----------------------------
+    PxQueryFilterData filterData;
+    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+
+    filterData.data.word0 = static_cast<PxU32>(layer);
+    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);
+
+    bool hit = m_Scene->raycast(
+        origin,
+        direction.getNormalized(),
+        maxDistance,
+        hitBuffer,
+        PxHitFlag::eDEFAULT,
+        filterData
+    );
+
+    if (!hit || hitBuffer.getNbAnyHits() == 0)
+        return false;
+
+    // -----------------------------
+    // Narrow Phase : Unity식 후처리
+    // -----------------------------
+    for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
+    {
+        const PxRaycastHit& pxHit = hitBuffer.getAnyHit(i);
+
+        PxShape* shape = pxHit.shape;
+        bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+
+        // Trigger 처리 옵션
+        if (isTrigger && triggerInteraction == QueryTriggerInteraction::Ignore)
+            continue;
+
+        PhysicsComponent* comp = GetComponent(pxHit.actor);
+        if (!comp)
+            continue;
+
+        // Layer Narrow Phase
+        if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
+            continue;
+
+        // 결과 채우기
+        outHit.component = comp;
+        outHit.point = pxHit.position;
+        outHit.normal = pxHit.normal;
+        outHit.distance = pxHit.distance;
+        outHit.shape = shape;
+        outHit.actor = pxHit.actor;
+
+        return true; // Unity처럼 첫 유효 히트
+    }
+
+    return false;
+}
+bool PhysicsSystem::RaycastAll(
+    const PxVec3& origin,
+    const PxVec3& direction,
+    float maxDistance,
+    std::vector<RaycastHit>& outHits,
+    CollisionLayer layer,
+    QueryTriggerInteraction triggerInteraction)
+{
+    outHits.clear();
+
+    if (!m_Scene)
+        return false;
+
+    PxRaycastBuffer hitBuffer;
+
+    PxQueryFilterData filterData;
+    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+    filterData.data.word0 = static_cast<PxU32>(layer);
+    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);
+
+    bool hit = m_Scene->raycast(
+        origin,
+        direction.getNormalized(),
+        maxDistance,
+        hitBuffer,
+        PxHitFlag::eDEFAULT,
+        filterData
+    );
+
+    if (!hit || hitBuffer.getNbAnyHits() == 0)
+        return false;
+
+    for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
+    {
+        const PxRaycastHit& pxHit = hitBuffer.getAnyHit(i);
+
+        PxShape* shape = pxHit.shape;
+        bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+
+        if (isTrigger && triggerInteraction == QueryTriggerInteraction::Ignore)
+            continue;
+
+        PhysicsComponent* comp = GetComponent(pxHit.actor);
+        if (!comp)
+            continue;
+
+        if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
+            continue;
+
+        RaycastHit hitInfo;
+        hitInfo.component = comp;
+        hitInfo.point = pxHit.position;
+        hitInfo.normal = pxHit.normal;
+        hitInfo.distance = pxHit.distance;
+        hitInfo.shape = shape;
+        hitInfo.actor = pxHit.actor;
+
+        outHits.push_back(hitInfo);
+    }
+
+    return !outHits.empty();
+}

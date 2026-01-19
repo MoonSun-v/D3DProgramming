@@ -5,7 +5,9 @@
 #include <unordered_set>
 
 #include "PhysicsFilterShader.h"
-
+#include "RaycastHit.h"
+#include "QueryTriggerInteraction.h"
+#include "CollisionLayer.h"
 
 using namespace physx;
 
@@ -49,7 +51,7 @@ public:
 };
 
 // ------------------------------
-// Trigger Filter (CCT 전용 Overlap Query용)
+// CCT Trigger Filter (Overlap Query용)
 // ------------------------------
 class TriggerFilter : public PxQueryFilterCallback
 {
@@ -202,6 +204,26 @@ public:
         float height,
         float density = 10.0f
     );
+
+    // Raycast
+    bool Raycast(
+        const physx::PxVec3& origin,
+        const physx::PxVec3& direction,
+        float maxDistance,
+        RaycastHit& outHit,
+        CollisionLayer layer,
+        QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction::Ignore
+    );
+
+    bool RaycastAll(
+        const physx::PxVec3& origin,
+        const physx::PxVec3& direction,
+        float maxDistance,
+        std::vector<RaycastHit>& outHits,
+        CollisionLayer layer,
+        QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction::Ignore
+    );
+  
 };
 
 

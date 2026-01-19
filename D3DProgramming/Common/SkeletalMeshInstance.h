@@ -6,8 +6,10 @@
 #include "Animator.h"
 #include "AnimationController.h"
 #include "PhysicsComponent.h"
+#include "MeshInstanceBase.h"
 
-class SkeletalMeshInstance
+
+class SkeletalMeshInstance : public MeshInstanceBase
 {
 public:
     std::string m_Name;
@@ -29,4 +31,5 @@ public:
 	void RenderShadow(ID3D11DeviceContext* context, int isRigid);
 
     Matrix GetWorld() const { return transform.GetMatrix(); }
+    virtual std::string GetName() const override { return m_Name; }
 };

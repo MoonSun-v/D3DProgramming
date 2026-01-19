@@ -131,6 +131,15 @@
     <ClInclude Include="PhysicsLayerMatrix.h">
       <Filter>[ 04.Physics ]</Filter>
     </ClInclude>
+    <ClInclude Include="RaycastHit.h">
+      <Filter>[ 04.Physics ]</Filter>
+    </ClInclude>
+    <ClInclude Include="QueryTriggerInteraction.h">
+      <Filter>[ 04.Physics ]</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshInstanceBase.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">

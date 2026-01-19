@@ -5,11 +5,13 @@
 #include <unordered_set>
 
 #include "CollisionLayer.h"
+#include "MeshInstanceBase.h"
 
 using namespace DirectX::SimpleMath;
 using namespace physx;
 
 class Transform;
+class SkeletalMeshInstance;
 
 // ------------------------------
 // Enum (엔진 내부용)
@@ -54,6 +56,7 @@ struct ColliderDesc
 class PhysicsComponent
 {
 public:
+    MeshInstanceBase* owner = nullptr; // 소유 객체
     Transform* transform = nullptr;
 
     // Collision / Trigger 이벤트 관리 

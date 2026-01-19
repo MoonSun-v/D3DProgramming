@@ -176,6 +176,7 @@
     <ClInclude Include="Helper.h" />
     <ClInclude Include="InputSystem.h" />
     <ClInclude Include="Material.h" />
+    <ClInclude Include="MeshInstanceBase.h" />
     <ClInclude Include="MeshSection.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PhysicsComponent.h" />
@@ -183,6 +184,8 @@
     <ClInclude Include="PhysicsLayerMatrix.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysXUtils.h" />
+    <ClInclude Include="QueryTriggerInteraction.h" />
+    <ClInclude Include="RaycastHit.h" />
     <ClInclude Include="SkeletalMeshAsset.h" />
     <ClInclude Include="SkeletalMeshInstance.h" />
     <ClInclude Include="SkeletonInfo.h" />
