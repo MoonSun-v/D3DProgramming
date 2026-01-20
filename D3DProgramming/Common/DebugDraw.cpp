@@ -84,50 +84,50 @@ void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,
     const XMVECTOR yaxis = XMVectorScale(g_XMIdentityR1, radius);
     const XMVECTOR zaxis = XMVectorScale(g_XMIdentityR2, radius);
 
-    //DrawRing(batch, origin, xaxis, zaxis, color);
-    //DrawRing(batch, origin, xaxis, yaxis, color);
-    //DrawRing(batch, origin, yaxis, zaxis, color);
+    DrawRing(batch, origin, xaxis, zaxis, color);
+    DrawRing(batch, origin, xaxis, yaxis, color);
+    DrawRing(batch, origin, yaxis, zaxis, color);
 
-    constexpr size_t c_ringSegments = 32;
-    for (size_t i = 0; i < 3; ++i)
-    {
-        XMVECTOR major = (i == 0) ? xaxis : (i == 1) ? xaxis : yaxis;
-        XMVECTOR minor = (i == 0) ? zaxis : (i == 1) ? yaxis : zaxis;
+    //constexpr size_t c_ringSegments = 32;
+    //for (size_t i = 0; i < 3; ++i)
+    //{
+    //    XMVECTOR major = (i == 0) ? xaxis : (i == 1) ? xaxis : yaxis;
+    //    XMVECTOR minor = (i == 0) ? zaxis : (i == 1) ? yaxis : zaxis;
 
-        if (dashed)
-        {
-            // 링을 작은 선분으로 나누어 점선
-            VertexPositionColor verts[c_ringSegments + 1];
-            constexpr float fAngleDelta = XM_2PI / float(c_ringSegments);
-            const XMVECTOR cosDelta = XMVectorReplicate(cosf(fAngleDelta));
-            const XMVECTOR sinDelta = XMVectorReplicate(sinf(fAngleDelta));
-            XMVECTOR incSin = XMVectorZero();
-            static const XMVECTORF32 s_initialCos = { { { 1.f,1.f,1.f,1.f } } };
-            XMVECTOR incCos = s_initialCos.v;
+    //    if (dashed)
+    //    {
+    //        // 링을 작은 선분으로 나누어 점선
+    //        VertexPositionColor verts[c_ringSegments + 1];
+    //        constexpr float fAngleDelta = XM_2PI / float(c_ringSegments);
+    //        const XMVECTOR cosDelta = XMVectorReplicate(cosf(fAngleDelta));
+    //        const XMVECTOR sinDelta = XMVectorReplicate(sinf(fAngleDelta));
+    //        XMVECTOR incSin = XMVectorZero();
+    //        static const XMVECTORF32 s_initialCos = { { { 1.f,1.f,1.f,1.f } } };
+    //        XMVECTOR incCos = s_initialCos.v;
 
-            for (size_t j = 0; j < c_ringSegments; ++j)
-            {
-                XMVECTOR pos = XMVectorMultiplyAdd(major, incCos, origin);
-                pos = XMVectorMultiplyAdd(minor, incSin, pos);
-                verts[j] = VertexPositionColor(pos, color);
+    //        for (size_t j = 0; j < c_ringSegments; ++j)
+    //        {
+    //            XMVECTOR pos = XMVectorMultiplyAdd(major, incCos, origin);
+    //            pos = XMVectorMultiplyAdd(minor, incSin, pos);
+    //            verts[j] = VertexPositionColor(pos, color);
 
-                const XMVECTOR newCos = XMVectorSubtract(XMVectorMultiply(incCos, cosDelta), XMVectorMultiply(incSin, sinDelta));
-                const XMVECTOR newSin = XMVectorAdd(XMVectorMultiply(incCos, sinDelta), XMVectorMultiply(incSin, cosDelta));
-                incCos = newCos; incSin = newSin;
-            }
-            verts[c_ringSegments] = verts[0];
+    //            const XMVECTOR newCos = XMVectorSubtract(XMVectorMultiply(incCos, cosDelta), XMVectorMultiply(incSin, sinDelta));
+    //            const XMVECTOR newSin = XMVectorAdd(XMVectorMultiply(incCos, sinDelta), XMVectorMultiply(incSin, cosDelta));
+    //            incCos = newCos; incSin = newSin;
+    //        }
+    //        verts[c_ringSegments] = verts[0];
 
-            // 점선으로 그리기
-            for (size_t j = 0; j < c_ringSegments; j += 1)
-            {
-                DrawDashedLine(batch, XMLoadFloat3(&verts[j].position), XMLoadFloat3(&verts[j + 1].position), color);
-            }
-        }
-        else
-        {
-            DrawRing(batch, origin, major, minor, color);
-        }
-    }
+    //        // 점선으로 그리기
+    //        for (size_t j = 0; j < c_ringSegments; j += 1)
+    //        {
+    //            DrawDashedLine(batch, XMLoadFloat3(&verts[j].position), XMLoadFloat3(&verts[j + 1].position), color);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        DrawRing(batch, origin, major, minor, color);
+    //    }
+    //}
 }
 
 void XM_CALLCONV DebugDraw::Draw(PrimitiveBatch<VertexPositionColor>* batch,

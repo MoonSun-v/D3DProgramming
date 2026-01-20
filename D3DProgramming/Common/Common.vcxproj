@@ -184,7 +184,6 @@
     <ClInclude Include="PhysicsLayerMatrix.h" />
     <ClInclude Include="PhysicsSystem.h" />
     <ClInclude Include="PhysXUtils.h" />
-    <ClInclude Include="QueryTriggerInteraction.h" />
     <ClInclude Include="RaycastHit.h" />
     <ClInclude Include="SkeletalMeshAsset.h" />
     <ClInclude Include="SkeletalMeshInstance.h" />

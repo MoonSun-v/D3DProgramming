@@ -10,7 +10,7 @@ using namespace DirectX;
 // Render / Transform   : 1 unit = 1 cm
 // PhysX                : 1 unit = 1 m
 constexpr float WORLD_TO_PHYSX = 0.01f; // cm -> m
-constexpr float PHYSX_TO_WORLD = 100.0f;
+constexpr float PHYSX_TO_WORLD = 100.0f;// m  -> cm
 // ------------------------------------------
 
 
@@ -24,8 +24,7 @@ constexpr float PHYSX_TO_WORLD = 100.0f;
 // 회전 -> ToDXQuat / ToDXQuatF4
 
 
-
-// [ Position ]
+// [ Position ] ------------------------------------------
 inline PxVec3 ToPx(const XMFLOAT3& v)
 {
     return PxVec3(
@@ -43,7 +42,7 @@ inline XMFLOAT3 ToDX(const PxVec3& v)
     };
 }
 
-// PxVec3 -> XMVECTOR 변환
+// PxVec3 -> XMVECTOR
 inline XMVECTOR ToDXVec3(const PxVec3& v)
 {
     return XMVectorSet(
@@ -57,7 +56,8 @@ inline XMVECTOR ToDXVec3(const PxVec3& v)
 //XMVECTOR pos = XMLoadFloat3(&p);
 
 
-// [ Quaternion ]
+
+// [ Quaternion ] ------------------------------------------
 inline PxQuat ToPxQuat(const XMVECTOR & q)
 {
     XMFLOAT4 f;
@@ -70,14 +70,14 @@ inline XMVECTOR ToDXQuat(const PxQuat & q)
     return XMVectorSet(q.x, q.y, q.z, q.w);
 }
 
-// [ PxQuat → XMFLOAT4 변환 ]
+// PxQuat → XMFLOAT4
 inline XMFLOAT4 ToDXQuatF4(const PxQuat& q)
 {
     return XMFLOAT4(q.x, q.y, q.z, q.w);
 }
 
 
-// [ Scale ]
+// [ Scale ] ------------------------------------------
 inline float PxToDX(float v)
 {
     return v * PHYSX_TO_WORLD;

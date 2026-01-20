@@ -6,7 +6,6 @@
 
 #include "PhysicsFilterShader.h"
 #include "RaycastHit.h"
-#include "QueryTriggerInteraction.h"
 #include "CollisionLayer.h"
 
 using namespace physx;
@@ -20,6 +19,14 @@ struct PairHash
         return std::hash<void*>()(p.first) ^ std::hash<void*>()(p.second);
     }
 };
+
+enum class QueryTriggerInteraction
+{
+    UseGlobal, // (지금은 Collide와 동일 취급)
+    Ignore,    // Trigger 무시
+    Collide    // Trigger 포함
+};
+
 
 // ----------------------------------------------------
 // [ ControllerHitReport ] 
