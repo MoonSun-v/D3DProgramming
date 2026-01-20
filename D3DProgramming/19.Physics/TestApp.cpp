@@ -286,7 +286,8 @@ void TestApp::CheckPlayerForwardDebug(
 {
 	if (!m_Player || !m_Player->physics || !batch) return;
 
-	PxVec3 originPx = ToPx(m_Player->transform.position);
+	Vector3 offset(0, 30.0f, 0); // ¹ßº¸´Ù »ìÂ¦ À­ ºÎºÐ 
+	PxVec3 originPx = ToPx(m_Player->transform.position + offset);
 	PxVec3 forwardPx = ToPx(m_Player->transform.GetForward());
 
 	QueryTriggerInteraction triggerInteraction = bIncludeTrigger
