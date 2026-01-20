@@ -196,7 +196,7 @@ bool TestApp::LoadAsset()
 	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 }, "ball");
 	ball->physics->owner = ball.get();
 	// auto ball = CreateStaticMesh(nullptr, { -400,150,200 }, { 0, 0, 0 }, { 1,1,1 });
-	ball->physics->CreateDynamicSphere(20.0f, 50.0f);
+	ball->physics->CreateDynamicSphere(20.0f, 200.0f);
 	ball->physics->SetLayer(CollisionLayer::Ball); 
 	ball->physics->SyncToPhysics();
 
@@ -227,7 +227,7 @@ bool TestApp::LoadAsset()
 	// [2] Dynamic Capsule / Dynamic Box 
 	auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
 	human2->physics->owner = human2.get();
-	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 100.0f, { 0, 70.0f, 0 }); // (radius, height, density)
+	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 300.0f, { 0, 70.0f, 0 }); // (radius, height, density)
 	// human2->physics->CreateDynamicBox({ 40.0f, 50.0f, 40.0f }, 100.0f);
 	human2->physics->SyncToPhysics();
 

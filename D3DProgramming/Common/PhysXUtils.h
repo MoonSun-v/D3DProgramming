@@ -5,19 +5,36 @@
 using namespace physx;
 using namespace DirectX;
 
+
+// ------------------------------------------
+// Render / Transform   : 1 unit = 1 cm
+// PhysX                : 1 unit = 1 m
+constexpr float WORLD_TO_PHYSX = 0.01f; // cm -> m
+constexpr float PHYSX_TO_WORLD = 100.0f;
+// ------------------------------------------
+
+
+
 // ------------------------------
 // 좌표계 변환 (LH ↔ RH)
 // ------------------------------
 
 // [ Position ]
-inline PxVec3 ToPx(const XMFLOAT3 & v)
+inline PxVec3 ToPx(const XMFLOAT3& v)
 {
-    return PxVec3(v.x, v.y, v.z);
+    return PxVec3(
+        v.x * WORLD_TO_PHYSX,
+        v.y * WORLD_TO_PHYSX,
+        v.z * WORLD_TO_PHYSX
+    );
 }
-
-inline XMFLOAT3 ToDX(const PxVec3 & v)
+inline XMFLOAT3 ToDX(const PxVec3& v)
 {
-    return { v.x, v.y, v.z };
+    return {
+        v.x * PHYSX_TO_WORLD,
+        v.y * PHYSX_TO_WORLD,
+        v.z * PHYSX_TO_WORLD
+    };
 }
 
 // PxVec3 → XMVECTOR 변환

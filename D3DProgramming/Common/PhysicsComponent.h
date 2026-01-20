@@ -94,7 +94,7 @@ public:
     PxController* m_Controller = nullptr;       // (임시) 캐릭터 컨트롤러 
     Vector3 m_ControllerOffset = { 0, 0, 0 };   // CCT 전용 오프셋
     const float m_MinDown = -1.0f;              // 바닥 접촉 유지용 미세 하강
-    const float m_MoveSpeed = 200.0f;
+    const float m_MoveSpeed = 2.0f;
     PxFilterData m_CCTFilterData;               // CCT 전용 FilterData
 
 public:

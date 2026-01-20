@@ -118,15 +118,16 @@ void PhysicsComponent::CreateCollider(ColliderType collider, PhysicsBodyType bod
     switch (collider)
     {
     case ColliderType::Box:
-        m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x, d.halfExtents.y, d.halfExtents.z), *mat, true);
+        m_Shape = px->createShape(PxBoxGeometry(d.halfExtents.x * WORLD_TO_PHYSX, d.halfExtents.y * WORLD_TO_PHYSX, d.halfExtents.z * WORLD_TO_PHYSX), *mat, true);
+        // m_Shape = px->createShape(PxBoxGeometry(0.5f, 0.5f, 0.5f), *mat, true);
         break;
 
     case ColliderType::Sphere:
-        m_Shape = px->createShape(PxSphereGeometry(d.radius),*mat, true);
+        m_Shape = px->createShape(PxSphereGeometry(d.radius * WORLD_TO_PHYSX),*mat, true);
         break;
 
     case ColliderType::Capsule:
-        m_Shape = px->createShape(PxCapsuleGeometry(d.radius, d.height * 0.5f),*mat, true);
+        m_Shape = px->createShape(PxCapsuleGeometry(d.radius * WORLD_TO_PHYSX, (d.height * 0.5f) * WORLD_TO_PHYSX),*mat, true);
     
         PxQuat capsuleRot(PxHalfPi, PxVec3(0, 0, 1));// X축 캡슐 → Y축 캡슐로 회전 // Z축 +90도
         localPose.q = capsuleRot * localPose.q;
@@ -223,19 +224,26 @@ void PhysicsComponent::SyncFromPhysics()
 {
     if (!transform) return;
 
-    if (m_Controller)
+    if (m_Controller) // CCT 
     {
         PxExtendedVec3 p = m_Controller->getPosition();
 
+        // PhysX(m) → Render(cm)
+        XMFLOAT3 posCM = {
+            (float)p.x * PHYSX_TO_WORLD,
+            (float)p.y * PHYSX_TO_WORLD,
+            (float)p.z * PHYSX_TO_WORLD
+        };
+
         // [ Offset ] offset을 다시 빼서 Transform 위치 복원
         transform->position = {
-            (float)p.x - m_ControllerOffset.x,
-            (float)p.y - m_ControllerOffset.y,
-            (float)p.z - m_ControllerOffset.z
+            posCM.x - m_ControllerOffset.x, // offset은 cm
+            posCM.y - m_ControllerOffset.y,
+            posCM.z - m_ControllerOffset.z
         };
         // 회전은 Transform 유지
     }
-    else if (m_Actor)
+    else if (m_Actor) // 일반 액터 
     {
         PxTransform px = m_Actor->getGlobalPose();
         transform->position = ToDX(px.p);       // 위치 변환
@@ -262,15 +270,15 @@ void PhysicsComponent::CreateCharacterCapsule(float radius, float height, const 
 
     // [ Offset ] PhysX에는 offset 없는 위치 전달 -> SyncFromPhysics에서 반대로 보정할 예정 
     PxExtendedVec3 pos(
-        transform->position.x + localOffset.x,
-        transform->position.y + localOffset.y,
-        transform->position.z + localOffset.z
+        (transform->position.x + localOffset.x) * WORLD_TO_PHYSX,
+        (transform->position.y + localOffset.y) * WORLD_TO_PHYSX,
+        (transform->position.z + localOffset.z) * WORLD_TO_PHYSX
     );
 
     m_Controller = phys.CreateCapsuleController(
         pos,
-        radius,
-        height,
+        radius * WORLD_TO_PHYSX,
+        height * WORLD_TO_PHYSX,
         10.0f   // density (사실상 무의미) density는 반드시 > 0
     );
 
@@ -284,25 +292,29 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
 {
     if (!m_Controller) return;
 
-
     // --------------------
-    // 1. 수평 이동 (입력)
+    // 1. 입력 방향 (정규화, PhysX 기준)
     // --------------------
-    PxVec3 horizontal(0, 0, 0);
+    PxVec3 dir(0, 0, 0);
 
     if (wishDir.LengthSquared() > 0)
     {
-        horizontal.x = wishDir.x * m_MoveSpeed;
-        horizontal.z = wishDir.z * m_MoveSpeed;
+        dir.x = wishDir.x * m_MoveSpeed;
+        dir.z = wishDir.z * m_MoveSpeed;
     }
 
+    // --------------------
+    // 2. 수평 속도 (m/s)
+    // --------------------
+    PxVec3 velocity(0, 0, 0);
+    velocity.x = dir.x * m_MoveSpeed;
+    velocity.z = dir.z * m_MoveSpeed;
 
     // --------------------
-    // 2. 중력 처리 (항상)
+    // 3. 중력 처리 (m/s)
     // --------------------
     static float verticalVel = 0.0f;
 
-    // Controller 상태 얻기
     PxControllerState state;
     m_Controller->getState(state);
 
@@ -310,36 +322,43 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
 
     if (isGrounded)
     {
-        if (verticalVel < 0) verticalVel = 0.0f;
-        verticalVel = m_MinDown; 
+        if (verticalVel < 0.0f)
+            verticalVel = m_MinDown; // 살짝 아래로 누르기
     }
     else
     {
         verticalVel += -9.8f * fixedDt;
     }
 
-    // --------------------
-    // 3. 최종 이동 벡터
-    // --------------------
-    PxVec3 move(horizontal.x * fixedDt, verticalVel * fixedDt, horizontal.z * fixedDt);
-
+    velocity.y = verticalVel;
 
     // --------------------
-    // 4. CCT vs Collider 레이어 필터 
+    // 4. 최종 이동 거리 (m)
+    // --------------------
+    PxVec3 move = velocity * fixedDt;
+
+    // --------------------
+    // 5. 필터
     // --------------------
     CCTQueryFilter queryFilter(this);
 
     PxControllerFilters filters(
-        &m_CCTFilterData,           // PxFilterData* : CCT 레이어
-        &queryFilter,               // PxQueryFilterCallback* : Collider 필터
-        nullptr                     // PxControllerFilterCallback* : CCT vs CCT (선택)
+        &m_CCTFilterData,
+        &queryFilter,
+        nullptr
     );
 
     // --------------------
-    // 5. 이동 
+    // 6. 이동
     // --------------------
-    m_Controller->move(move, 0.01f, fixedDt, filters);
+    m_Controller->move(
+        move,        // meters
+        0.01f,       // minDist (meters)
+        fixedDt,
+        filters
+    );
 }
+
 
 void PhysicsComponent::ResolveCCTCollisions()
 {
