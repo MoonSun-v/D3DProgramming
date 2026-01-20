@@ -106,22 +106,32 @@ public:
 class RaycastFilterCallback : public PxQueryFilterCallback
 {
 public:
-    CollisionLayer m_RaycastLayer;
-    QueryTriggerInteraction m_TriggerInteraction;
-
-    RaycastFilterCallback(CollisionLayer layer, QueryTriggerInteraction trigger)
-        : m_RaycastLayer(layer), m_TriggerInteraction(trigger) {
+    RaycastFilterCallback(
+        CollisionLayer raycastLayer,
+        QueryTriggerInteraction triggerInteraction,
+        bool bAllHits)
+        : m_RaycastLayer(raycastLayer)
+        , m_TriggerInteraction(triggerInteraction)
+        , m_AllHits(bAllHits)
+    {
     }
 
-    // Raycast ½Ã preFilter
     PxQueryHitType::Enum preFilter(
         const PxFilterData& filterData,
         const PxShape* shape,
         const PxRigidActor* actor,
-              PxHitFlags&) override;
+        PxHitFlags& queryFlags) override;
 
     PxQueryHitType::Enum postFilter(
-        const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override;
+        const PxFilterData& filterData,
+        const PxQueryHit& hit,
+        const PxShape* shape,
+        const PxRigidActor* actor) override;
+
+private:
+    CollisionLayer m_RaycastLayer;
+    QueryTriggerInteraction m_TriggerInteraction;
+    bool m_AllHits;
 };
 
 
@@ -228,13 +238,14 @@ public:
 
 
     // Raycast
-    bool RaycastAll(
+    bool Raycast(
         const PxVec3& origin,
         const PxVec3& direction,
         float maxDistance,
         std::vector<RaycastHit>& outHits,
         CollisionLayer layer,
-        QueryTriggerInteraction triggerInteraction);
+        QueryTriggerInteraction triggerInteraction,
+        bool bAllHits);
 
 };
 

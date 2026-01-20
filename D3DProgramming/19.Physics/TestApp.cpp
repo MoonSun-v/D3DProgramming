@@ -272,6 +272,8 @@ bool TestApp::LoadAsset()
 // ---------------------------------------------
 // 레이캐스트 테스트용 임시 메소드
 // ---------------------------------------------
+
+// [ 플레이어 전방 Raycast 디버그 시각화 ]
 void TestApp::CheckPlayerForwardDebug(
 	PrimitiveBatch<VertexPositionColor>* batch,
 	bool bAllHits,
@@ -284,41 +286,57 @@ void TestApp::CheckPlayerForwardDebug(
 	PxVec3 originPx = ToPx(m_Player->transform.position);
 	PxVec3 forwardPx = ToPx(m_Player->transform.GetForward());
 
-	QueryTriggerInteraction triggerInteraction = bIncludeTrigger ? QueryTriggerInteraction::Collide : QueryTriggerInteraction::Ignore;
+	QueryTriggerInteraction triggerInteraction = bIncludeTrigger
+		? QueryTriggerInteraction::Collide
+		: QueryTriggerInteraction::Ignore;
 
+	// 한 번 호출로 모든 히트 가져오기
 	std::vector<RaycastHit> hits;
-	bool bHit = PhysicsSystem::Get().RaycastAllOptimized(originPx, forwardPx, maxDistance, hits, layer, triggerInteraction);
+	bool bHit = PhysicsSystem::Get().Raycast(originPx, forwardPx, maxDistance, hits, layer, triggerInteraction, bAllHits);
 	if (!bHit) return;
 
-	auto DrawHit = [&](const RaycastHit& hit, PxVec3& start)
-		{
-			PxVec3 end = hit.point;
-			DebugDraw::DrawRayDebug(batch, ToDXVec3(start), ToDXVec3(end - start),
-				bAllHits ? XMVectorSet(0, 1, 0, 1) : XMVectorSet(1, 0, 0, 1), false);
-
-			std::wstring hitName = L"Unknown";
-			if (hit.component && hit.component->owner)
-				hitName = StringToWString(hit.component->owner->GetName());
-
-			wchar_t buf[256];
-			swprintf(buf, 256, L"%s Hit: %s at distance %.2f\n",
-				bAllHits ? L"RaycastAll" : L"RaycastSingle",
-				hitName.c_str(),
-				hit.distance);
-			OutputDebugStringW(buf);
-
-			start = end;
-		};
-
-	PxVec3 start = originPx;
 	if (bAllHits)
 	{
+		PxVec3 origin = originPx;
 		for (auto& hit : hits)
-			DrawHit(hit, start);
+		{
+			PxVec3 end = hit.point;
+
+			// origin에서 hit.point까지 그리기
+			DebugDraw::DrawRayDebug(batch, ToDXVec3(origin), ToDXVec3(end - origin), XMVectorSet(0, 1, 0, 1), false);
+
+			// 히트 이름 출력
+			std::wstring hitName = L"Unknown";
+			if (hit.component && hit.component->owner)
+			{
+				std::string name = hit.component->owner->GetName();
+				hitName = std::wstring(name.begin(), name.end());
+			}
+
+			wchar_t buf[256];
+			swprintf(buf, 256, L"RaycastAll Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
+			OutputDebugStringW(buf);
+		}
 	}
 	else
 	{
-		DrawHit(hits[0], start);
+		if (hits.empty())
+			return;
+
+		RaycastHit& hit = hits[0]; // 첫 번째 히트만 표시
+		PxVec3 endPx = hit.point;
+		DebugDraw::DrawRayDebug(batch, ToDXVec3(originPx), ToDXVec3(endPx - originPx), XMVectorSet(1, 0, 0, 1), false);
+
+		std::wstring hitName = L"Unknown";
+		if (hit.component && hit.component->owner)
+		{
+			std::string name = hit.component->owner->GetName();
+			hitName = std::wstring(name.begin(), name.end());
+		}
+
+		wchar_t buf[256];
+		swprintf(buf, 256, L"Raycast Single Hit: %s at distance %.2f\n", hitName.c_str(), hit.distance);
+		OutputDebugStringW(buf);
 	}
 }
 

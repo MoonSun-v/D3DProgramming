@@ -135,6 +135,7 @@ PxQueryHitType::Enum CCTQueryFilter::postFilter(
 
 // -------------------------------------------------------------------------
 
+// Ray가 어떤 Shape/Actor를 히트 대상으로 삼을지 결정
 PxQueryHitType::Enum RaycastFilterCallback::preFilter(
     const PxFilterData& filterData,
     const PxShape* shape,
@@ -149,7 +150,7 @@ PxQueryHitType::Enum RaycastFilterCallback::preFilter(
     if (isTrigger && m_TriggerInteraction == QueryTriggerInteraction::Ignore)
         return PxQueryHitType::eNONE;
 
-    // Actor의 PhysicsComponent
+    // Actor의 PhysicsComponent 매핑 
     PhysicsComponent* comp = PhysicsSystem::Get().GetComponent(const_cast<PxRigidActor*>(actor));
     if (!comp)
     {
@@ -170,9 +171,14 @@ PxQueryHitType::Enum RaycastFilterCallback::preFilter(
     //    " | actorLayer=" + std::to_string((int)comp->GetLayer()) +
     //    " | rayLayer=" + std::to_string((int)m_RaycastLayer) + "\n").c_str());
 
-    return PxQueryHitType::eBLOCK; // 유효 히트
+    // 단일 감지 vs 다중 감지 
+    if (m_AllHits)
+        return PxQueryHitType::eTOUCH; // Ray 계속 진행
+    else
+        return PxQueryHitType::eBLOCK; // 여기서 Ray 종료
 }
 
+// Narrow Phase 이후 추가 필터 없음 -> 전부 허용 
 PxQueryHitType::Enum RaycastFilterCallback::postFilter(
     const PxFilterData&,
     const PxQueryHit&,
@@ -512,44 +518,67 @@ void SimulationEventCallback::onContact(
 // [ Raycast ] 
 // ----------------------------------------------------
 
-bool PhysicsSystem::RaycastAll(
+bool PhysicsSystem::Raycast(
     const PxVec3& origin,
     const PxVec3& direction,
     float maxDistance,
     std::vector<RaycastHit>& outHits,
     CollisionLayer layer,
-    QueryTriggerInteraction triggerInteraction)
+    QueryTriggerInteraction triggerInteraction,
+    bool bAllHits)
 {
     outHits.clear();
     if (!m_Scene) return false;
 
+    // 최대 히트 수 지정
     const PxU32 maxHits = 128;
     PxRaycastHit hitArray[maxHits];
     PxRaycastBuffer hitBuffer(hitArray, maxHits);
 
+    // Broad Phase 필터
     PxQueryFilterData filterData;
     filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
-    filterData.data.word0 = static_cast<PxU32>(layer);
-    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);
+    filterData.data.word0 = static_cast<PxU32>(layer);            // Raycast 레이어
+    filterData.data.word1 = PhysicsLayerMatrix::GetMask(layer);   // Actor가 충돌 가능한 레이어 마스크
 
-    RaycastFilterCallback filterCallback(layer, triggerInteraction);
+    RaycastFilterCallback filterCallback(layer, triggerInteraction, bAllHits);
+
+    // MeshMultiple 플래그로 모든 히트를 한 번에 수집
     PxHitFlags hitFlags = PxHitFlag::eDEFAULT | PxHitFlag::eMESH_MULTIPLE;
 
-    bool bHit = m_Scene->raycast(origin, direction.getNormalized(), maxDistance, hitBuffer, hitFlags, filterData, &filterCallback);
+    bool bHit = m_Scene->raycast(
+        origin,
+        direction.getNormalized(),
+        maxDistance,
+        hitBuffer,
+        hitFlags,
+        filterData,
+        &filterCallback
+    );
+
     if (!bHit) return false;
 
-    auto ProcessHit = [&](const PxRaycastHit& pxHit) -> bool
+    // Actor 중복 제거용 Set (유니티에서는 Actor 단위로 한 번만 반환한다고 함)
+    std::unordered_set<PxRigidActor*> hitActors;
+
+    auto ProcessHit = [&](const PxRaycastHit& pxHit)
         {
             PxShape* shape = pxHit.shape;
+            PxRigidActor* actor = pxHit.actor;
+            if (!actor || !shape) return;
+
+            if (hitActors.find(actor) != hitActors.end()) return; // 이미 처리됨
+            hitActors.insert(actor);
+
             PhysicsComponent* comp = GetComponent(pxHit.actor);
-            if (!comp) return false;
+            if (!comp) return;
 
             bool isTrigger = shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
             if (isTrigger && triggerInteraction == QueryTriggerInteraction::Ignore)
-                return false;
+                return;
 
             if (!PhysicsLayerMatrix::CanCollide(layer, comp->GetLayer()))
-                return false;
+                return;
 
             RaycastHit hitInfo;
             hitInfo.component = comp;
@@ -560,12 +589,24 @@ bool PhysicsSystem::RaycastAll(
             hitInfo.actor = pxHit.actor;
 
             outHits.push_back(hitInfo);
-            return true;
         };
 
-    if (hitBuffer.hasBlock) ProcessHit(hitBuffer.block);
-    for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
-        ProcessHit(hitBuffer.getAnyHit(i));
+    if (bAllHits)
+    {
+        // RaycastAll : TOUCH 결과만 처리
+        for (PxU32 i = 0; i < hitBuffer.getNbAnyHits(); ++i)
+        {
+            ProcessHit(hitBuffer.getAnyHit(i));
+        }
+    }
+    else
+    {
+        // Raycast : BLOCK 하나만 처리
+        if (hitBuffer.hasBlock)
+        {
+            ProcessHit(hitBuffer.block);
+        }
+    }
 
     return !outHits.empty();
 }
