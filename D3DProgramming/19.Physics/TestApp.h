@@ -223,6 +223,8 @@ public:
 	bool bDance1;
 	bool bDance2;
 
+	// [ ¹°¸® ]
+	bool m_SpacePrev = false;
 
 public:
 	// ------------------------------------------------------------
@@ -274,7 +276,6 @@ public:
 	// Utility
 	// ------------------------------------------------------------
 	void UpdateConstantBuffer(const Matrix& world, int isRigid);
-	// bool CheckHDRSupportAndGetMaxNits(float& outMaxLuminance, DXGI_FORMAT& outFormat);
 
 	std::shared_ptr<StaticMeshInstance> CreateStaticMesh(
 		std::shared_ptr<StaticMeshAsset> asset,
@@ -291,20 +292,6 @@ public:
 		const Vector3& scale = { 1,1,1 },
 		const std::string& name = "NoneName"
 	);
-
-	//// void CheckPlayerForward();
-	//void CheckPlayerForwardDebug(
-	//	PrimitiveBatch<VertexPositionColor>* batch,
-	//	bool bAllHits,
-	//	bool bIncludeTrigger,
-	//	CollisionLayer layer);
-
-	//void CheckPlayerForwardDebugOptimized(
-	//	PrimitiveBatch<VertexPositionColor>* batch,
-	//	bool bAllHits,
-	//	bool bIncludeTrigger,
-	//	CollisionLayer layer,
-	//	float maxDistance = 500.0f);
 
 	void CheckPlayerForwardDebug(
 		PrimitiveBatch<VertexPositionColor>* batch,

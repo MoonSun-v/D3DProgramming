@@ -293,47 +293,51 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     if (!m_Controller) return;
 
     // --------------------
-    // 1. 입력 방향 (정규화, PhysX 기준)
+    // 1. 수평 이동속도 (m/s) + 입력 방향 (정규화, PhysX 기준)
     // --------------------
-    PxVec3 dir(0, 0, 0);
+    PxVec3 velocity(0, 0, 0);
 
-    if (wishDir.LengthSquared() > 0)
+    if (wishDir.LengthSquared() > 0.0f)
     {
-        dir.x = wishDir.x * m_MoveSpeed;
-        dir.z = wishDir.z * m_MoveSpeed;
+        PxVec3 dir(wishDir.x, 0, wishDir.z);
+        dir.normalize();
+        velocity.x = dir.x * m_MoveSpeed;
+        velocity.z = dir.z * m_MoveSpeed;
     }
 
     // --------------------
-    // 2. 수평 속도 (m/s)
+    // 2. 지면 체크 
     // --------------------
-    PxVec3 velocity(0, 0, 0);
-    velocity.x = dir.x * m_MoveSpeed;
-    velocity.z = dir.z * m_MoveSpeed;
-
-    // --------------------
-    // 3. 중력 처리 (m/s)
-    // --------------------
-    static float verticalVel = 0.0f;
-
     PxControllerState state;
     m_Controller->getState(state);
 
     bool isGrounded = state.collisionFlags & PxControllerCollisionFlag::eCOLLISION_DOWN;
 
+    // --------------------
+    // 3. 점프 처리
+    // --------------------
     if (isGrounded)
     {
-        if (verticalVel < 0.0f)
-            verticalVel = m_MinDown; // 살짝 아래로 누르기
+        if (isGrounded && m_RequestJump)
+        {
+            m_VerticalVelocity = m_JumpSpeed;
+            m_RequestJump = false;
+        }
+        else if (m_VerticalVelocity < 0.0f)
+        {
+            m_VerticalVelocity = m_MinDown; // 바닥에 밀착
+        }
     }
     else
     {
-        verticalVel += -9.8f * fixedDt;
+        // 공중 중력
+        m_VerticalVelocity += -9.8f * fixedDt;
     }
 
-    velocity.y = verticalVel;
+    velocity.y = m_VerticalVelocity;
 
     // --------------------
-    // 4. 최종 이동 거리 (m)
+    // 4. 이동 거리
     // --------------------
     PxVec3 move = velocity * fixedDt;
 
@@ -341,24 +345,26 @@ void PhysicsComponent::MoveCharacter(const Vector3& wishDir, float fixedDt)
     // 5. 필터
     // --------------------
     CCTQueryFilter queryFilter(this);
-
-    PxControllerFilters filters(
-        &m_CCTFilterData,
-        &queryFilter,
-        nullptr
-    );
+    PxControllerFilters filters(&m_CCTFilterData, &queryFilter, nullptr);
 
     // --------------------
     // 6. 이동
     // --------------------
     m_Controller->move(
-        move,        // meters
-        0.01f,       // minDist (meters)
+        move,
+        0.01f,
         fixedDt,
         filters
     );
 }
 
+void PhysicsComponent::Jump()
+{
+    if (!m_Controller || m_RequestJump)
+        return;
+    OutputDebugString((L"[PhysicsComponent] : Jump() 실행 \n"));
+    m_RequestJump = true; 
+}
 
 void PhysicsComponent::ResolveCCTCollisions()
 {
@@ -493,30 +499,7 @@ void PhysicsComponent::SetLayer(CollisionLayer layer)
     m_Layer = layer;
     m_Mask = PhysicsLayerMatrix::GetMask(layer);
 
-    // ----------------------------
-    // RigidActor / Shape 용
-    // ----------------------------
-    if (m_Shape)
-    {
-        PxFilterData data;
-        data.word0 = (uint32_t)m_Layer;       // 자기 레이어
-        data.word1 = m_Mask;                  // 충돌 대상 레이어
-        data.word2 = 0;
-        data.word3 = 0;
-        m_Shape->setSimulationFilterData(data);
-        m_Shape->setQueryFilterData(data);
-    }
-
-    // ----------------------------
-    // CCT 전용 Query Filter
-    // ----------------------------
-    if (m_Controller)
-    {
-        m_CCTFilterData.word0 = (uint32_t)m_Layer;          // 자기 레이어
-        m_CCTFilterData.word1 = m_Mask;
-        m_CCTFilterData.word2 = 0;
-        m_CCTFilterData.word3 = 0;
-    }
+    ApplyFilter();
 }
 
 

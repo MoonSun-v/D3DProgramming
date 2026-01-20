@@ -198,6 +198,12 @@ bool TestApp::LoadAsset()
 	ball->physics->SetLayer(CollisionLayer::Ball); 
 	ball->physics->SyncToPhysics();
 
+	// [ Box ]
+	auto box = CreateStaticMesh(nullptr, { -300,20,-200 }, { 0,0,0 }, { 1,1,1 }, "box");
+	box->physics->owner = box.get();
+	box->physics->CreateStaticBox({ 20.0f, 20.0f, 20.0f });
+	box->physics->SyncToPhysics();
+
 
 
 
@@ -232,7 +238,7 @@ bool TestApp::LoadAsset()
 	// [3] Character Controller (Player)
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { -150,40,-250 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	human3->physics->owner = human3.get();
-	human3->physics->CreateCharacterCapsule(30.0f, 170.0f, {0,80,0});
+	human3->physics->CreateCharacterCapsule(30.0f, 120.0f, {0,95,0});
 	human3->physics->SetLayer(CollisionLayer::Player);
 	m_Player = human3.get(); // 플레이어로 지정 (소유 X, 참조만)
 
@@ -430,6 +436,17 @@ void TestApp::FixedUpdate(float fixedDt)
 		if (GetAsyncKeyState(VK_LEFT) & 0x8000)  input.x -= 1;
 		if (GetAsyncKeyState(VK_RIGHT) & 0x8000) input.x += 1;
 
+		// 점프 입력
+		bool spaceDown = (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0;
+
+		if (spaceDown && !m_SpacePrev)
+		{
+			m_Player->physics->Jump();
+		}
+
+		m_SpacePrev = spaceDown;
+
+		// 이동 방향 계산
 		Vector3 wishDir(0, 0, 0);
 		if (input.LengthSquared() > 0)
 		{
@@ -1728,10 +1745,10 @@ void TestApp::Render_DebugDraw()
 	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::Player);
 
 	// 모든 hit 감지, 모든 레이어, Trigger 포함
-	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::World);
+	CheckPlayerForwardDebug(m_DebugBatch.get(), true, true, CollisionLayer::World);
 	
 	// 1개만 감지, 모든 레이어, Trigger 포함
-	CheckPlayerForwardDebug(m_DebugBatch.get(), false, true, CollisionLayer::World);
+	// CheckPlayerForwardDebug(m_DebugBatch.get(), false, true, CollisionLayer::World);
 
 	// 모든 hit 감지, 모든 레이어, Trigger 무시
 	// CheckPlayerForwardDebug(m_DebugBatch.get(), true, false, CollisionLayer::World);

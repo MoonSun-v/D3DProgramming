@@ -97,6 +97,11 @@ public:
     const float m_MoveSpeed = 2.0f;
     PxFilterData m_CCTFilterData;               // CCT 전용 FilterData
 
+    // PhysicsComponent.h
+    float m_VerticalVelocity = 0.0f;
+    bool  m_RequestJump = false;
+    float m_JumpSpeed = 5.5f; // m/s (체감 좋은 값이라고 함)
+
 public:
     PhysicsComponent() = default;
     ~PhysicsComponent();
@@ -130,6 +135,7 @@ public:
     // -------------- (임시) CCT --------------
     void CreateCharacterCapsule(float radius, float height, const Vector3& localOffset); // Character Controller -> 캡슐 컨트롤러 생성
     void MoveCharacter(const Vector3& wishDir, float fixedDt);   // 이동 
+    void Jump();
 
     void ResolveCCTCollisions();
     void ResolveCCTTriggers();
@@ -146,7 +152,7 @@ public:
     // --------------------------
     void SetLayer(CollisionLayer layer);
     CollisionLayer GetLayer() const { return m_Layer; }
-    void SetCollisionMask(CollisionMask mask);
+
 private:
     void ApplyFilter();
 

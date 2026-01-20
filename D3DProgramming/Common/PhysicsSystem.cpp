@@ -4,6 +4,12 @@
 #include "PhysicsComponent.h"
 #include "PhysicsLayerMatrix.h"
 
+
+
+// ------------------------------------------------------------
+// CCT Sweep 이동 중 Shape과 충돌했을 때 호출되는 콜백
+// - CCT는 RigidBody 충돌을 직접 해결하지 않고 Sweep(Query) 결과를 기반으로 처리한다.
+// ------------------------------------------------------------
 void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
 {
     PhysicsComponent* cctComp = PhysicsSystem::Get().GetComponent(hit.controller);
@@ -55,7 +61,8 @@ void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
         if (dir.normalize() > 0.001f)
         {
             const PxF32 pushStrength = 5.0f;
-            actor->addForce(dir * pushStrength, PxForceMode::eACCELERATION);
+            // actor->addForce(dir * pushStrength, PxForceMode::eACCELERATION);
+            actor->addForce(dir * pushStrength, PxForceMode::eFORCE);
         }
     }
 
@@ -67,15 +74,18 @@ void ControllerHitReport::onShapeHit(const PxControllerShapeHit& hit)
 
 
 
-// -------------------------------------------------------------------------
-
+// ------------------------------------------------------------
+// CCT Trigger Overlap Query용 필터
+// - Trigger Shape만 감지
+// - Layer / Mask 양방향 검사
+// ------------------------------------------------------------
 PxQueryHitType::Enum TriggerFilter::preFilter(
     const PxFilterData& filterData,
     const PxShape* shape,
     const PxRigidActor* actor,
     PxHitFlags&)
 {
-    // Trigger 아닌 경우 무시
+    //  Trigger Shape만 허용
     if (!(shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE))
         return PxQueryHitType::eNONE;
 
@@ -87,7 +97,7 @@ PxQueryHitType::Enum TriggerFilter::preFilter(
         return PxQueryHitType::eNONE;
     }
 
-    // 자기 자신 제외
+    // 자기 자신 제외 (CCT Actor)
     if (actor == owner->m_Controller->getActor())
         return PxQueryHitType::eNONE;
 
@@ -99,8 +109,13 @@ PxQueryHitType::Enum TriggerFilter::postFilter (const PxFilterData&, const PxQue
     return PxQueryHitType::eTOUCH;
 }
 
-// -------------------------------------------------------------------------
 
+
+// ------------------------------------------------------------
+// CCT 이동(Sweep) 시 충돌 대상 결정
+// - Trigger 완전 제외
+// - Block만 충돌 대상으로 처리
+// ------------------------------------------------------------
 PxQueryHitType::Enum CCTQueryFilter::preFilter(
     const PxFilterData& filterData,
     const PxShape* shape,
@@ -115,7 +130,7 @@ PxQueryHitType::Enum CCTQueryFilter::preFilter(
         return PxQueryHitType::eNONE;
     }
 
-    // Trigger는 CCT Sweep에서 완전 제외
+    // Trigger는 Sweep 충돌 대상에서 제외
     if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE)
     {
         return PxQueryHitType::eNONE;
@@ -133,9 +148,12 @@ PxQueryHitType::Enum CCTQueryFilter::postFilter(
     return PxQueryHitType::eNONE;
 }
 
-// -------------------------------------------------------------------------
 
-// Ray가 어떤 Shape/Actor를 히트 대상으로 삼을지 결정
+// ------------------------------------------------------------
+// Raycast Query 필터
+// - Trigger 포함 여부 제어
+// - Raycast 레이어 <-> Actor 레이어 양방향 검사
+// ------------------------------------------------------------
 PxQueryHitType::Enum RaycastFilterCallback::preFilter(
     const PxFilterData& filterData,
     const PxShape* shape,
@@ -163,13 +181,8 @@ PxQueryHitType::Enum RaycastFilterCallback::preFilter(
     
     if (((rayMask & (uint32_t)comp->GetLayer()) == 0) || ((actorMask & (uint32_t)m_RaycastLayer) == 0))
     {
-        OutputDebugStringW(L"[RaycastFilterCallback] Raycast 레이어 필터링 되었습니다.\n");
         return PxQueryHitType::eNONE;
     }
-
-    //OutputDebugStringA(("Raycast preFilter: actor=" + comp->owner->GetName() +
-    //    " | actorLayer=" + std::to_string((int)comp->GetLayer()) +
-    //    " | rayLayer=" + std::to_string((int)m_RaycastLayer) + "\n").c_str());
 
     // 단일 감지 vs 다중 감지 
     if (m_AllHits)
@@ -390,10 +403,11 @@ PxController* PhysicsSystem::CreateCapsuleController(
     desc.height = height;
     desc.material = m_DefaultMaterial;
     desc.density = density;
-    desc.climbingMode = PxCapsuleClimbingMode::eEASY; // 계단 처리 방식 
+    // desc.climbingMode = PxCapsuleClimbingMode::eEASY; // 계단 처리 방식 : eEASY - 잘 올라감 
+    desc.climbingMode = PxCapsuleClimbingMode::eCONSTRAINED;
     desc.slopeLimit = cosf(PxPi / 4);   // 오를 수 있는 최대 경사 : 45도
-    desc.stepOffset = 0.5f;             // 자동으로 넘을 수 있는 턱
-    desc.contactOffset = 0.1f;          // 충돌 여유 (떨림 방지)
+    desc.stepOffset = 0.2f;             // 자동으로 넘을 수 있는 턱 (20cm)
+    desc.contactOffset = 0.05f;         // 충돌 여유 (떨림 방지) : 값이 클수록 더 쉽게 계단으로 인식 
     desc.reportCallback = &m_ControllerHitReport;
 
     PxController* controller = m_ControllerManager->createController(desc);
