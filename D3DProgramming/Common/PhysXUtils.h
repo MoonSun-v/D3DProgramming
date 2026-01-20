@@ -18,6 +18,12 @@ constexpr float PHYSX_TO_WORLD = 100.0f;
 // ------------------------------
 // 좌표계 변환 (LH ↔ RH)
 // ------------------------------
+// 
+// 위치 -> ToDX(PxVec3)
+// 크기 -> PxToDX(float)
+// 회전 -> ToDXQuat / ToDXQuatF4
+
+
 
 // [ Position ]
 inline PxVec3 ToPx(const XMFLOAT3& v)
@@ -37,11 +43,18 @@ inline XMFLOAT3 ToDX(const PxVec3& v)
     };
 }
 
-// PxVec3 → XMVECTOR 변환
+// PxVec3 -> XMVECTOR 변환
 inline XMVECTOR ToDXVec3(const PxVec3& v)
 {
-    return XMVectorSet(v.x, v.y, v.z, 0.0f); // w = 0
+    return XMVectorSet(
+        v.x * PHYSX_TO_WORLD,
+        v.y * PHYSX_TO_WORLD,
+        v.z * PHYSX_TO_WORLD,
+        0.0f // w = 0
+    );
 }
+//XMFLOAT3 p = ToDX(worldPose.p);
+//XMVECTOR pos = XMLoadFloat3(&p);
 
 
 // [ Quaternion ]
@@ -61,4 +74,11 @@ inline XMVECTOR ToDXQuat(const PxQuat & q)
 inline XMFLOAT4 ToDXQuatF4(const PxQuat& q)
 {
     return XMFLOAT4(q.x, q.y, q.z, q.w);
+}
+
+
+// [ Scale ]
+inline float PxToDX(float v)
+{
+    return v * PHYSX_TO_WORLD;
 }

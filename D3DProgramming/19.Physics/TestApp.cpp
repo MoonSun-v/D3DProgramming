@@ -156,7 +156,7 @@ bool TestApp::LoadAsset()
 	auto charObj = CreateStaticMesh(charAsset, { 0, 10,0 }, { 0, 90, 0 }, { 1,1,1 }, "StaticCharacter");
 	charObj->physics->owner = charObj.get();
 	charObj->physics->SetLayer(CollisionLayer::World);
-	charObj->physics->CreateStaticCapsule(10.0f, 50.0f);
+	charObj->physics->CreateStaticCapsule(20.0f, 140.0f, {0,70,0});
 	charObj->physics->SyncToPhysics();
 	
 	// [ 나무1 ]
@@ -179,24 +179,22 @@ bool TestApp::LoadAsset()
 	area->physics->SyncToPhysics();
 
 	// [ collision 빈 영역 ]
-	auto area2 = CreateStaticMesh(nullptr, { -200,40,200 }, { 0,0,0 }, { 1,1,1 }, "collision");
+	auto area2 = CreateStaticMesh(nullptr, { -300,40,200 }, { 0,0,0 }, { 1,1,1 }, "collision");
 	area2->physics->owner = area2.get();
 	area2->physics->CreateStaticBox({ 50.0f, 50.0f, 50.0f });
 	area2->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area2->physics->SyncToPhysics();
 
 	// [ trigger Box 빈 영역 ]
-	auto area3 = CreateStaticMesh(nullptr, { -400,10,200 }, { 0,0,0 }, { 1,1,1 }, "triggerBox");
+	auto area3 = CreateStaticMesh(nullptr, { -300,40, 0 }, { 0,0,0 }, { 1,1,1 }, "triggerBox");
 	area3->physics->owner = area3.get();
 	area3->physics->CreateTriggerBox({ 50.0f, 50.0f, 50.0f });
-	// area3->physics->SetLayer(CollisionLayer::IgnoreTest);
 	area3->physics->SyncToPhysics();
 
 	// [ Ball ]
-	auto ball = CreateStaticMesh(nullptr, { -200,200,200 }, { 0, 0, 0 }, { 1,1,1 }, "ball");
+	auto ball = CreateStaticMesh(nullptr, { -300,600,200 }, { 0, 0, 0 }, { 1,1,1 }, "ball");
 	ball->physics->owner = ball.get();
-	// auto ball = CreateStaticMesh(nullptr, { -400,150,200 }, { 0, 0, 0 }, { 1,1,1 });
-	ball->physics->CreateDynamicSphere(20.0f, 200.0f);
+	ball->physics->CreateDynamicSphere(20.0f, 150.0f);
 	ball->physics->SetLayer(CollisionLayer::Ball); 
 	ball->physics->SyncToPhysics();
 
@@ -217,25 +215,24 @@ bool TestApp::LoadAsset()
 	CharacterAsset->LoadAnimationFromFBX("../Resource/Animation/Human_3_Die.fbx", "Die", false);
 
 
-	// [1] Static Box
-	auto human1 = CreateSkeletalMesh(device, humanAsset, { -100,10,300 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
+	// [1] Static Capsule
+	auto human1 = CreateSkeletalMesh(device, humanAsset, { -100,10,450 }, { 0, 45, 0 }, { 1,1,1 }, "Human_1");
 	human1->physics->owner = human1.get();
-	human1->physics->CreateStaticCapsule(20.0f, 20.0f);
+	human1->physics->CreateStaticCapsule(20.0f, 150.0f, { 0, 75.0f, 0 });
 	human1->physics->SyncToPhysics();
 
 
 	// [2] Dynamic Capsule / Dynamic Box 
 	auto human2 = CreateSkeletalMesh(device, humanAsset, { -40,40,100 }, { 0, 90, 0 }, { 1,1,1 }, "Human_2");
 	human2->physics->owner = human2.get();
-	human2->physics->CreateDynamicCapsule(20.0f, 100.0f, 300.0f, { 0, 70.0f, 0 }); // (radius, height, density)
-	// human2->physics->CreateDynamicBox({ 40.0f, 50.0f, 40.0f }, 100.0f);
+	human2->physics->CreateDynamicCapsule(25.0f, 150.0f, 500.0f, { 0, 75.0f, 0 }); // (radius, height, density)
 	human2->physics->SyncToPhysics();
 
 
 	// [3] Character Controller (Player)
 	auto human3 = CreateSkeletalMesh(device, CharacterAsset, { -150,40,-250 }, { 0, 90, 0 }, { 1,1,1 }, "Human_3");
 	human3->physics->owner = human3.get();
-	human3->physics->CreateCharacterCapsule(20.0f, 100.0f, {0,70,0});
+	human3->physics->CreateCharacterCapsule(30.0f, 170.0f, {0,80,0});
 	human3->physics->SetLayer(CollisionLayer::Player);
 	m_Player = human3.get(); // 플레이어로 지정 (소유 X, 참조만)
 
@@ -1784,7 +1781,7 @@ void TestApp::DrawPhysXActors()
 		PxRigidActor* rigid = actor->is<PxRigidActor>();
 		if (!rigid) return;
 
-		// CCT Actor는 Scene Debug Draw에서 제외
+		// CCT가 소유한 Actor는 제외 
 		if (m_CCTActors.find(rigid) != m_CCTActors.end()) // if (m_CCTActors.contains(rigid)) 없음 
 			continue;
 
@@ -1813,57 +1810,65 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 
 	PxGeometryHolder geo = shape->getGeometry();
 	PxTransform localPose = shape->getLocalPose();
-	PxTransform worldPose = actorPose * localPose;
+	PxTransform worldPose = actorPose * localPose; // Actor * Shape Local
 
 	switch (geo.getType())
 	{
+	// BOX
 	case PxGeometryType::eBOX:
 	{
 		const PxBoxGeometry& box = geo.box();
 
 		DirectX::BoundingOrientedBox obb;
-		obb.Center = { worldPose.p.x, worldPose.p.y, worldPose.p.z };
-		obb.Extents = { box.halfExtents.x, box.halfExtents.y, box.halfExtents.z };
-		obb.Orientation = { worldPose.q.x, worldPose.q.y, worldPose.q.z, worldPose.q.w };
+		obb.Center	= ToDX(worldPose.p);   // m -> cm
+		obb.Extents = { PxToDX(box.halfExtents.x),PxToDX(box.halfExtents.y),PxToDX(box.halfExtents.z) };
+		obb.Orientation = { worldPose.q.x,worldPose.q.y,worldPose.q.z,worldPose.q.w };
 
-		m_DebugDraw->Draw(m_DebugBatch.get(), obb, color, isTrigger);
+		m_DebugDraw->Draw( m_DebugBatch.get(), obb,color, isTrigger );
 		break;
 	}
 
+	// SPHERE
 	case PxGeometryType::eSPHERE:
 	{
 		const PxSphereGeometry& sphere = geo.sphere();
 
 		DirectX::BoundingSphere bs;
-		bs.Center = { worldPose.p.x, worldPose.p.y, worldPose.p.z };
-		bs.Radius = sphere.radius;
+		bs.Center = ToDX(worldPose.p); 
+		bs.Radius = PxToDX(sphere.radius);
 
-		m_DebugDraw->Draw(m_DebugBatch.get(), bs, color, isTrigger);
+		m_DebugDraw->Draw( m_DebugBatch.get(), bs, color, isTrigger );
 		break;
 	}
 
-	case PxGeometryType::eCAPSULE: // 캡슐 그릴 때는 수동으로 보정해야함 
+	// CAPSULE (PhysX X축 -> Render Y축)
+	case PxGeometryType::eCAPSULE:
 	{
 		const PxCapsuleGeometry& capsule = geo.capsule();
 
-		// PhysX 캡슐(X축) → DebugDraw 캡슐(Y축)
-		XMVECTOR physxCapsuleToY =
-			XMQuaternionRotationAxis(
-				XMVectorSet(0, 0, 1, 0), // Z축
-				XM_PIDIV2                // +90°
-			);
-		XMVECTOR worldQ = XMVectorSet(worldPose.q.x, worldPose.q.y, worldPose.q.z, worldPose.q.w);
-		XMVECTOR debugQ = XMQuaternionMultiply(physxCapsuleToY, worldQ);
+		// PhysX 캡슐(X축)을 Render(Y축)으로 보정
+		XMVECTOR physxToY = XMQuaternionRotationAxis(XMVectorSet(0, 0, 1, 0), XM_PIDIV2 );
+
+		XMVECTOR worldQ =
+			XMVectorSet( worldPose.q.x, worldPose.q.y, worldPose.q.z, worldPose.q.w );
+
+		XMVECTOR debugQ =
+			XMQuaternionMultiply(physxToY, worldQ);
+
 		PxQuat finalQ = ToPxQuat(debugQ);
 
 		m_DebugDraw->DrawCapsule(
 			m_DebugBatch.get(),
-			worldPose.p,
-			capsule.radius,
-			capsule.halfHeight * 2.0f,
+			PxVec3(
+				worldPose.p.x * PHYSX_TO_WORLD,
+				worldPose.p.y * PHYSX_TO_WORLD,
+				worldPose.p.z * PHYSX_TO_WORLD
+			),
+			capsule.radius * PHYSX_TO_WORLD,
+			(capsule.halfHeight * 2.0f) * PHYSX_TO_WORLD,
 			color,
 			finalQ,
-			isTrigger // dashed 전달
+			isTrigger
 		);
 		break;
 	}
@@ -1875,7 +1880,8 @@ void TestApp::DrawPhysXShape(PxShape* shape, const PxTransform& actorPose, FXMVE
 
 void TestApp::DrawCharacterControllers()
 {
-	PxControllerManager* mgr = PhysicsSystem::Get().GetControllerManager();
+	PxControllerManager* mgr =
+		PhysicsSystem::Get().GetControllerManager();
 	if (!mgr) return;
 
 	PxU32 count = mgr->getNbControllers();
@@ -1885,7 +1891,6 @@ void TestApp::DrawCharacterControllers()
 		PxController* cct = mgr->getController(i);
 		if (!cct) continue;
 
-		// PhysX 5 방식 타입 체크
 		if (cct->getType() != PxControllerShapeType::eCAPSULE)
 			continue;
 
@@ -1896,13 +1901,18 @@ void TestApp::DrawCharacterControllers()
 
 		m_DebugDraw->DrawCapsule(
 			m_DebugBatch.get(),
-			PxVec3((float)p.x, (float)p.y, (float)p.z),
-			capsule->getRadius(),
-			capsule->getHeight(),
+			PxVec3(
+				(float)p.x * PHYSX_TO_WORLD,
+				(float)p.y * PHYSX_TO_WORLD,
+				(float)p.z * PHYSX_TO_WORLD
+			),
+			capsule->getRadius() * PHYSX_TO_WORLD,
+			capsule->getHeight() * PHYSX_TO_WORLD,
 			DirectX::Colors::Red
 		);
 	}
 }
+
 
 // [ CCT Actor 수집 함수 ]
 void TestApp::CollectCCTActors()
