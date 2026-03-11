@@ -107,7 +107,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\PhysX_5\include;$(SolutionDir)ThirdParty\PhysX_5\pxshared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\PhysX_5\include\;$(SolutionDir)ThirdParty\PhysX_5\pxshared\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

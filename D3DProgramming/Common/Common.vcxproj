@@ -123,7 +123,11 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\PhysX_5\include;$(SolutionDir)ThirdParty\PhysX_5\pxshared\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\PhysX_5\include\;$(SolutionDir)ThirdParty\PhysX_5\pxshared\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

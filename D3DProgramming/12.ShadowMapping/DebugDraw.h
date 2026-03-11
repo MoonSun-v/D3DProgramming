@@ -1,8 +1,8 @@
 #pragma once
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
-#include <PrimitiveBatch.h>
-#include <VertexTypes.h>
+#include <directxtk/PrimitiveBatch.h>
+#include <directxtk/VertexTypes.h>
 
 class DebugDraw
 {
